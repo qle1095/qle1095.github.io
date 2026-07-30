@@ -543,12 +543,14 @@ button { font-family: inherit; }
 /* ===== Side quests ===== */
 .side-quest {
   position: absolute;
-  /* The progress bar + year markers above are rem-sized (they end at ~88px
-     regardless of window height), so a vh offset here drifts up into them on
-     shorter viewports. Match their units to keep the gap constant. */
-  top: 6.4rem;
+  /* Lives in the band BETWEEN the ghost chapter wordmark and the milestone
+     cards. Anchored to the wordmark's own offset (11vh) plus its cap height,
+     so it clears the letters at any width instead of sitting across them. */
+  top: calc(11vh + 9rem);
   transform: translateX(-50%);
-  width: 17rem;
+  /* Wider than it looks like it needs to be: fewer wrapped lines means a
+     shorter card, which is what actually has to fit in the band. */
+  width: 21rem;
 }
 
 .side-quest-card {
@@ -986,6 +988,21 @@ button { font-family: inherit; }
 .static-milestone p { color: #3c4157; line-height: 1.5; }
 
 .static-skills { margin-top: 0.4rem; font-size: 0.88rem; }
+
+/* ===== Short windows =====
+   Between the year labels (~88px) and the milestone cards there is only about
+   230px of free height on a 760px-tall window, and the wordmark alone eats 134
+   of it. Shrink the decoration and tuck the card up so both still fit. */
+@media (max-height: 820px) {
+  .chapter-label {
+    top: 8vh;
+    font-size: clamp(2.4rem, 6vw, 4rem);
+  }
+
+  .side-quest {
+    top: calc(8vh + 6rem);
+  }
+}
 
 /* ===== Small screens ===== */
 @media (max-width: 640px) {
