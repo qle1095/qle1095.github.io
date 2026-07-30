@@ -31,7 +31,7 @@ export function mountPreview(container: HTMLElement, params: URLSearchParams): v
   renderer.setSize(size, size);
   renderer.setPixelRatio(1);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMappingExposure = 1.12;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = shadow;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -40,25 +40,35 @@ export function mountPreview(container: HTMLElement, params: URLSearchParams): v
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(BACKGROUND);
 
-  // Lighting per spec lightingFromPhoto: warm key upper front character-left,
-  // cool hemisphere fill with faint foliage tint, cool rim from upper rear.
-  const key = new THREE.DirectionalLight(0xfff2e0, 2.4);
-  key.position.set(0.6, 1.0, 0.8).multiplyScalar(3);
-  if (shadow) {
-    key.castShadow = true;
-    key.shadow.mapSize.set(2048, 2048);
-    key.shadow.camera.left = -1;
-    key.shadow.camera.right = 1;
-    key.shadow.camera.top = 2;
-    key.shadow.camera.bottom = -0.5;
-    key.shadow.bias = -0.0005;
+  const flat = params.get('flat') === '1';
+  if (flat) {
+    // De-lit diagnostic mode: uniform ambient only, linear tone mapping.
+    // Materials render at (approximately) their albedo so the Tier-1 per-part
+    // color delta measures albedo agreement, not baked lighting — the same
+    // de-lighting doctrine the pipeline applies to reference photos.
+    renderer.toneMapping = THREE.NoToneMapping;
+    scene.add(new THREE.AmbientLight(0xffffff, 3.1));
+  } else {
+    // Lighting per spec lightingFromPhoto: warm key upper front character-left,
+    // cool hemisphere fill with faint foliage tint, cool rim from upper rear.
+    const key = new THREE.DirectionalLight(0xfff2e0, 2.6);
+    key.position.set(0.6, 1.0, 0.8).multiplyScalar(3);
+    if (shadow) {
+      key.castShadow = true;
+      key.shadow.mapSize.set(2048, 2048);
+      key.shadow.camera.left = -1;
+      key.shadow.camera.right = 1;
+      key.shadow.camera.top = 2;
+      key.shadow.camera.bottom = -0.5;
+      key.shadow.bias = -0.0005;
+    }
+    scene.add(key);
+    const fill = new THREE.HemisphereLight(0xdfe8de, 0x6b6f75, 1.25);
+    scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xdce8ff, 1.4);
+    rim.position.set(-0.4, 0.8, -1.0).multiplyScalar(3);
+    scene.add(rim);
   }
-  scene.add(key);
-  const fill = new THREE.HemisphereLight(0xdfe8de, 0x6b6f75, 0.9);
-  scene.add(fill);
-  const rim = new THREE.DirectionalLight(0xdce8ff, 1.4);
-  rim.position.set(-0.4, 0.8, -1.0).multiplyScalar(3);
-  scene.add(rim);
 
   const model = createLeviChibiModel({ stage, clay, castShadow: shadow });
   scene.add(model);
@@ -97,9 +107,18 @@ export function mountPreview(container: HTMLElement, params: URLSearchParams): v
   let camera: THREE.Camera;
   const target = new THREE.Vector3(0, 0.5, 0);
   if (ortho) {
-    // Diagnostic frame is exact: horizontal [-0.55,0.55], vertical [-0.05,1.05]
-    // relative to a camera at y=0 — matches the spec-derived silhouette card.
-    const cam = new THREE.OrthographicCamera(-0.55, 0.55, 1.05, -0.05, 0.01, 10);
+    // Diagnostic frame is exact and matches the spec-derived silhouette card:
+    // full body [-0.55,0.55]x[-0.05,1.05]; bust (material look-dev close-up)
+    // [-0.35,0.35]x[0.35,1.05].
+    const frame = params.get('frame');
+    const cam =
+      frame === 'bust'
+        ? new THREE.OrthographicCamera(-0.35, 0.35, 1.05, 0.35, 0.01, 10)
+        : frame === 'face'
+          ? new THREE.OrthographicCamera(-0.25, 0.25, 1.05, 0.55, 0.01, 10)
+          : frame === 'collar'
+            ? new THREE.OrthographicCamera(-0.13, 0.13, 0.74, 0.48, 0.01, 10)
+            : new THREE.OrthographicCamera(-0.55, 0.55, 1.05, -0.05, 0.01, 10);
     if (view === 'side') {
       cam.position.set(3, 0, 0);
     } else {

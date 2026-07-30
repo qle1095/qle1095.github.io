@@ -71,18 +71,18 @@ function buildMaterials(clay: boolean): Record<string, THREE.Material> {
       ...extra,
     });
   return {
-    skin: std(0xf2c39b, 0.55),
-    hair: std(0x26201b, 0.58),
+    skin: std(0xf5cca7, 0.5),
+    hair: std(0x2a231c, 0.52),
     'jacket-wool': std(0x1b1c20, 0.85),
-    'lapel-satin': phys(0x26272c, 0.28, 0.25),
+    'lapel-satin': phys(0x2e3037, 0.26, 0.3),
     'shirt-cotton': std(0xf7f5ef, 0.7),
-    'bowtie-satin': phys(0x191a1e, 0.32, 0.2),
+    'bowtie-satin': phys(0x222329, 0.3, 0.3),
     'trouser-wool': std(0x17181b, 0.82),
     'shoe-leather': phys(0x131316, 0.34, 0.3),
     'eye-dark': std(0x221710, 0.24),
     catchlight: std(0xffffff, 0.15, { emissive: 0xffffff, emissiveIntensity: 0.55 }),
     brow: std(0x2a211a, 0.7),
-    mouth: std(0x9c5b49, 0.6),
+    mouth: std(0xc08268, 0.6),
   };
 }
 
