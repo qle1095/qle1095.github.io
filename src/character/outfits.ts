@@ -82,6 +82,10 @@ export function applyOutfit(model: THREE.Group, outfit: Outfit): void {
 
   const showTux = (on: boolean) => TUX_PARTS.forEach((id) => setVisible(id, on));
 
+  // The tactical helmet replaces the quiff (it would clip through the shell);
+  // every other outfit keeps the signature hair.
+  setVisible('hair-quiff', outfit !== 'tactical');
+
   if (outfit === 'dev') {
     showTux(false);
     const hoodie = std(0x4b5566, 0.92);
@@ -189,6 +193,20 @@ export function applyOutfit(model: THREE.Group, outfit: Outfit): void {
     const beltGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.032, 24);
     addExtra(torso, beltGeo, belt, [0, 0.378, 0], { scale: [1, 1, 0.72] });
     addExtra(torso, new THREE.BoxGeometry(0.04, 0.026, 0.014), std(0x8a8f77, 0.5), [0, 0.378, 0.104]);
+    // Tactical helmet: shell over the crown, NVG mount, chin straps.
+    const helmet = std(0x4a5138, 0.85);
+    const helmetDark = std(0x33382a, 0.8);
+    addExtra(head, new THREE.SphereGeometry(0.5, 28, 20), helmet, [0, W(0.883), -0.008], {
+      scale: [0.41, 0.3, 0.4],
+    });
+    addExtra(head, new THREE.BoxGeometry(0.046, 0.038, 0.03), helmetDark, [0, W(0.9), 0.182], {
+      rot: [-0.25, 0, 0],
+    });
+    for (const sx of [1, -1]) {
+      addExtra(head, new THREE.BoxGeometry(0.012, 0.095, 0.014), helmetDark, [sx * 0.162, W(0.76), 0.045], {
+        rot: [0.1, 0, sx * 0.22],
+      });
+    }
   }
 
   if (outfit === 'cyber') {
@@ -234,5 +252,23 @@ export function applyOutfit(model: THREE.Group, outfit: Outfit): void {
     for (const side of ['l', 'r'] as const) {
       addExtra(nodes[`pivot-hip-${side}`], new THREE.BoxGeometry(0.095, 0.014, 0.175), cyan, [0, -0.298, 0.028]);
     }
+    // Neural halo hovering above the head, with three data nodes on the ring.
+    const halo = glow(0x8ffaff, 2.4);
+    addExtra(head, new THREE.TorusGeometry(0.125, 0.013, 10, 40), halo, [0, W(1.055), 0], {
+      rot: [Math.PI / 2 - 0.1, 0, 0],
+    });
+    for (const a of [0, 2.1, 4.2]) {
+      addExtra(
+        head,
+        new THREE.SphereGeometry(0.014, 10, 8),
+        magenta,
+        [Math.cos(a) * 0.125, W(1.055) + Math.sin(-0.1) * Math.sin(a) * 0.125, Math.sin(a) * 0.125 * Math.cos(0.1)],
+      );
+    }
+    // Comms earpiece with a glowing antenna tip.
+    const dark = std(0x1c1e2a, 0.5);
+    addExtra(head, new THREE.BoxGeometry(0.02, 0.034, 0.02), dark, [-0.192, W(0.78), 0.01]);
+    addExtra(head, new THREE.CylinderGeometry(0.0035, 0.0035, 0.07, 8), dark, [-0.196, W(0.83), 0.01]);
+    addExtra(head, new THREE.SphereGeometry(0.008, 10, 8), magenta, [-0.196, W(0.868), 0.01]);
   }
 }
