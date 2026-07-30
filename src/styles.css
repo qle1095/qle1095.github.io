@@ -585,7 +585,9 @@ button { font-family: inherit; }
 }
 
 .chibi-3d {
-  width: 210px;
+  /* Wider than .character (210px) so Lumi fits beside him; the overflow is
+     symmetric, so his on-screen position is unchanged. */
+  width: 340px;
   height: 260px;
   /* The camera framing leaves empty canvas below the feet — pull the canvas
      down so the feet sit on the ground line. */

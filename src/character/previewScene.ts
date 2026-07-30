@@ -18,6 +18,7 @@ import * as THREE from 'three';
 import { createLeviChibiModel, type LeviChibiStage } from './createLeviChibiModel.ts';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { applyOutfit, type Outfit } from './outfits.ts';
+import { createLumiModel } from './lumi.ts';
 
 const BACKGROUND = 0xd4d7da; // light neutral: distinct from skin, shirt, and blacks
 
@@ -77,6 +78,23 @@ export function mountPreview(container: HTMLElement, params: URLSearchParams): v
     const rim = new THREE.DirectionalLight(0xdce8ff, 1.4);
     rim.position.set(-0.4, 0.8, -1.0).multiplyScalar(3);
     scene.add(rim);
+  }
+
+  // ?lumi=1 reviews the cat companion alone, scaled up to fill the frame.
+  if (params.get('lumi') === '1') {
+    const cat = createLumiModel();
+    cat.scale.setScalar(2.6);
+    scene.add(cat);
+    (window as unknown as { __previewReady: boolean }).__previewReady = true;
+    const camL = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+    const v = params.get('view') ?? 'front';
+    if (v === 'front') camL.position.set(0, 0.75, 2.6);
+    else if (v === 'three-quarter') camL.position.set(1.5, 0.85, 2.0);
+    else if (v === 'side') camL.position.set(2.6, 0.7, 0);
+    else camL.position.set(0, 0.8, -2.6);
+    camL.lookAt(0, 0.42, 0);
+    renderer.setAnimationLoop(() => renderer.render(scene, camL));
+    return;
   }
 
   const model = createLeviChibiModel({ stage, clay, castShadow: shadow });

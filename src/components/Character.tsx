@@ -9,6 +9,7 @@ import gsap from 'gsap';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { createLeviChibiModel } from '../character/createLeviChibiModel';
+import { createLumiModel } from '../character/lumi';
 import { applyOutfit, type Outfit } from '../character/outfits';
 
 // The character contract used by JourneyStage. The 3D chibi (img2threejs
@@ -20,7 +21,10 @@ export type CharacterHandle = {
   celebrate: () => void;
 };
 
-const CANVAS_W = 210;
+// The canvas is wider than the character's own 210px box so Lumi has room to
+// trot alongside him. Extra width is symmetric and the camera FOV is vertical,
+// so the character's on-screen size and position are unchanged.
+const CANVAS_W = 340;
 const CANVAS_H = 260;
 // Angled toward the walk direction but turned enough that the face stays lit
 // and readable at ~170px tall.
@@ -32,6 +36,10 @@ type Rig = {
   hipR: THREE.Object3D | null;
   shoulderL: THREE.Object3D | null;
   shoulderR: THREE.Object3D | null;
+  lumi: THREE.Group;
+  lumiLegs: (THREE.Object3D | null)[];
+  lumiTail: THREE.Object3D | null;
+  lumiHead: THREE.Object3D | null;
 };
 
 const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
@@ -95,12 +103,27 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
     applyOutfit(model, outfitRef.current);
     scene.add(model);
 
+    // Lumi trots behind him (screen-left, since he walks right).
+    const lumi = createLumiModel();
+    lumi.position.set(-0.46, 0, 0.12);
+    lumi.rotation.y = FACING;
+    scene.add(lumi);
+
     rigRef.current = {
       model,
       hipL: model.getObjectByName('pivot-hip-l') ?? null,
       hipR: model.getObjectByName('pivot-hip-r') ?? null,
       shoulderL: model.getObjectByName('pivot-shoulder-l') ?? null,
       shoulderR: model.getObjectByName('pivot-shoulder-r') ?? null,
+      lumi,
+      lumiLegs: [
+        lumi.getObjectByName('lumi-leg-fl') ?? null,
+        lumi.getObjectByName('lumi-leg-fr') ?? null,
+        lumi.getObjectByName('lumi-leg-bl') ?? null,
+        lumi.getObjectByName('lumi-leg-br') ?? null,
+      ],
+      lumiTail: lumi.getObjectByName('lumi-tail') ?? null,
+      lumiHead: lumi.getObjectByName('lumi-head') ?? null,
     };
 
     const clock = new THREE.Clock();
@@ -148,6 +171,31 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
       const walkTarget = s.dir === 1 ? FACING : Math.PI - FACING;
       const targetY = walkTarget * (1 - s.waveAmp) + 0.12 * s.waveAmp;
       rig.model.rotation.y += (targetY - rig.model.rotation.y) * Math.min(1, dt * 9);
+
+      /* ---- Lumi: quicker diagonal trot, tail sway, idle look-around ---- */
+      const catPhase = s.phase * 1.55;
+      const catSwing = Math.sin(catPhase) * s.amp;
+      // Diagonal pairs: front-left with back-right, front-right with back-left.
+      if (rig.lumiLegs[0]) rig.lumiLegs[0].rotation.x = catSwing * 0.7;
+      if (rig.lumiLegs[3]) rig.lumiLegs[3].rotation.x = catSwing * 0.7;
+      if (rig.lumiLegs[1]) rig.lumiLegs[1].rotation.x = -catSwing * 0.7;
+      if (rig.lumiLegs[2]) rig.lumiLegs[2].rotation.x = -catSwing * 0.7;
+      rig.lumi.position.y = s.amp * Math.abs(Math.sin(catPhase)) * 0.016;
+      if (rig.lumiTail) {
+        // Sways with the trot, flicks lazily when she's sitting still.
+        rig.lumiTail.rotation.z = Math.sin(catPhase * 0.5) * 0.22 * s.amp + Math.sin(t * 1.4) * 0.12;
+        rig.lumiTail.rotation.x = Math.sin(t * 0.9) * 0.06;
+      }
+      if (rig.lumiHead) {
+        // Looks up at him now and then while idle.
+        const idle = 1 - s.amp;
+        rig.lumiHead.rotation.y = Math.sin(t * 0.6) * 0.28 * idle;
+        rig.lumiHead.rotation.x = -0.12 * idle + Math.sin(t * 2.3) * 0.02;
+      }
+      rig.lumi.rotation.y += (targetY - rig.lumi.rotation.y) * Math.min(1, dt * 7);
+      // Trail on the far side when he turns around, so she stays behind him.
+      const lumiX = s.dir === 1 ? -0.46 : 0.46;
+      rig.lumi.position.x += (lumiX - rig.lumi.position.x) * Math.min(1, dt * 3);
 
       renderer.render(scene, camera);
       raf = requestAnimationFrame(tick);
@@ -217,6 +265,24 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
             yoyo: true,
             repeat: 3,
             onComplete: () => gsap.set(el, { y: 0 }),
+          },
+        );
+      }
+      // Lumi hops along with him.
+      const lumi = rigRef.current?.lumi;
+      if (lumi) {
+        gsap.fromTo(
+          lumi.position,
+          { y: 0 },
+          {
+            y: 0.16,
+            duration: 0.26,
+            ease: 'power2.out',
+            yoyo: true,
+            repeat: 3,
+            onComplete: () => {
+              lumi.position.y = 0;
+            },
           },
         );
       }
