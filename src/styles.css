@@ -98,6 +98,37 @@ body {
   inset: 0 auto 0 0;
   height: 100%;
   will-change: transform;
+  z-index: 2;
+}
+
+/* ===== Parallax scenery ===== */
+.parallax {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.parallax-far { z-index: 0; opacity: 0.85; }
+.parallax-mid { z-index: 1; opacity: 0.95; }
+
+.sc-item {
+  position: absolute;
+  bottom: calc(var(--ground-h) - 8px);
+  transform: translateX(-50%);
+  line-height: 0;
+}
+
+.sc-item svg { display: block; }
+
+.sc-sky { bottom: auto; }
+
+.sc-drift { animation: cloud-drift 46s ease-in-out infinite alternate; }
+
+@keyframes cloud-drift {
+  from { margin-left: 0; }
+  to { margin-left: 90px; }
 }
 
 .chapter-strip {
@@ -126,12 +157,25 @@ body {
   bottom: 0;
   height: var(--ground-h);
   background:
+    /* dashed walking path */
     repeating-linear-gradient(
       90deg,
-      rgba(255, 255, 255, 0.35) 0 40px,
-      transparent 40px 120px
-    ) top/100% 4px no-repeat,
-    linear-gradient(rgba(31, 35, 51, 0.14), rgba(31, 35, 51, 0.05));
+      rgba(255, 255, 255, 0.5) 0 44px,
+      transparent 44px 128px
+    ) top 22px left/100% 5px no-repeat,
+    /* path band */
+    linear-gradient(
+      rgba(255, 255, 255, 0.22) 0 46px,
+      transparent 46px
+    ),
+    /* grass tufts */
+    radial-gradient(6px 10px at 12% 34%, rgba(44, 156, 114, 0.35) 98%, transparent),
+    radial-gradient(5px 9px at 31% 52%, rgba(44, 156, 114, 0.28) 98%, transparent),
+    radial-gradient(6px 10px at 53% 38%, rgba(44, 156, 114, 0.3) 98%, transparent),
+    radial-gradient(5px 8px at 72% 56%, rgba(44, 156, 114, 0.26) 98%, transparent),
+    radial-gradient(6px 10px at 91% 42%, rgba(44, 156, 114, 0.33) 98%, transparent),
+    linear-gradient(rgba(31, 35, 51, 0.16), rgba(31, 35, 51, 0.05));
+  background-size: 100% 5px, 100% 100%, 340px 100%, 340px 100%, 340px 100%, 340px 100%, 340px 100%, 100% 100%;
 }
 
 /* ===== Milestones ===== */
@@ -594,6 +638,25 @@ body {
   from { transform: scale(0.3); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+/* ===== Sound toggle ===== */
+.sound-toggle {
+  position: absolute;
+  right: 1.2rem;
+  bottom: 1.2rem;
+  z-index: 10;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  border: 1px solid rgba(31, 35, 51, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(31, 35, 51, 0.12);
+  transition: transform 0.15s ease;
+}
+
+.sound-toggle:hover { transform: scale(1.08); }
 
 /* ===== Outro ===== */
 .outro {

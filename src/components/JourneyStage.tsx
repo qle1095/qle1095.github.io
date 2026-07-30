@@ -5,7 +5,10 @@ import { buildLayout } from '../lib/layout';
 import Character, { type CharacterHandle } from './Character';
 import MilestoneCard from './MilestoneCard';
 import Rich from './Rich';
+import ParallaxLayer from './Scenery';
 import SkillHUD from './SkillHUD';
+import SoundToggle from './SoundToggle';
+import { sfxCelebrate, sfxPickup } from '../lib/sfx';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -30,6 +33,8 @@ export default function JourneyStage() {
     const ctx = gsap.context(() => {
       const scrollDist = () =>
         Math.max(1, layout.worldWidth - window.innerWidth);
+
+      const parallaxEls = gsap.utils.toArray<HTMLElement>('.parallax', stage);
 
       // The card nearest the character is "active": full size, story expanded.
       const cardEls = gsap.utils.toArray<HTMLElement>('.milestone');
@@ -67,6 +72,10 @@ export default function JourneyStage() {
             if (progressFillRef.current) {
               progressFillRef.current.style.width = `${self.progress * 100}%`;
             }
+            const shift = scrollDist() * self.progress;
+            parallaxEls.forEach((el) => {
+              el.style.transform = `translate3d(${-shift * Number(el.dataset.speed)}px,0,0)`;
+            });
             updateActive(self.progress);
             const v = self.getVelocity();
             if (Math.abs(v) > 30) {
@@ -101,7 +110,10 @@ export default function JourneyStage() {
             trigger: el,
             containerAnimation: worldTween,
             start: `left ${CHARACTER_AT * 100 + 8}%`,
-            onEnter: () => characterRef.current?.celebrate(),
+            onEnter: () => {
+              characterRef.current?.celebrate();
+              sfxCelebrate();
+            },
           });
         }
       });
@@ -114,6 +126,7 @@ export default function JourneyStage() {
           start: `left ${CHARACTER_AT * 100 + 4}%`,
           onEnter: () => {
             el.classList.add('collected');
+            sfxPickup();
             const id = el.dataset.skillId;
             if (id) setCollected((prev) => new Set(prev).add(id));
           },
@@ -162,6 +175,8 @@ export default function JourneyStage() {
 
   return (
     <section className="stage" ref={stageRef}>
+      <ParallaxLayer layout={layout} speed={0.3} band="far" />
+      <ParallaxLayer layout={layout} speed={0.6} band="mid" />
       <div
         className="world"
         ref={worldRef}
@@ -227,6 +242,7 @@ export default function JourneyStage() {
       </div>
 
       <SkillHUD collected={collected} />
+      <SoundToggle />
     </section>
   );
 }
