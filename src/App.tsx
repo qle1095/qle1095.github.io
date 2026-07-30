@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
+import Character, { type CharacterHandle } from './components/Character';
 import Hero from './components/Hero';
 import JourneyStage from './components/JourneyStage';
 import Outro from './components/Outro';
@@ -24,6 +25,7 @@ function usePrefersReducedMotion() {
 
 export default function App() {
   const reducedMotion = usePrefersReducedMotion();
+  const characterRef = useRef<CharacterHandle>(null);
 
   useEffect(() => {
     if (reducedMotion) return;
@@ -51,7 +53,13 @@ export default function App() {
   return (
     <>
       <Hero />
-      <JourneyStage />
+      {/* Fixed overlay: one character lives across the hero and the stage.
+          It must NOT sit inside the pinned (transformed) stage, or
+          position:fixed would break. */}
+      <div className="character-layer">
+        <Character ref={characterRef} />
+      </div>
+      <JourneyStage characterRef={characterRef} />
       <Outro />
     </>
   );

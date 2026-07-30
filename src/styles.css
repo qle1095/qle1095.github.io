@@ -568,15 +568,20 @@ button { font-family: inherit; }
 }
 
 /* ===== Character (CSS placeholder chibi) ===== */
-.character {
-  position: absolute;
-  left: 35vw;
+.character-layer {
+  position: fixed;
+  left: 0;
   bottom: calc(var(--ground-h) - 1.2rem);
-  z-index: 5;
+  z-index: 6;
   pointer-events: none;
+  will-change: transform;
+}
+
+.character {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 210px;
 }
 
 .chibi-3d {
@@ -982,7 +987,6 @@ button { font-family: inherit; }
   .milestone { width: 16rem; }
   .milestone.is-celebrate { width: 17.5rem; }
   .chapter-label { top: 8vh; font-size: 2.6rem; -webkit-text-stroke-width: 1.2px; }
-  .character { left: 22vw; }
   .skill-hud { max-width: 74vw; padding: 0.45rem 0.55rem 0.5rem; }
   .skill-hud-name { display: none; }
   .side-quest { display: none; }

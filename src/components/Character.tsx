@@ -13,6 +13,7 @@ import { createLeviChibiModel } from '../character/createLeviChibiModel';
 // pipeline output) implements it; a CSS chibi remains as the no-WebGL fallback.
 export type CharacterHandle = {
   setWalking: (walking: boolean, direction: 1 | -1) => void;
+  setWaving: (waving: boolean) => void;
   celebrate: () => void;
 };
 
@@ -34,7 +35,14 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
   const rootRef = useRef<HTMLDivElement>(null);
   const mountRef = useRef<HTMLDivElement>(null);
   const rigRef = useRef<Rig | null>(null);
-  const stateRef = useRef({ walking: false, dir: 1 as 1 | -1, amp: 0, phase: 0 });
+  const stateRef = useRef({
+    walking: false,
+    dir: 1 as 1 | -1,
+    amp: 0,
+    phase: 0,
+    waving: false,
+    waveAmp: 0,
+  });
   const [webglFailed, setWebglFailed] = useState(false);
 
   useEffect(() => {
@@ -90,8 +98,9 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
       const s = stateRef.current;
       const rig = rigRef.current!;
 
-      // Ease the stride in/out instead of snapping.
+      // Ease the stride and the wave in/out instead of snapping.
       s.amp += ((s.walking ? 1 : 0) - s.amp) * Math.min(1, dt * 8);
+      s.waveAmp += ((s.waving ? 1 : 0) - s.waveAmp) * Math.min(1, dt * 6);
       if (s.walking) s.phase += dt * 9;
       const swing = Math.sin(s.phase) * s.amp;
       if (rig.hipL && rig.hipR) {
@@ -101,6 +110,9 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
       if (rig.shoulderL && rig.shoulderR) {
         rig.shoulderL.rotation.x = -swing * 0.45;
         rig.shoulderR.rotation.x = swing * 0.45;
+        // Raised waving arm blends over whatever the walk pose says.
+        rig.shoulderR.rotation.z =
+          (-1.95 + Math.sin(t * 6.5) * 0.4) * s.waveAmp;
       }
 
       // Step bounce while walking, gentle breath while idle.
@@ -108,7 +120,9 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
         s.amp * Math.abs(Math.cos(s.phase)) * 0.028 +
         (1 - s.amp) * Math.sin(t * 2) * 0.007;
 
-      const targetY = s.dir === 1 ? FACING : Math.PI - FACING;
+      // Face nearly front while waving hello, walk direction otherwise.
+      const walkTarget = s.dir === 1 ? FACING : Math.PI - FACING;
+      const targetY = walkTarget * (1 - s.waveAmp) + 0.12 * s.waveAmp;
       rig.model.rotation.y += (targetY - rig.model.rotation.y) * Math.min(1, dt * 9);
 
       renderer.render(scene, camera);
@@ -136,6 +150,9 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
         el.classList.toggle('walking', walking);
         el.style.setProperty('--facing', String(direction));
       }
+    },
+    setWaving(waving) {
+      stateRef.current.waving = waving;
     },
     celebrate() {
       const el = rootRef.current;

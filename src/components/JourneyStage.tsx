@@ -1,8 +1,8 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { buildLayout } from '../lib/layout';
-import Character, { type CharacterHandle } from './Character';
+import { type CharacterHandle } from './Character';
 import MilestoneCard from './MilestoneCard';
 import Rich from './Rich';
 import ParallaxLayer from './Scenery';
@@ -17,13 +17,16 @@ gsap.registerPlugin(ScrollTrigger);
 // scroll-x = x - CHARACTER_AT * viewportWidth.
 const CHARACTER_AT = 0.35;
 
-export default function JourneyStage() {
+export default function JourneyStage({
+  characterRef,
+}: {
+  characterRef: RefObject<CharacterHandle | null>;
+}) {
   const layout = useMemo(() => buildLayout(), []);
   const stageRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const progressFillRef = useRef<HTMLDivElement>(null);
   const companyRef = useRef<HTMLDivElement>(null);
-  const characterRef = useRef<CharacterHandle>(null);
   const [collected, setCollected] = useState<Set<string>>(new Set());
 
   useLayoutEffect(() => {
@@ -34,6 +37,43 @@ export default function JourneyStage() {
     const ctx = gsap.context(() => {
       const scrollDist = () =>
         Math.max(1, layout.worldWidth - window.innerWidth);
+
+      // --- Hero entrance: the character waves under the name, then leaps
+      // down to its walking spot as the hero scrolls away. ---
+      const charLayer = document.querySelector<HTMLElement>('.character-layer');
+      const heroEl = document.querySelector<HTMLElement>('.hero');
+      const charW = 210;
+      const heroX = () => window.innerWidth * 0.5 - charW / 2;
+      const walkX = () =>
+        window.innerWidth * (window.innerWidth <= 640 ? 0.22 : CHARACTER_AT);
+      if (charLayer && heroEl) {
+        gsap.set(charLayer, { x: heroX(), y: -14 });
+        characterRef.current?.setWaving(true);
+        gsap
+          .timeline({
+            scrollTrigger: {
+              trigger: heroEl,
+              start: 'top top',
+              end: 'bottom 35%',
+              scrub: 0.4,
+              invalidateOnRefresh: true,
+              onUpdate(self) {
+                characterRef.current?.setWaving(self.progress < 0.06);
+              },
+            },
+          })
+          .to(charLayer, { x: () => walkX(), ease: 'none', duration: 1 }, 0)
+          .to(
+            charLayer,
+            {
+              keyframes: [
+                { y: -130, ease: 'power2.out', duration: 0.42 },
+                { y: 0, ease: 'power2.in', duration: 0.58 },
+              ],
+            },
+            0,
+          );
+      }
 
       const parallaxEls = gsap.utils.toArray<HTMLElement>('.parallax', stage);
 
@@ -69,6 +109,14 @@ export default function JourneyStage() {
           scrub: 0.6,
           pin: true,
           invalidateOnRefresh: true,
+          onLeave() {
+            // The journey is over — drop the fixed character out of view
+            // before the outro scrolls in.
+            if (charLayer) gsap.to(charLayer, { autoAlpha: 0, y: 140, duration: 0.35 });
+          },
+          onEnterBack() {
+            if (charLayer) gsap.to(charLayer, { autoAlpha: 1, y: 0, duration: 0.35 });
+          },
           onUpdate(self) {
             if (progressFillRef.current) {
               progressFillRef.current.style.width = `${self.progress * 100}%`;
@@ -234,8 +282,6 @@ export default function JourneyStage() {
           </div>
         ))}
       </div>
-
-      <Character ref={characterRef} />
 
       <div className="progress" role="navigation" aria-label="Timeline">
         <div className="company-badge" ref={companyRef} aria-live="polite" />
