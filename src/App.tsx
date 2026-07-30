@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
@@ -25,13 +25,9 @@ function usePrefersReducedMotion() {
 export default function App() {
   const reducedMotion = usePrefersReducedMotion();
 
-  const lenis = useMemo(() => {
-    if (reducedMotion) return null;
-    return new Lenis();
-  }, [reducedMotion]);
-
   useEffect(() => {
-    if (!lenis) return;
+    if (reducedMotion) return;
+    const lenis = new Lenis();
     lenis.on('scroll', ScrollTrigger.update);
     const raf = (time: number) => lenis.raf(time * 1000);
     gsap.ticker.add(raf);
@@ -40,7 +36,7 @@ export default function App() {
       gsap.ticker.remove(raf);
       lenis.destroy();
     };
-  }, [lenis]);
+  }, [reducedMotion]);
 
   if (reducedMotion) {
     return (
