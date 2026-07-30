@@ -80,6 +80,30 @@ export function applyOutfit(model: THREE.Group, outfit: Outfit): void {
   /** Open half-cylinder shell for plating a limb that runs along Y. */
   const limbShell = (radius: number, height: number, thetaStart: number, thetaLength: number) =>
     new THREE.CylinderGeometry(radius, radius, height, 20, 1, true, thetaStart, thetaLength);
+  /** Rod spanning two points — antennas, booms, cables. Saves hand-solving
+   *  Euler angles for anything that isn't axis-aligned. */
+  const addStrut = (
+    parent: THREE.Object3D | undefined,
+    mat: THREE.Material,
+    radius: number,
+    from: [number, number, number],
+    to: [number, number, number],
+    taper = 1,
+  ) => {
+    if (!parent) return;
+    const a = new THREE.Vector3(...from);
+    const b = new THREE.Vector3(...to);
+    const dir = b.clone().sub(a);
+    const len = dir.length();
+    const geo = new THREE.CylinderGeometry(radius * taper, radius, len, 10);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(a).add(b).multiplyScalar(0.5);
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+    mesh.castShadow = true;
+    parent.add(mesh);
+    res.geos.push(geo);
+    res.extras.push(mesh);
+  };
 
   const setMat = (id: string, mat: THREE.Material) => {
     const mesh = meshes[id];
@@ -199,12 +223,22 @@ export function applyOutfit(model: THREE.Group, outfit: Outfit): void {
 
   if (outfit === 'tactical') {
     showTux(false);
+    /* ---- palette: multi-tone modern kit — ranger-green nylon, coyote
+       pouches, rubberised black hardware, amber displays (deliberately NOT
+       cyan, so the defense era stays distinct from the AI era). */
     const field = std(0x5c6247, 0.92);
     const cargo = std(0x4d4f3d, 0.9);
-    const boot = std(0x1c1c1e, 0.6);
+    const boot = std(0x1c1c1e, 0.55);
     const vest = std(0x394030, 0.95);
-    const pouch = std(0x2f3527, 0.95);
+    const pouch = std(0x8a7350, 0.92); // coyote brown
+    const pouchDark = std(0x2f3527, 0.95);
     const belt = std(0x26291f, 0.85);
+    const rubber = std(0x17181a, 0.65, { metalness: 0.15 });
+    const hardware = std(0x9aa2ad, 0.35, { metalness: 0.85 });
+    const glass = std(0x14261c, 0.15, { metalness: 0.5 });
+    const amberLive = livingGlow(0xffab3d, 1.0);
+    const greenLive = livingGlow(0x7de08a, 0.85);
+
     setMat('torso-jacket', field);
     setMat('arm-l', field);
     setMat('arm-r', field);
@@ -213,37 +247,160 @@ export function applyOutfit(model: THREE.Group, outfit: Outfit): void {
     setMat('leg-r', cargo);
     setMat('shoe-l', boot);
     setMat('shoe-r', boot);
-    // Plate carrier vest + pouches + belt.
+
+    /* ---------------- plate carrier ---------------- */
     addExtra(torso, new THREE.BoxGeometry(0.2, 0.185, 0.04), vest, [0, 0.505, 0.093], {
       rot: [-0.18, 0, 0],
     });
     addExtra(torso, new THREE.BoxGeometry(0.2, 0.15, 0.035), vest, [0, 0.51, -0.09], {
       rot: [0.15, 0, 0],
     });
-    for (const sx of [1, -1]) {
-      addExtra(torso, new THREE.BoxGeometry(0.052, 0.05, 0.032), pouch, [sx * 0.058, 0.42, 0.108], {
-        rot: [-0.3, 0, 0],
+    // MOLLE webbing rows across the front plate.
+    for (let i = 0; i < 3; i += 1) {
+      addExtra(torso, new THREE.BoxGeometry(0.17, 0.007, 0.008), pouchDark, [
+        0,
+        0.556 - i * 0.031,
+        0.116 - i * 0.004,
+      ], { rot: [-0.18, 0, 0] });
+    }
+    // Triple magazine pouches low on the carrier.
+    for (const sx of [-1, 0, 1]) {
+      addExtra(torso, new THREE.BoxGeometry(0.05, 0.058, 0.034), pouch, [sx * 0.056, 0.437, 0.117], {
+        rot: [-0.12, 0, 0],
       });
-      // Shoulder straps joining front and back plates.
+      addExtra(torso, new THREE.BoxGeometry(0.05, 0.008, 0.01), pouchDark, [sx * 0.056, 0.462, 0.132], {
+        rot: [-0.12, 0, 0],
+      });
+    }
+    // Admin pouch, upper left chest.
+    addExtra(torso, new THREE.BoxGeometry(0.062, 0.048, 0.026), pouch, [0.056, 0.556, 0.116], {
+      rot: [-0.2, 0, 0],
+    });
+    // Shoulder straps joining front and back plates, with a subdued patch and
+    // an IFF strobe on the left strap.
+    for (const sx of [1, -1]) {
       addExtra(torso, new THREE.BoxGeometry(0.045, 0.02, 0.16), vest, [sx * 0.075, 0.6, 0.0]);
     }
-    const beltGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.032, 24);
-    addExtra(torso, beltGeo, belt, [0, 0.378, 0], { scale: [1, 1, 0.72] });
-    addExtra(torso, new THREE.BoxGeometry(0.04, 0.026, 0.014), std(0x8a8f77, 0.5), [0, 0.378, 0.104]);
-    // Tactical helmet: shell over the crown, NVG mount, chin straps.
+    addExtra(torso, new THREE.BoxGeometry(0.03, 0.004, 0.022), pouchDark, [0.075, 0.611, 0.05]);
+    // IFF strobe, front of the strap so it actually reads.
+    addExtra(torso, new THREE.SphereGeometry(0.0085, 10, 8), amberLive, [0.075, 0.613, 0.052]);
+    // Belt with a metal buckle.
+    addExtra(torso, new THREE.CylinderGeometry(0.15, 0.15, 0.032, 24), belt, [0, 0.378, 0], {
+      scale: [1, 1, 0.72],
+    });
+    addExtra(torso, new THREE.BoxGeometry(0.042, 0.028, 0.014), hardware, [0, 0.378, 0.104]);
+    // Radio on the back-left plate + whip antenna clearing the helmet.
+    addExtra(torso, new THREE.BoxGeometry(0.05, 0.078, 0.03), pouchDark, [0.072, 0.5, -0.113], {
+      rot: [0.15, 0, 0],
+    });
+    addStrut(torso, rubber, 0.004, [0.088, 0.54, -0.125], [0.104, 0.73, -0.225], 0.55);
+    addExtra(torso, new THREE.SphereGeometry(0.007, 8, 6), rubber, [0.104, 0.732, -0.227]);
+
+    /* ---------------- helmet + comms ---------------- */
     const helmet = std(0x4a5138, 0.85);
     const helmetDark = std(0x33382a, 0.8);
     addExtra(head, new THREE.SphereGeometry(0.5, 28, 20), helmet, [0, W(0.883), -0.008], {
       scale: [0.41, 0.3, 0.4],
     });
-    addExtra(head, new THREE.BoxGeometry(0.046, 0.038, 0.03), helmetDark, [0, W(0.9), 0.182], {
-      rot: [-0.25, 0, 0],
+    // Accessory rails down both sides of the shell.
+    for (const sx of [1, -1]) {
+      addExtra(head, new THREE.BoxGeometry(0.014, 0.022, 0.13), helmetDark, [
+        sx * 0.192,
+        W(0.878),
+        -0.005,
+      ], { rot: [0, 0, sx * 0.12] });
+    }
+    // Counterweight pouch on the back of the shell.
+    addExtra(head, new THREE.BoxGeometry(0.1, 0.062, 0.05), pouchDark, [0, W(0.86), -0.185], {
+      rot: [0.25, 0, 0],
+    });
+    // Front brim so the shell reads as a helmet, not a bike lid.
+    addExtra(head, new THREE.TorusGeometry(0.2, 0.012, 8, 26, Math.PI * 1.15), helmetDark, [
+      0,
+      W(0.845),
+      -0.008,
+    ], { rot: [1.62, 0, -0.08], scale: [1, 1.02, 1] });
+    // NVG bracket + flipped-up binocular tubes. These must sit PROUD of the
+    // helmet's front surface (z≈0.198 at brow height) or they read as bumps
+    // moulded into the crown.
+    addExtra(head, new THREE.BoxGeometry(0.05, 0.05, 0.034), helmetDark, [0, W(0.898), 0.203], {
+      rot: [-0.2, 0, 0],
+    });
+    addExtra(head, new THREE.BoxGeometry(0.082, 0.018, 0.022), rubber, [0, W(0.932), 0.211]);
+    for (const sx of [1, -1]) {
+      addStrut(head, rubber, 0.022, [sx * 0.037, W(0.936), 0.212], [sx * 0.037, W(1.008), 0.192]);
+      addExtra(head, new THREE.CylinderGeometry(0.02, 0.02, 0.009, 16), glass, [
+        sx * 0.037,
+        W(1.012),
+        0.191,
+      ], { rot: [0.27, 0, 0] });
+    }
+    // Chin straps + buckle.
+    for (const sx of [1, -1]) {
+      addStrut(head, rubber, 0.006, [sx * 0.172, W(0.83), 0.03], [sx * 0.062, W(0.7), 0.075]);
+    }
+    addExtra(head, new THREE.BoxGeometry(0.022, 0.016, 0.012), hardware, [0.062, W(0.7), 0.078]);
+    // Headset: earcup over the left ear with a boom mic to the mouth.
+    addExtra(head, new THREE.CylinderGeometry(0.042, 0.042, 0.026, 20), rubber, [0.188, W(0.78), 0.005], {
+      rot: [0, 0, Math.PI / 2],
+    });
+    addExtra(head, new THREE.CylinderGeometry(0.03, 0.03, 0.01, 20), helmetDark, [0.203, W(0.78), 0.005], {
+      rot: [0, 0, Math.PI / 2],
+    });
+    addStrut(head, rubber, 0.005, [0.186, W(0.755), 0.03], [0.058, W(0.712), 0.135]);
+    addExtra(head, new THREE.SphereGeometry(0.011, 10, 8), rubber, [0.055, W(0.71), 0.14]);
+    // Comms cable from the earcup down to the radio.
+    addStrut(head, rubber, 0.0045, [0.19, W(0.755), -0.02], [0.15, W(0.665), -0.06]);
+
+    /* ---------------- wrist computer + limb kit ---------------- */
+    const armPivot = nodes['pivot-shoulder-l'];
+    // Forearm-mounted nav computer with a lit screen — the "defense tech" beat.
+    addExtra(armPivot, new THREE.BoxGeometry(0.052, 0.038, 0.022), rubber, [0.043, -0.183, 0.038], {
+      rot: [0, -0.25, -0.1],
+    });
+    addExtra(armPivot, new THREE.BoxGeometry(0.04, 0.027, 0.004), greenLive, [0.049, -0.183, 0.05], {
+      rot: [0, -0.25, -0.1],
     });
     for (const sx of [1, -1]) {
-      addExtra(head, new THREE.BoxGeometry(0.012, 0.095, 0.014), helmetDark, [sx * 0.162, W(0.76), 0.045], {
-        rot: [0.1, 0, sx * 0.22],
-      });
+      // Straps holding it to the forearm.
+      addExtra(nodes[`pivot-shoulder-l`], new THREE.BoxGeometry(0.012, 0.05, 0.05), pouchDark, [
+        0.043 + sx * 0.022,
+        -0.183,
+        0.02,
+      ], { rot: [0, 0, -0.1] });
     }
+    // Elbow pad on the human-side arm for symmetry of kit.
+    addExtra(nodes['pivot-shoulder-r'], new THREE.SphereGeometry(0.5, 16, 12), pouchDark, [
+      -0.033,
+      -0.115,
+      0.03,
+    ], { scale: [0.055, 0.06, 0.05] });
+
+    for (const side of ['l', 'r'] as const) {
+      const legPivot = nodes[`pivot-hip-${side}`];
+      // Kneepad — tinted, not black, or it merges with the boot below it.
+      addExtra(legPivot, new THREE.SphereGeometry(0.5, 18, 14), pouchDark, [0, -0.15, 0.03], {
+        scale: [0.092, 0.098, 0.056],
+      });
+      addExtra(legPivot, new THREE.BoxGeometry(0.088, 0.007, 0.03), rubber, [0, -0.128, 0.036]);
+      // Boot cuff.
+      addExtra(legPivot, new THREE.CylinderGeometry(0.052, 0.052, 0.028, 18), boot, [0, -0.232, 0.004]);
+    }
+    // Drop-leg pouch on the character-left thigh.
+    addExtra(nodes['pivot-hip-l'], new THREE.BoxGeometry(0.046, 0.062, 0.038), pouch, [
+      0.046,
+      -0.115,
+      0.018,
+    ], { rot: [0, 0, 0.06] });
+    addExtra(nodes['pivot-hip-l'], new THREE.BoxGeometry(0.05, 0.008, 0.012), pouchDark, [
+      0.046,
+      -0.088,
+      0.03,
+    ]);
+    // Sling swivel detail at the belt line.
+    addExtra(torso, new THREE.TorusGeometry(0.012, 0.004, 8, 14), hardware, [-0.09, 0.4, 0.075], {
+      rot: [0.4, 0.5, 0],
+    });
   }
 
   if (outfit === 'cyber') {
