@@ -158,9 +158,9 @@ export const chapters: Chapter[] = [
         date: '2022-04',
         display: 'Apr 2022',
         title: 'Joined Raft',
-        subtitle: 'Associate Software Engineer',
+        subtitle: 'Employee #47 · Associate Software Engineer',
         story:
-          'Traded big-bank guardrails for **startup speed**, building **cloud-native systems** for government customers.',
+          'Joined as **employee #47** — now **350+** — trading big-bank guardrails for **startup speed**, building **cloud-native systems** for government customers.',
         kind: 'job',
         skills: [
           { id: 'go', label: 'Go', icon: '🐹' },
@@ -216,7 +216,7 @@ export const chapters: Chapter[] = [
         title: 'Data Fabric — Tech Lead',
         subtitle: '12-engineer cross-functional team',
         story:
-          '**“Google over your data”**: search thousands of datasets across **200+ sources**, with **row- and column-level access control**. Led a **12-engineer team** end to end.',
+          '**“Google over your data”**: search thousands of datasets across **200+ sources**, serving **hundreds of users** with **row- and column-level access control**. Led a **12-engineer team** end to end and onboarded **~10 data vendors**.',
         kind: 'launch',
         skills: [
           { id: 'kafka', label: 'Kafka', icon: '🌀' },
@@ -230,7 +230,7 @@ export const chapters: Chapter[] = [
         title: 'CBC2 — 10,000 msg/s',
         subtitle: 'Real-time mission pipeline',
         story:
-          'Designed Raft’s initial architecture for a real-time mission pipeline, then hit the contract’s **10,000 messages-per-second** requirement with **Kafka Streams**.',
+          'Born from a **hackathon win**. Designed Raft’s initial architecture, streamed live data over **WebSockets**, and hit the contract’s **10,000 messages-per-second** requirement with **Kafka Streams**.',
         kind: 'launch',
         skills: [{ id: 'scala', label: 'Scala', icon: '🌶️' }],
       },
@@ -252,9 +252,9 @@ export const chapters: Chapter[] = [
         date: '2025-03',
         display: '2025',
         title: 'CKAD Certified',
-        subtitle: '+ CompTIA Security+',
+        subtitle: '+ CompTIA Security+ (SY0-701)',
         story:
-          '**Certified Kubernetes Application Developer**, stacked on **CompTIA Security+** and an active **TS/SCI clearance**.',
+          '**Certified Kubernetes Application Developer**, stacked on **CompTIA Security+ (SY0-701)** and an active **TS/SCI clearance** held since 2022.',
         kind: 'achievement',
         celebrate: true,
       },
@@ -273,7 +273,7 @@ export const chapters: Chapter[] = [
         title: 'Vulnerability Assessment Platform',
         subtitle: 'Full-stack owner',
         story:
-          'The platform security analysts use to clear releases carrying **tens of thousands of CVE findings** — automated aggregation, **risk scoring**, and **auditable decisions**.',
+          'The platform security analysts use to clear releases carrying **tens of thousands of CVE findings** — automated aggregation, **risk scoring**, and auditable decisions letting **five analysts** clear a release.',
         kind: 'launch',
         skills: [
           { id: 'typescript', label: 'TypeScript', icon: '🟦' },
@@ -286,12 +286,22 @@ export const chapters: Chapter[] = [
         title: 'Self-Hosted AI Agents',
         subtitle: 'Privacy-preserving LLM workflows',
         story:
-          'Designed **multi-agent workflows** on **fully self-hosted models** — drafting CVE justifications from analyst-approved precedent. **No customer data ever leaves the environment.**',
+          'Cut a **~5-minute-per-CVE** research burden: **multi-agent workflows** on **fully self-hosted models** (Ollama, Gemma) draft justifications from analyst-approved precedent, every one human-approved. **No customer data ever leaves the environment.**',
         kind: 'launch',
         skills: [
           { id: 'ollama', label: 'Ollama', icon: '🦙' },
           { id: 'agents', label: 'Multi-Agent AI', icon: '🤖' },
         ],
+      },
+      {
+        id: 'securityx',
+        date: '2026-05',
+        display: 'In progress',
+        title: 'CompTIA SecurityX',
+        subtitle: 'CAS-005 — in progress',
+        story:
+          'Levelling up the security credentials that back the vulnerability work: **CompTIA SecurityX (CAS-005)**, currently in progress.',
+        kind: 'education',
       },
       {
         id: 'acquisition',
@@ -314,14 +324,14 @@ export const sideQuests: SideQuest[] = [
     date: '2024-06',
     title: 'Side Quest: Tea Shop Automation',
     story:
-      'Full-stack ops platform for a local tea shop — **in production at up to 100 orders/day**. Self-service kiosk, live prep queue; **new-hire ramp-up cut from a month to days**.',
+      'Full-stack ops platform for a local tea shop — **in production at up to 100 orders/day**. Links **Square POS** to standardized recipes, with a self-service kiosk and live prep queue; **new-hire ramp-up cut from a month to days**.',
   },
   {
     id: 'health-coach',
     date: '2025-11',
     title: 'Side Quest: AI Health Coach',
     story:
-      'Multi-agent Fitbit assistant — **nutrition, exercise, and sleep agents** collaborate on your data for personalized coaching.',
+      'Multi-agent Fitbit assistant built on the **Google Agent Development Kit** — **nutrition, exercise, and sleep agents** collaborate on your data for personalized coaching.',
   },
 ];
 
