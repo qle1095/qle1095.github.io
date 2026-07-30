@@ -5,3 +5,6 @@ photo.jpg
 assets-src/**/*.png
 assets-src/*.jpg
 tsconfig.tsbuildinfo
+
+# Source copy; the served one is public/resume.pdf
+resume.pdf
