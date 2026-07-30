@@ -88,7 +88,7 @@ export const chapters: Chapter[] = [
       {
         id: 'fiu-grad',
         date: '2019-12',
-        display: '2019',
+        display: 'Dec 2019',
         title: 'B.S. — IT Software Development',
         subtitle: 'Florida International University · magna cum laude',
         story: 'Graduated **magna cum laude** from FIU in Miami, already with **two internships** in the bag.',
@@ -106,7 +106,7 @@ export const chapters: Chapter[] = [
       {
         id: 'jpmc-sep',
         date: '2020-02',
-        display: '2020',
+        display: 'Feb 2020',
         title: 'Software Engineer',
         subtitle: 'JPMorgan Chase — Software Engineer Program',
         story:
@@ -188,7 +188,7 @@ export const chapters: Chapter[] = [
       {
         id: 'staff-promo',
         date: '2023-04',
-        display: '2023',
+        display: 'Apr 2023',
         title: 'Associate → Staff',
         subtitle: 'Skipped Senior entirely',
         story:
@@ -206,6 +206,7 @@ export const chapters: Chapter[] = [
       {
         id: 'data-fabric',
         date: '2023-07',
+        display: '2023',
         title: 'Data Fabric — Tech Lead',
         subtitle: '12-engineer cross-functional team',
         story:
