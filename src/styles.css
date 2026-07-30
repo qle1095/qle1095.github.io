@@ -543,7 +543,10 @@ button { font-family: inherit; }
 /* ===== Side quests ===== */
 .side-quest {
   position: absolute;
-  top: 9vh;
+  /* The progress bar + year markers above are rem-sized (they end at ~88px
+     regardless of window height), so a vh offset here drifts up into them on
+     shorter viewports. Match their units to keep the gap constant. */
+  top: 6.4rem;
   transform: translateX(-50%);
   width: 17rem;
 }
