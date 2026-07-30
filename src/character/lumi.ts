@@ -17,6 +17,7 @@
  *
  * Named nodes for the render loop:
  *   'lumi-leg-fl' | 'lumi-leg-fr' | 'lumi-leg-bl' | 'lumi-leg-br'
+ *   'lumi-core' (hip pivot: rocks back for the sitting wave)
  *   'lumi-tail' | 'lumi-head' | 'lumi-ear-l' | 'lumi-ear-r'
  *
  * Deterministic: no randomness.
@@ -36,6 +37,8 @@ const EYE_GREEN = 0xa8c65e;
 const HEAD = { y: 0.205, z: 0.152, dx: 0.145, dy: 0.137, dz: 0.137 };
 /** Body: centre and full diameters. */
 const BODY = { y: 0.135, z: -0.02, dx: 0.165, dy: 0.15, dz: 0.3 };
+/** Hip pivot: everything forward of it rocks back when she sits up to wave. */
+const CORE = { y: 0.105, z: -0.1 };
 
 /** Partial sphere shell for fur patches that hug a body without bulging.
  *  phi: π/2 = front (+Z), π = her left (+X). theta: 0 = top. */
@@ -92,19 +95,28 @@ export function createLumiModel(): THREE.Group {
   };
 
   /* ------------------------------- body ------------------------------- */
+  // Everything forward of the hips hangs off a core group, so she can rock
+  // back onto her haunches for the maneki-neko wave. Core sits at the hip.
+  const core = new THREE.Group();
+  core.name = 'lumi-core';
+  core.position.set(0, CORE.y, CORE.z);
+  root.add(core);
+  nodes['lumi-core'] = core;
+  const C = (x: number, y: number, z: number): [number, number, number] => [x, y - CORE.y, z - CORE.z];
+
   // Squat and long: a leggy build reads as a rabbit, not a cat.
-  add('lumi-body', root, sphereHi, white, [0, BODY.y, BODY.z], {
+  add('lumi-body', core, sphereHi, white, C(0, BODY.y, BODY.z), {
     scale: [BODY.dx, BODY.dy, BODY.dz],
   });
-  add('lumi-haunch', root, sphereLo, white, [0, 0.125, -0.135], {
+  add('lumi-haunch', core, sphereLo, white, C(0, 0.125, -0.135), {
     scale: [0.16, 0.145, 0.14],
   });
   // Black patches over the shoulder and the hip, hugging the body surface.
-  add('lumi-patch-shoulder', root, shell(0.95, 3.4, 0.0, 1.1), patch, [0, BODY.y, BODY.z], {
+  add('lumi-patch-shoulder', core, shell(0.95, 3.4, 0.0, 1.1), patch, C(0, BODY.y, BODY.z), {
     scale: [BODY.dx + 0.008, BODY.dy + 0.008, BODY.dz + 0.008],
     rot: [-0.42, 0, 0],
   });
-  add('lumi-patch-hip', root, shell(0.65, 4.0, 0.0, 1.45), patch, [0, 0.125, -0.135], {
+  add('lumi-patch-hip', core, shell(0.65, 4.0, 0.0, 1.45), patch, C(0, 0.125, -0.135), {
     scale: [0.168, 0.153, 0.148],
     rot: [0.55, 0, 0],
   });
@@ -120,8 +132,13 @@ export function createLumiModel(): THREE.Group {
   for (const [name, x, z] of legs) {
     const pivot = new THREE.Group();
     pivot.name = name;
-    pivot.position.set(x, 0.09, z);
-    root.add(pivot);
+    // Front legs ride the core (they lift when she sits up); rear legs stay
+    // planted on the root and tuck under her.
+    const front = name.startsWith('lumi-leg-f');
+    const parent = front ? core : root;
+    const p = front ? C(x, 0.09, z) : ([x, 0.09, z] as [number, number, number]);
+    pivot.position.set(...p);
+    parent.add(pivot);
     nodes[name] = pivot;
     add(`${name}-limb`, pivot, new THREE.CapsuleGeometry(0.022, 0.05, 4, 10), white, [0, -0.035, 0]);
     add(`${name}-paw`, pivot, sphereLo, white, [0, -0.072, 0.01], {
@@ -134,8 +151,8 @@ export function createLumiModel(): THREE.Group {
   // periscope from the side.
   const tailPivot = new THREE.Group();
   tailPivot.name = 'lumi-tail';
-  tailPivot.position.set(0, 0.15, -0.185);
-  root.add(tailPivot);
+  tailPivot.position.set(...C(0, 0.15, -0.185));
+  core.add(tailPivot);
   nodes['lumi-tail'] = tailPivot;
   const tailCurve = new THREE.CatmullRomCurve3([
     new THREE.Vector3(0, 0, 0),
@@ -152,8 +169,8 @@ export function createLumiModel(): THREE.Group {
   /* ------------------------------- head ------------------------------- */
   const headPivot = new THREE.Group();
   headPivot.name = 'lumi-head';
-  headPivot.position.set(0, HEAD.y, HEAD.z);
-  root.add(headPivot);
+  headPivot.position.set(...C(0, HEAD.y, HEAD.z));
+  core.add(headPivot);
   nodes['lumi-head'] = headPivot;
 
   const RX = HEAD.dx / 2; // 0.0775
@@ -218,4 +235,127 @@ export function createLumiModel(): THREE.Group {
   const runtime: LumiRuntime = { nodes };
   root.userData.lumiRuntime = runtime;
   return root;
+}
+
+/* ------------------------------------------------------------------ outfits */
+/**
+ * applyLumiOutfit — Lumi wears kit matching whatever Levi is wearing.
+ * Accessories attach to her rig nodes so they follow the head / body as she
+ * trots, sits and waves. Resources are disposed on every swap.
+ *
+ * Remember the scale convention: sphere geometry has radius 0.5, so surface
+ * solving uses half of the HEAD/BODY diameters above.
+ */
+export type LumiOutfit = 'dev' | 'suit' | 'tactical' | 'cyber';
+
+type LumiResources = {
+  mats: THREE.Material[];
+  geos: THREE.BufferGeometry[];
+  extras: THREE.Object3D[];
+};
+
+export function applyLumiOutfit(model: THREE.Group, outfit: LumiOutfit): void {
+  const runtime = model.userData.lumiRuntime as LumiRuntime | undefined;
+  if (!runtime) return;
+  const { nodes } = runtime;
+
+  const prev = model.userData.__lumiOutfit as LumiResources | undefined;
+  if (prev) {
+    prev.extras.forEach((o) => o.parent?.remove(o));
+    prev.geos.forEach((g) => g.dispose());
+    prev.mats.forEach((m) => m.dispose());
+  }
+  const res: LumiResources = { mats: [], geos: [], extras: [] };
+  model.userData.__lumiOutfit = res;
+  model.userData.lumiOutfit = outfit;
+
+  const mat = (color: number, roughness: number, extra: Partial<THREE.MeshStandardMaterialParameters> = {}) => {
+    const m = new THREE.MeshStandardMaterial({ color, roughness, metalness: 0, ...extra });
+    res.mats.push(m);
+    return m;
+  };
+  const glow = (color: number, intensity = 1.2) =>
+    mat(color, 0.4, { emissive: color, emissiveIntensity: intensity });
+
+  const put = (
+    parent: THREE.Object3D | undefined,
+    geo: THREE.BufferGeometry,
+    material: THREE.Material,
+    pos: [number, number, number],
+    opts: { rot?: [number, number, number]; scale?: [number, number, number] } = {},
+  ) => {
+    if (!parent) return;
+    const mesh = new THREE.Mesh(geo, material);
+    mesh.position.set(...pos);
+    if (opts.rot) mesh.rotation.set(...opts.rot);
+    if (opts.scale) mesh.scale.set(...opts.scale);
+    mesh.castShadow = true;
+    parent.add(mesh);
+    res.geos.push(geo);
+    res.extras.push(mesh);
+  };
+
+  const head = nodes['lumi-head'];
+  const core = nodes['lumi-core'];
+  // Neck junction in core-local space. Head and body interpenetrate here, so
+  // collar rings are sized to enclose BOTH cross-sections; a snug ring just
+  // disappears inside her.
+  const NECK: [number, number, number] = [0, 0.176 - CORE.y, 0.118 - CORE.z];
+
+  if (outfit === 'dev') {
+    // Tiny headphones to match his: band arcs over the skull, cups at the ears.
+    const cans = mat(0x23252d, 0.5);
+    const cansSoft = mat(0x30333e, 0.8);
+    put(head, new THREE.TorusGeometry(0.079, 0.008, 8, 24, Math.PI), cans, [0, 0.004, -0.008]);
+    for (const sx of [1, -1]) {
+      put(head, new THREE.CylinderGeometry(0.026, 0.026, 0.016, 16), cans, [sx * 0.076, 0.004, -0.008], {
+        rot: [0, 0, Math.PI / 2],
+      });
+      put(head, new THREE.CylinderGeometry(0.019, 0.019, 0.007, 16), cansSoft, [sx * 0.086, 0.004, -0.008], {
+        rot: [0, 0, Math.PI / 2],
+      });
+    }
+  }
+
+  if (outfit === 'suit') {
+    // Little formal bow tie at the throat.
+    const satin = mat(0x22242c, 0.35);
+    const bowZ = NECK[2] + 0.03;
+    put(core, new THREE.BoxGeometry(0.018, 0.018, 0.013), satin, [NECK[0], NECK[1] - 0.012, bowZ]);
+    for (const sx of [1, -1]) {
+      put(core, new THREE.ConeGeometry(0.02, 0.028, 4), satin, [
+        NECK[0] + sx * 0.025,
+        NECK[1] - 0.012,
+        bowZ,
+      ], { rot: [0, 0, sx * (Math.PI / 2)], scale: [1, 1, 0.6] });
+    }
+  }
+
+  if (outfit === 'tactical') {
+    // Scaled-down plate carrier: girth strap, back plate, pouch, IFF strobe.
+    const vest = mat(0x394030, 0.95);
+    const pouch = mat(0x8a7350, 0.92);
+    const amber = glow(0xffab3d, 0.9);
+    put(core, new THREE.TorusGeometry(0.078, 0.013, 10, 24), vest, [0, 0.135 - CORE.y, 0.01 - CORE.z], {
+      scale: [1, 1, 0.55],
+    });
+    put(core, new THREE.BoxGeometry(0.1, 0.05, 0.075), vest, [0, 0.196 - CORE.y, 0.005 - CORE.z], {
+      rot: [0.12, 0, 0],
+    });
+    put(core, new THREE.BoxGeometry(0.032, 0.026, 0.02), pouch, [0.042, 0.19 - CORE.y, 0.01 - CORE.z], {
+      rot: [0.12, 0, 0],
+    });
+    put(core, new THREE.SphereGeometry(0.007, 10, 8), amber, [-0.04, 0.207 - CORE.y, 0.01 - CORE.z]);
+  }
+
+  if (outfit === 'cyber') {
+    // Glowing collar plus her own little neural halo, matching his.
+    const cyan = glow(0x2fd8f5, 1.2);
+    const magenta = glow(0xe23fc4, 1.1);
+    put(core, new THREE.TorusGeometry(0.079, 0.008, 10, 26), cyan, NECK, { rot: [0.5, 0, 0] });
+    put(core, new THREE.SphereGeometry(0.011, 12, 10), magenta, [NECK[0], NECK[1] - 0.052, NECK[2] + 0.022]);
+    put(head, new THREE.TorusGeometry(0.058, 0.006, 10, 30), cyan, [0, 0.125, -0.022], {
+      rot: [Math.PI / 2 - 0.16, 0, 0],
+    });
+  }
 }

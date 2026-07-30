@@ -18,7 +18,7 @@ import * as THREE from 'three';
 import { createLeviChibiModel, type LeviChibiStage } from './createLeviChibiModel.ts';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { applyOutfit, type Outfit } from './outfits.ts';
-import { createLumiModel } from './lumi.ts';
+import { applyLumiOutfit, createLumiModel, type LumiOutfit } from './lumi.ts';
 
 const BACKGROUND = 0xd4d7da; // light neutral: distinct from skin, shirt, and blacks
 
@@ -83,6 +83,24 @@ export function mountPreview(container: HTMLElement, params: URLSearchParams): v
   // ?lumi=1 reviews the cat companion alone, scaled up to fill the frame.
   if (params.get('lumi') === '1') {
     const cat = createLumiModel();
+    const lumiFit = params.get('outfit');
+    if (lumiFit) applyLumiOutfit(cat, lumiFit as LumiOutfit);
+    if (params.get('pose') === 'wave') {
+      // Same numbers the site's render loop uses at full wave amplitude.
+      const core = cat.getObjectByName('lumi-core');
+      if (core) core.rotation.x = -0.1;
+      const set = (n: string, x: number) => {
+        const o = cat.getObjectByName(n);
+        if (o) o.rotation.x = x;
+      };
+      set('lumi-leg-fl', -2.1);
+      const fl = cat.getObjectByName('lumi-leg-fl');
+      if (fl) fl.rotation.z = 0.45;
+      set('lumi-leg-fr', 0.1);
+      set('lumi-leg-bl', 0);
+      set('lumi-leg-br', 0);
+      set('lumi-head', 0.22);
+    }
     cat.scale.setScalar(2.6);
     scene.add(cat);
     (window as unknown as { __previewReady: boolean }).__previewReady = true;

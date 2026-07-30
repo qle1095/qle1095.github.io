@@ -9,7 +9,7 @@ import gsap from 'gsap';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { createLeviChibiModel } from '../character/createLeviChibiModel';
-import { createLumiModel } from '../character/lumi';
+import { applyLumiOutfit, createLumiModel } from '../character/lumi';
 import { applyOutfit, type Outfit } from '../character/outfits';
 
 // The character contract used by JourneyStage. The 3D chibi (img2threejs
@@ -40,6 +40,7 @@ type Rig = {
   lumiLegs: (THREE.Object3D | null)[];
   lumiTail: THREE.Object3D | null;
   lumiHead: THREE.Object3D | null;
+  lumiCore: THREE.Object3D | null;
 };
 
 const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
@@ -107,6 +108,7 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
     const lumi = createLumiModel();
     lumi.position.set(-0.46, 0, 0.12);
     lumi.rotation.y = FACING;
+    applyLumiOutfit(lumi, outfitRef.current);
     scene.add(lumi);
 
     rigRef.current = {
@@ -124,6 +126,7 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
       ],
       lumiTail: lumi.getObjectByName('lumi-tail') ?? null,
       lumiHead: lumi.getObjectByName('lumi-head') ?? null,
+      lumiCore: lumi.getObjectByName('lumi-core') ?? null,
     };
 
     const clock = new THREE.Clock();
@@ -172,25 +175,37 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
       const targetY = walkTarget * (1 - s.waveAmp) + 0.12 * s.waveAmp;
       rig.model.rotation.y += (targetY - rig.model.rotation.y) * Math.min(1, dt * 9);
 
-      /* ---- Lumi: quicker diagonal trot, tail sway, idle look-around ---- */
+      /* ---- Lumi: trot, tail sway, idle look-around, maneki-neko wave ---- */
       const catPhase = s.phase * 1.55;
-      const catSwing = Math.sin(catPhase) * s.amp;
+      const w = s.waveAmp;
+      const trot = Math.sin(catPhase) * s.amp * (1 - w);
+      // Waving: she keeps all-but-one paw planted and lifts the near front paw.
+      // (A full maneki-neko sit needs a supporting-contact solve — pitching the
+      // core just tipped her onto her back and off the ground.)
+      if (rig.lumiCore) rig.lumiCore.rotation.x = -0.1 * w;
+      // -1.45 left the leg nearly horizontal (a reach, not a wave); -2.1 lifts
+      // it, and the outward z-swing keeps the paw clear of her own head.
+      const wavePaw = -2.1 + Math.sin(t * 7.5) * 0.3;
       // Diagonal pairs: front-left with back-right, front-right with back-left.
-      if (rig.lumiLegs[0]) rig.lumiLegs[0].rotation.x = catSwing * 0.7;
-      if (rig.lumiLegs[3]) rig.lumiLegs[3].rotation.x = catSwing * 0.7;
-      if (rig.lumiLegs[1]) rig.lumiLegs[1].rotation.x = -catSwing * 0.7;
-      if (rig.lumiLegs[2]) rig.lumiLegs[2].rotation.x = -catSwing * 0.7;
-      rig.lumi.position.y = s.amp * Math.abs(Math.sin(catPhase)) * 0.016;
+      if (rig.lumiLegs[0]) {
+        rig.lumiLegs[0].rotation.x = trot * 0.7 * (1 - w) + wavePaw * w;
+        rig.lumiLegs[0].rotation.z = 0.45 * w;
+      }
+      if (rig.lumiLegs[1]) rig.lumiLegs[1].rotation.x = -trot * 0.7 + 0.1 * w;
+      if (rig.lumiLegs[2]) rig.lumiLegs[2].rotation.x = -trot * 0.7;
+      if (rig.lumiLegs[3]) rig.lumiLegs[3].rotation.x = trot * 0.7;
+      rig.lumi.position.y = s.amp * (1 - w) * Math.abs(Math.sin(catPhase)) * 0.016;
       if (rig.lumiTail) {
         // Sways with the trot, flicks lazily when she's sitting still.
         rig.lumiTail.rotation.z = Math.sin(catPhase * 0.5) * 0.22 * s.amp + Math.sin(t * 1.4) * 0.12;
         rig.lumiTail.rotation.x = Math.sin(t * 0.9) * 0.06;
       }
       if (rig.lumiHead) {
-        // Looks up at him now and then while idle.
+        // Looks up at him now and then while idle, and up at the viewer while
+        // she waves.
         const idle = 1 - s.amp;
-        rig.lumiHead.rotation.y = Math.sin(t * 0.6) * 0.28 * idle;
-        rig.lumiHead.rotation.x = -0.12 * idle + Math.sin(t * 2.3) * 0.02;
+        rig.lumiHead.rotation.y = Math.sin(t * 0.6) * 0.28 * idle * (1 - w);
+        rig.lumiHead.rotation.x = -0.12 * idle + Math.sin(t * 2.3) * 0.02 + 0.22 * w;
       }
       rig.lumi.rotation.y += (targetY - rig.lumi.rotation.y) * Math.min(1, dt * 7);
       // Trail on the far side when he turns around, so she stays behind him.
@@ -233,10 +248,13 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
       const rig = rigRef.current;
       if (!rig) return; // applied on mount instead
       // Squash-pop costume change: shrink, swap at the low point, spring back.
-      const swap = () => applyOutfit(rig.model, outfitRef.current);
+      const swap = () => {
+        applyOutfit(rig.model, outfitRef.current);
+        applyLumiOutfit(rig.lumi, outfitRef.current);
+      };
       gsap
         .timeline()
-        .to(rig.model.scale, {
+        .to([rig.model.scale, rig.lumi.scale], {
           x: 1.18,
           y: 0.62,
           z: 1.18,
@@ -244,7 +262,7 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
           ease: 'power2.in',
           onComplete: swap,
         })
-        .to(rig.model.scale, {
+        .to([rig.model.scale, rig.lumi.scale], {
           x: 1,
           y: 1,
           z: 1,
