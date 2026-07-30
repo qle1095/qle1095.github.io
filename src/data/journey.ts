@@ -29,6 +29,8 @@ export type Milestone = {
 export type Chapter = {
   id: string;
   label: string;
+  /** Shown in the sticky company badge at the top of the stage. */
+  company: string;
   theme: 'sunrise' | 'bank' | 'ascent' | 'platform' | 'frontier';
   milestones: Milestone[];
 };
@@ -55,6 +57,7 @@ export const chapters: Chapter[] = [
   {
     id: 'foundations',
     label: 'Foundations',
+    company: 'Florida International University',
     theme: 'sunrise',
     milestones: [
       {
@@ -101,6 +104,7 @@ export const chapters: Chapter[] = [
   {
     id: 'the-bank',
     label: 'The Bank',
+    company: 'JPMorgan Chase',
     theme: 'bank',
     milestones: [
       {
@@ -146,6 +150,7 @@ export const chapters: Chapter[] = [
   {
     id: 'startup-ascent',
     label: 'Startup Ascent',
+    company: 'Raft',
     theme: 'ascent',
     milestones: [
       {
@@ -201,6 +206,7 @@ export const chapters: Chapter[] = [
   {
     id: 'platform-era',
     label: 'Platform Era',
+    company: 'Raft',
     theme: 'platform',
     milestones: [
       {
@@ -257,6 +263,7 @@ export const chapters: Chapter[] = [
   {
     id: 'ai-frontier',
     label: 'The AI Frontier',
+    company: 'Raft → Leonardo DRS',
     theme: 'frontier',
     milestones: [
       {

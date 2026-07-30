@@ -562,6 +562,30 @@ body {
   z-index: 10;
 }
 
+.company-badge {
+  width: fit-content;
+  margin: 0 auto 0.55rem;
+  padding: 0.32rem 1.1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(31, 35, 51, 0.1);
+  box-shadow: 0 4px 14px rgba(31, 35, 51, 0.12);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #3c4157;
+}
+
+.company-badge:empty { visibility: hidden; }
+
+.company-pop { animation: company-pop 0.45s cubic-bezier(0.2, 1.5, 0.4, 1); }
+
+@keyframes company-pop {
+  from { transform: scale(0.7); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
 .progress-track {
   position: relative;
   height: 6px;

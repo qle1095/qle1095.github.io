@@ -22,6 +22,7 @@ export default function JourneyStage() {
   const stageRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const progressFillRef = useRef<HTMLDivElement>(null);
+  const companyRef = useRef<HTMLDivElement>(null);
   const characterRef = useRef<CharacterHandle>(null);
   const [collected, setCollected] = useState<Set<string>>(new Set());
 
@@ -143,21 +144,32 @@ export default function JourneyStage() {
         });
       });
 
-      // Era theming: chapter under the character sets the stage palette.
+      // Era theming: chapter under the character sets the stage palette and
+      // the company badge.
+      const applyChapter = (chapter: (typeof layout.chapters)[number]['chapter']) => {
+        stage.setAttribute('data-theme', chapter.theme);
+        const badge = companyRef.current;
+        if (badge && badge.textContent !== chapter.company) {
+          badge.textContent = chapter.company;
+          badge.classList.remove('company-pop');
+          void badge.offsetWidth; // restart the pop animation
+          badge.classList.add('company-pop');
+        }
+      };
       layout.chapters.forEach(({ chapter, startX }) => {
         ScrollTrigger.create({
           start: () =>
             startX - CHARACTER_AT * window.innerWidth + stageTop(stage),
           end: '+=1',
-          onEnter: () => stage.setAttribute('data-theme', chapter.theme),
+          onEnter: () => applyChapter(chapter),
           onLeaveBack: () => {
             const idx = layout.chapters.findIndex((c) => c.chapter === chapter);
             const prev = layout.chapters[idx - 1];
-            if (prev) stage.setAttribute('data-theme', prev.chapter.theme);
+            if (prev) applyChapter(prev.chapter);
           },
         });
       });
-      stage.setAttribute('data-theme', layout.chapters[0].chapter.theme);
+      applyChapter(layout.chapters[0].chapter);
       updateActive(worldTween.scrollTrigger?.progress ?? 0);
     }, stage);
 
@@ -226,6 +238,7 @@ export default function JourneyStage() {
       <Character ref={characterRef} />
 
       <div className="progress" role="navigation" aria-label="Timeline">
+        <div className="company-badge" ref={companyRef} aria-live="polite" />
         <div className="progress-track">
           <div className="progress-fill" ref={progressFillRef} />
           {layout.yearMarkers.map((m) => (
