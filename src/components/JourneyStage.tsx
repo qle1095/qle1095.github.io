@@ -85,6 +85,34 @@ export default function JourneyStage({
           );
       }
 
+      // --- Outro exit: the journey ends, the character leaps down into the
+      // outro, lands center-stage below the contact buttons, and waves
+      // goodbye. Scrubbed, so scrolling back reverses it. ---
+      const outroEl = document.querySelector<HTMLElement>('.outro');
+      if (charLayer && outroEl) {
+        const centerX = () => window.innerWidth * 0.5 - charW / 2;
+        const dropY = () => window.innerHeight * 0.115;
+        gsap
+          .timeline({
+            scrollTrigger: {
+              trigger: outroEl,
+              start: 'top bottom',
+              end: 'top 25%',
+              scrub: 0.4,
+              invalidateOnRefresh: true,
+              onUpdate(self) {
+                characterRef.current?.setWaving(self.progress > 0.55);
+              },
+              onLeaveBack() {
+                characterRef.current?.setWaving(false);
+              },
+            },
+          })
+          .to(charLayer, { x: () => centerX(), ease: 'none', duration: 1 }, 0)
+          .to(charLayer, { y: -70, ease: 'power2.out', duration: 0.35 }, 0)
+          .to(charLayer, { y: () => dropY(), ease: 'power2.in', duration: 0.65 }, 0.35);
+      }
+
       const parallaxEls = gsap.utils.toArray<HTMLElement>('.parallax', stage);
 
       // The card nearest the character is "active": full size, story expanded.
@@ -119,14 +147,6 @@ export default function JourneyStage({
           scrub: 0.6,
           pin: true,
           invalidateOnRefresh: true,
-          onLeave() {
-            // The journey is over — drop the fixed character out of view
-            // before the outro scrolls in.
-            if (charLayer) gsap.to(charLayer, { autoAlpha: 0, y: 140, duration: 0.35 });
-          },
-          onEnterBack() {
-            if (charLayer) gsap.to(charLayer, { autoAlpha: 1, y: 0, duration: 0.35 });
-          },
           onUpdate(self) {
             if (progressFillRef.current) {
               progressFillRef.current.style.width = `${self.progress * 100}%`;
