@@ -71,18 +71,18 @@ function buildMaterials(clay: boolean): Record<string, THREE.Material> {
       ...extra,
     });
   return {
-    skin: std(0xf5cca7, 0.5),
+    skin: std(0xf6d0ae, 0.5),
     hair: std(0x2a231c, 0.52),
     'jacket-wool': std(0x1b1c20, 0.85),
     'lapel-satin': phys(0x2e3037, 0.26, 0.3),
-    'shirt-cotton': std(0xf7f5ef, 0.7),
+    'shirt-cotton': std(0xf0e8da, 0.7),
     'bowtie-satin': phys(0x222329, 0.3, 0.3),
     'trouser-wool': std(0x17181b, 0.82),
     'shoe-leather': phys(0x131316, 0.34, 0.3),
     'eye-dark': std(0x221710, 0.24),
-    catchlight: std(0xffffff, 0.15, { emissive: 0xffffff, emissiveIntensity: 0.55 }),
+    catchlight: std(0xf5e9d8, 0.15, { emissive: 0xf5e9d8, emissiveIntensity: 0.55 }),
     brow: std(0x2a211a, 0.7),
-    mouth: std(0xc08268, 0.6),
+    mouth: std(0xd0a08c, 0.6),
   };
 }
 
@@ -149,8 +149,12 @@ export function createLeviChibiModel(options: LeviChibiOptions = {}): THREE.Grou
 
   const full = stage === 'full';
 
-  const sphereGeo = new THREE.SphereGeometry(0.5, 32, 24); // unit; scaled per part
-  const sphereGeoLow = new THREE.SphereGeometry(0.5, 20, 14);
+  // Tiered tessellation (optimization pass): high only where the silhouette or
+  // the visible head/hair intersection (hairline) demands it; the whole model
+  // stays under the ~20k-triangle mascot budget.
+  const sphereGeoHi = new THREE.SphereGeometry(0.5, 48, 32); // head, hair-main, torso
+  const sphereGeo = new THREE.SphereGeometry(0.5, 24, 16); // medium masses
+  const sphereGeoLow = new THREE.SphereGeometry(0.5, 16, 12); // small features
 
   function addMesh(
     id: string,
@@ -210,7 +214,7 @@ export function createLeviChibiModel(options: LeviChibiOptions = {}): THREE.Grou
     nodes[`pivot-hip-${side}`] = hipPivot;
 
     // Leg capsule: world center (±0.058, 0.165, 0) -> local (0, -0.135, 0).
-    addMesh(`leg-${side}`, hipPivot, new THREE.CapsuleGeometry(0.048, 0.19, 6, 16), 'trouser-wool', [0, -0.135, 0], {
+    addMesh(`leg-${side}`, hipPivot, new THREE.CapsuleGeometry(0.048, 0.19, 5, 14), 'trouser-wool', [0, -0.135, 0], {
       colliderType: 'capsule',
     });
     // Shoe: world (±0.058, 0.034, 0.028) -> local (0, -0.266, 0.028).
@@ -226,7 +230,7 @@ export function createLeviChibiModel(options: LeviChibiOptions = {}): THREE.Grou
   root.add(torso);
   nodes['torso'] = torso;
 
-  addMesh('torso-jacket', torso, sphereGeo, 'jacket-wool', [0, 0.455, 0], {
+  addMesh('torso-jacket', torso, sphereGeoHi, 'jacket-wool', [0, 0.455, 0], {
     scale: [0.31, 0.37, 0.22],
   });
   addSocket('socket-chest', torso, [0, 0.545, 0.1]);
@@ -254,7 +258,8 @@ export function createLeviChibiModel(options: LeviChibiOptions = {}): THREE.Grou
       explodeWithParent: true,
     });
 
-    // Butterfly bow tie: named group of anonymous meshes = one part.
+    // Butterfly bow tie: a named group of NAMED parts (knot + 2 wings), so the
+    // group is a container and each piece stays selectable/explodable.
     // Tucked under the chin at the collar (torso front at y 0.60 is z ~0.068).
     const bowTie = new THREE.Group();
     bowTie.name = 'bow-tie';
@@ -263,17 +268,21 @@ export function createLeviChibiModel(options: LeviChibiOptions = {}): THREE.Grou
     torso.add(bowTie);
     nodes['bow-tie'] = bowTie;
     const knot = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.028, 0.018), mats['bowtie-satin']);
+    knot.name = 'bowtie-knot';
     knot.position.set(0, 0, 0.004);
     knot.castShadow = castShadow;
+    knot.userData.explodeWithParent = true;
     bowTie.add(knot);
     meshes['bowtie-knot'] = knot;
     for (const sx of [1, -1]) {
       const wingGeo = taperedBoxGeometry(0.066, 0.046, 0.016, 0.5);
       const wing = new THREE.Mesh(wingGeo, mats['bowtie-satin']);
+      wing.name = `bowtie-wing-${sx > 0 ? 'l' : 'r'}`;
       wing.scale.x = sx;
       wing.position.set(sx * 0.046, 0, -0.004);
       wing.rotation.z = sx * 0.06;
       wing.castShadow = castShadow;
+      wing.userData.explodeWithParent = true;
       bowTie.add(wing);
       meshes[`bowtie-wing-${sx > 0 ? 'l' : 'r'}`] = wing;
     }
@@ -301,7 +310,7 @@ export function createLeviChibiModel(options: LeviChibiOptions = {}): THREE.Grou
     nodes[`pivot-shoulder-${side}`] = shoulderPivot;
 
     // Sleeve, splayed ~6 deg outward. World center (±0.163, 0.468, 0) -> local.
-    addMesh(`arm-${side}`, shoulderPivot, new THREE.CapsuleGeometry(0.042, 0.15, 6, 16), 'jacket-wool', [sx * 0.028, -0.107, 0], {
+    addMesh(`arm-${side}`, shoulderPivot, new THREE.CapsuleGeometry(0.042, 0.15, 5, 14), 'jacket-wool', [sx * 0.028, -0.107, 0], {
       rot: [0, 0, sx * -0.1],
       colliderType: 'capsule',
     });
@@ -320,20 +329,20 @@ export function createLeviChibiModel(options: LeviChibiOptions = {}): THREE.Grou
   nodes['pivot-neck'] = neckPivot;
   const W = (y: number): number => y - NECK_PIVOT_Y; // world-y -> neck-local-y
 
-  addMesh('neck', neckPivot, new THREE.CylinderGeometry(0.0475, 0.0475, 0.07, 20), 'skin', [0, W(0.635), 0.005]);
+  addMesh('neck', neckPivot, new THREE.CylinderGeometry(0.0475, 0.0475, 0.07, 16), 'skin', [0, W(0.635), 0.005]);
 
   const headGroup = new THREE.Group();
   headGroup.name = 'head-group';
   neckPivot.add(headGroup);
   nodes['head-group'] = headGroup;
 
-  addMesh('head', headGroup, sphereGeo, 'skin', [0, W(0.8), 0.005], {
+  addMesh('head', headGroup, sphereGeoHi, 'skin', [0, W(0.8), 0.005], {
     scale: [0.35, 0.33, 0.32],
   });
   addSocket('socket-skull', headGroup, [0, W(0.9), 0]);
 
   // Hair: main swept-up mass + forward quiff + side masses + back taper.
-  addMesh('hair-main', headGroup, sphereGeo, 'hair', [0, W(0.845), -0.018], {
+  addMesh('hair-main', headGroup, sphereGeoHi, 'hair', [0, W(0.845), -0.018], {
     scale: [0.375, 0.3, 0.35],
   });
   if (full) {

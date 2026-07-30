@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Levi Chibi — pipeline preview</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #d4d7da;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module">
+      import { mountPreview } from '/src/character/previewScene.ts';
+      mountPreview(document.body, new URLSearchParams(location.search));
+    </script>
+  </body>
+</html>

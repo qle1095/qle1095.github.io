@@ -574,7 +574,21 @@ button { font-family: inherit; }
   bottom: calc(var(--ground-h) - 1.2rem);
   z-index: 5;
   pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
+
+.chibi-3d {
+  width: 210px;
+  height: 260px;
+  /* The camera framing leaves empty canvas below the feet — pull the canvas
+     down so the feet sit on the ground line. */
+  margin-bottom: -62px;
+  line-height: 0;
+}
+
+.chibi-3d canvas { display: block; }
 
 .chibi {
   position: relative;

@@ -1,0 +1,267 @@
+{
+ "parts": [
+  {
+   "name": "pelvis",
+   "kind": "part",
+   "module": "levi-chibi",
+   "triangles": 720
+  },
+  {
+   "name": "leg-l",
+   "kind": "part",
+   "module": "pivot-hip-l",
+   "triangles": 308
+  },
+  {
+   "name": "shoe-l",
+   "kind": "part",
+   "module": "pivot-hip-l",
+   "triangles": 720
+  },
+  {
+   "name": "leg-r",
+   "kind": "part",
+   "module": "pivot-hip-r",
+   "triangles": 308
+  },
+  {
+   "name": "shoe-r",
+   "kind": "part",
+   "module": "pivot-hip-r",
+   "triangles": 720
+  },
+  {
+   "name": "torso-jacket",
+   "kind": "part",
+   "module": "torso",
+   "triangles": 2976
+  },
+  {
+   "name": "lapel-l",
+   "kind": "part",
+   "module": "torso",
+   "triangles": 20
+  },
+  {
+   "name": "lapel-r",
+   "kind": "part",
+   "module": "torso",
+   "triangles": 20
+  },
+  {
+   "name": "shirt-triangle",
+   "kind": "part",
+   "module": "torso",
+   "triangles": 8
+  },
+  {
+   "name": "bowtie-knot",
+   "kind": "part",
+   "module": "bow-tie",
+   "triangles": 12
+  },
+  {
+   "name": "bowtie-wing-l",
+   "kind": "part",
+   "module": "bow-tie",
+   "triangles": 12
+  },
+  {
+   "name": "bowtie-wing-r",
+   "kind": "part",
+   "module": "bow-tie",
+   "triangles": 12
+  },
+  {
+   "name": "button-l",
+   "kind": "part",
+   "module": "torso",
+   "triangles": 64
+  },
+  {
+   "name": "button-r",
+   "kind": "part",
+   "module": "torso",
+   "triangles": 64
+  },
+  {
+   "name": "arm-l",
+   "kind": "part",
+   "module": "pivot-shoulder-l",
+   "triangles": 308
+  },
+  {
+   "name": "hand-l",
+   "kind": "part",
+   "module": "pivot-shoulder-l",
+   "triangles": 352
+  },
+  {
+   "name": "arm-r",
+   "kind": "part",
+   "module": "pivot-shoulder-r",
+   "triangles": 308
+  },
+  {
+   "name": "hand-r",
+   "kind": "part",
+   "module": "pivot-shoulder-r",
+   "triangles": 352
+  },
+  {
+   "name": "neck",
+   "kind": "part",
+   "module": "pivot-neck",
+   "triangles": 64
+  },
+  {
+   "name": "head",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 2976
+  },
+  {
+   "name": "hair-main",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 2976
+  },
+  {
+   "name": "hair-quiff",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 720
+  },
+  {
+   "name": "hair-side-l",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 720
+  },
+  {
+   "name": "hair-side-r",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 720
+  },
+  {
+   "name": "hair-back",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 720
+  },
+  {
+   "name": "ear-l",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 352
+  },
+  {
+   "name": "ear-r",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 352
+  },
+  {
+   "name": "eye-l",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 720
+  },
+  {
+   "name": "catchlight-l",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 352
+  },
+  {
+   "name": "brow-l",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 12
+  },
+  {
+   "name": "eye-r",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 720
+  },
+  {
+   "name": "catchlight-r",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 352
+  },
+  {
+   "name": "brow-r",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 12
+  },
+  {
+   "name": "nose",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 352
+  },
+  {
+   "name": "mouth",
+   "kind": "part",
+   "module": "head-group",
+   "triangles": 384
+  }
+ ],
+ "totalTriangles": 19788,
+ "drawCalls": 35,
+ "runtimeKeys": [
+  "nodes",
+  "meshes",
+  "sockets",
+  "colliders",
+  "destructionGroups"
+ ],
+ "nodeCount": 41,
+ "meshCount": 35,
+ "socketNames": [
+  "socket-hip-l",
+  "socket-hip-r",
+  "socket-ankle-l",
+  "socket-ankle-r",
+  "socket-chest",
+  "socket-collar",
+  "socket-neck",
+  "socket-shoulder-l",
+  "socket-shoulder-r",
+  "socket-wrist-l",
+  "socket-wrist-r",
+  "socket-skull"
+ ],
+ "pivots": [
+  {
+   "name": "pivot-shoulder-l",
+   "found": true,
+   "inNodes": true
+  },
+  {
+   "name": "pivot-shoulder-r",
+   "found": true,
+   "inNodes": true
+  },
+  {
+   "name": "pivot-hip-l",
+   "found": true,
+   "inNodes": true
+  },
+  {
+   "name": "pivot-hip-r",
+   "found": true,
+   "inNodes": true
+  },
+  {
+   "name": "pivot-neck",
+   "found": true,
+   "inNodes": true
+  }
+ ],
+ "deterministic": true
+}
