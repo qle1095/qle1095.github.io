@@ -12,7 +12,7 @@ export default function StaticTimeline() {
           <ol>
             {chapter.milestones.map((m) => (
               <li key={m.id} className="static-milestone">
-                <span className="static-date">{m.date}</span>
+                {m.display && <span className="static-date">{m.display}</span>}
                 <h3>{m.title}</h3>
                 {m.subtitle && <p className="milestone-subtitle">{m.subtitle}</p>}
                 <p>
@@ -33,7 +33,6 @@ export default function StaticTimeline() {
         <ol>
           {sideQuests.map((q) => (
             <li key={q.id} className="static-milestone">
-              <span className="static-date">{q.date}</span>
               <h3>{q.title}</h3>
               <p>
                 <Rich text={q.story} />

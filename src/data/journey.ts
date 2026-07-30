@@ -14,7 +14,10 @@ export type MilestoneKind = 'job' | 'education' | 'achievement' | 'launch';
 
 export type Milestone = {
   id: string;
-  date: string; // "YYYY-MM" — drives horizontal position
+  /** Layout-only chronological anchor — NEVER shown. Set `display` to show a date. */
+  date: string;
+  /** The date text shown on the card. Omit when the real date is unknown. */
+  display?: string;
   title: string;
   subtitle?: string;
   story: string;
@@ -57,6 +60,7 @@ export const chapters: Chapter[] = [
       {
         id: 'intern-2018',
         date: '2018-06',
+        display: 'Jun 2018',
         title: 'First Internship',
         subtitle: 'JPMorgan Chase — Tampa, FL',
         story:
@@ -70,6 +74,7 @@ export const chapters: Chapter[] = [
       {
         id: 'intern-2019',
         date: '2019-06',
+        display: '2019',
         title: 'Second Internship',
         subtitle: 'JPMorgan Chase — Integrated Receivables',
         story:
@@ -83,6 +88,7 @@ export const chapters: Chapter[] = [
       {
         id: 'fiu-grad',
         date: '2019-12',
+        display: '2019',
         title: 'B.S. — IT Software Development',
         subtitle: 'Florida International University · magna cum laude',
         story: 'Graduated **magna cum laude** from FIU in Miami, already with **two internships** in the bag.',
@@ -100,6 +106,7 @@ export const chapters: Chapter[] = [
       {
         id: 'jpmc-sep',
         date: '2020-02',
+        display: '2020',
         title: 'Software Engineer',
         subtitle: 'JPMorgan Chase — Software Engineer Program',
         story:
@@ -126,6 +133,7 @@ export const chapters: Chapter[] = [
       {
         id: 'sep-fast-track',
         date: '2021-08',
+        display: '18 months in',
         title: 'Fast-Tracked',
         subtitle: 'SEP graduated in 18 months',
         story:
@@ -143,6 +151,7 @@ export const chapters: Chapter[] = [
       {
         id: 'joined-raft',
         date: '2022-04',
+        display: 'Apr 2022',
         title: 'Joined Raft',
         subtitle: 'Associate Software Engineer',
         story:
@@ -179,6 +188,7 @@ export const chapters: Chapter[] = [
       {
         id: 'staff-promo',
         date: '2023-04',
+        display: '2023',
         title: 'Associate → Staff',
         subtitle: 'Skipped Senior entirely',
         story:
@@ -233,6 +243,7 @@ export const chapters: Chapter[] = [
       {
         id: 'ckad',
         date: '2025-03',
+        display: '2025',
         title: 'CKAD Certified',
         subtitle: '+ CompTIA Security+',
         story:
@@ -250,6 +261,7 @@ export const chapters: Chapter[] = [
       {
         id: 'vuln-platform',
         date: '2025-07',
+        display: 'Current',
         title: 'Vulnerability Assessment Platform',
         subtitle: 'Full-stack owner',
         story:
@@ -276,6 +288,7 @@ export const chapters: Chapter[] = [
       {
         id: 'acquisition',
         date: '2026-07',
+        display: 'Jul 2026',
         title: 'The $450M Exit',
         subtitle: 'Leonardo DRS acquires Raft',
         story:

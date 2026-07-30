@@ -65,7 +65,9 @@ export default function MilestoneCard({
             </span>
             {meta.tag}
           </span>
-          <time className="milestone-date">{formatDate(milestone.date)}</time>
+          {milestone.display && (
+            <time className="milestone-date">{milestone.display}</time>
+          )}
         </header>
         <h3 className="milestone-title">{milestone.title}</h3>
         {milestone.subtitle && (
@@ -83,13 +85,4 @@ export default function MilestoneCard({
       <div className="milestone-post" />
     </div>
   );
-}
-
-function formatDate(date: string): string {
-  const [y, m] = date.split('-').map(Number);
-  const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
-  return `${months[m - 1]} ${y}`;
 }
