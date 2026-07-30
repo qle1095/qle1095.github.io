@@ -247,7 +247,9 @@ export function createLeviChibiModel(options: LeviChibiOptions = {}): THREE.Grou
       lapel.userData.partOf = 'torso-jacket';
     }
     // White shirt triangle between the lapels (spans y ~0.51..0.615).
-    addMesh('shirt-triangle', torso, panelGeometry(SHIRT_OUTLINE, 1, 0.012), 'shirt-cotton', [0, 0.5625, 0.082], {
+    // z=0.090: the planar panel must clear the ellipsoid chest bulge (sagitta
+    // ~0.004 above the chord) or the black torso pokes through mid-panel.
+    addMesh('shirt-triangle', torso, panelGeometry(SHIRT_OUTLINE, 1, 0.012), 'shirt-cotton', [0, 0.5625, 0.09], {
       rot: [-0.36, 0, 0],
       explodeWithParent: true,
     });
@@ -256,20 +258,20 @@ export function createLeviChibiModel(options: LeviChibiOptions = {}): THREE.Grou
     // Tucked under the chin at the collar (torso front at y 0.60 is z ~0.068).
     const bowTie = new THREE.Group();
     bowTie.name = 'bow-tie';
-    bowTie.position.set(0, 0.607, 0.07);
+    bowTie.position.set(0, 0.607, 0.078);
     bowTie.rotation.x = -0.1;
     torso.add(bowTie);
     nodes['bow-tie'] = bowTie;
-    const knot = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.026, 0.018), mats['bowtie-satin']);
+    const knot = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.028, 0.018), mats['bowtie-satin']);
     knot.position.set(0, 0, 0.004);
     knot.castShadow = castShadow;
     bowTie.add(knot);
     meshes['bowtie-knot'] = knot;
     for (const sx of [1, -1]) {
-      const wingGeo = taperedBoxGeometry(0.052, 0.034, 0.016, 0.55);
+      const wingGeo = taperedBoxGeometry(0.066, 0.046, 0.016, 0.5);
       const wing = new THREE.Mesh(wingGeo, mats['bowtie-satin']);
       wing.scale.x = sx;
-      wing.position.set(sx * 0.037, 0, -0.004);
+      wing.position.set(sx * 0.046, 0, -0.004);
       wing.rotation.z = sx * 0.06;
       wing.castShadow = castShadow;
       bowTie.add(wing);
@@ -299,7 +301,7 @@ export function createLeviChibiModel(options: LeviChibiOptions = {}): THREE.Grou
     nodes[`pivot-shoulder-${side}`] = shoulderPivot;
 
     // Sleeve, splayed ~6 deg outward. World center (±0.163, 0.468, 0) -> local.
-    addMesh(`arm-${side}`, shoulderPivot, new THREE.CapsuleGeometry(0.037, 0.16, 6, 16), 'jacket-wool', [sx * 0.028, -0.107, 0], {
+    addMesh(`arm-${side}`, shoulderPivot, new THREE.CapsuleGeometry(0.042, 0.15, 6, 16), 'jacket-wool', [sx * 0.028, -0.107, 0], {
       rot: [0, 0, sx * -0.1],
       colliderType: 'capsule',
     });
@@ -335,9 +337,11 @@ export function createLeviChibiModel(options: LeviChibiOptions = {}): THREE.Grou
     scale: [0.375, 0.3, 0.35],
   });
   if (full) {
-    addMesh('hair-quiff', headGroup, sphereGeo, 'hair', [0.055, W(0.925), 0.085], {
+    // Quiff overlaps deep into hair-main so the side view reads as one swept
+    // lobe, not a detached ball.
+    addMesh('hair-quiff', headGroup, sphereGeo, 'hair', [0.055, W(0.918), 0.068], {
       rot: [-0.38, 0, -0.18],
-      scale: [0.175, 0.125, 0.16],
+      scale: [0.185, 0.135, 0.175],
       explodeWithParent: true,
     });
     addMesh('hair-side-l', headGroup, sphereGeo, 'hair', [0.152, W(0.825), -0.01], {
@@ -348,8 +352,8 @@ export function createLeviChibiModel(options: LeviChibiOptions = {}): THREE.Grou
       scale: [0.075, 0.16, 0.2],
       explodeWithParent: true,
     });
-    addMesh('hair-back', headGroup, sphereGeo, 'hair', [0, W(0.775), -0.132], {
-      scale: [0.3, 0.24, 0.13],
+    addMesh('hair-back', headGroup, sphereGeo, 'hair', [0, W(0.79), -0.122], {
+      scale: [0.3, 0.2, 0.11],
       explodeWithParent: true,
     });
 
@@ -365,28 +369,30 @@ export function createLeviChibiModel(options: LeviChibiOptions = {}): THREE.Grou
     // Face: large dark almond eyes + catchlights, thin brows, minimal nose, smile.
     for (const side of ['l', 'r'] as const) {
       const sx = side === 'l' ? 1 : -1;
-      addMesh(`eye-${side}`, headGroup, sphereGeo, 'eye-dark', [sx * 0.066, W(0.788), 0.146], {
+      addMesh(`eye-${side}`, headGroup, sphereGeo, 'eye-dark', [sx * 0.066, W(0.775), 0.147], {
         scale: [0.056, 0.068, 0.026],
         explodeWithParent: true,
       });
       // Same world offset (up + character-left) on both eyes so they read as one key light.
-      addMesh(`catchlight-${side}`, headGroup, sphereGeoLow, 'catchlight', [sx * 0.066 + 0.012, W(0.804), 0.163], {
+      addMesh(`catchlight-${side}`, headGroup, sphereGeoLow, 'catchlight', [sx * 0.066 + 0.012, W(0.791), 0.163], {
         scale: [0.017, 0.017, 0.017],
         explodeWithParent: true,
       });
-      addMesh(`brow-${side}`, headGroup, new THREE.BoxGeometry(0.062, 0.013, 0.013), 'brow', [sx * 0.068, W(0.842), 0.152], {
+      // Below the visible hairline (~0.86) and clear of the eye top (~0.822),
+      // otherwise the brows merge with the fringe into one heavy bar.
+      addMesh(`brow-${side}`, headGroup, new THREE.BoxGeometry(0.054, 0.011, 0.012), 'brow', [sx * 0.067, W(0.822), 0.156], {
         rot: [0, 0, sx * 0.1],
         explodeWithParent: true,
       });
     }
-    addMesh('nose', headGroup, sphereGeoLow, 'skin', [0, W(0.748), 0.166], {
+    addMesh('nose', headGroup, sphereGeoLow, 'skin', [0, W(0.732), 0.166], {
       scale: [0.024, 0.018, 0.02],
       explodeWithParent: true,
     });
     // Gentle closed smile: partial torus arc, opening upward.
-    const smileGeo = new THREE.TorusGeometry(0.024, 0.0055, 8, 24, Math.PI * 0.75);
+    const smileGeo = new THREE.TorusGeometry(0.024, 0.005, 8, 24, Math.PI * 0.75);
     smileGeo.rotateZ(Math.PI + (Math.PI * 0.25) / 2); // center the arc, opening up
-    addMesh('mouth', headGroup, smileGeo, 'mouth', [0, W(0.72), 0.152], {
+    addMesh('mouth', headGroup, smileGeo, 'mouth', [0, W(0.703), 0.14], {
       rot: [0.25, 0, 0],
       explodeWithParent: true,
     });
