@@ -318,17 +318,26 @@ export function applyLumiOutfit(model: THREE.Group, outfit: LumiOutfit): void {
   }
 
   if (outfit === 'suit') {
-    // Little formal bow tie at the throat.
-    const satin = mat(0x22242c, 0.35);
-    const bowZ = NECK[2] + 0.03;
-    put(core, new THREE.BoxGeometry(0.018, 0.018, 0.013), satin, [NECK[0], NECK[1] - 0.012, bowZ]);
+    // A cat has no visible neck — head and body interpenetrate — so a collar
+    // RING is always mostly buried. The tie instead sits on her chest front,
+    // just below where her chin overhangs (body surface ≈ z 0.13 at y 0.13),
+    // with two collar tabs standing in for a shirt collar.
+    const navy = mat(0x22304f, 0.75);
+    const tie = mat(0xa32636, 0.5);
     for (const sx of [1, -1]) {
-      put(core, new THREE.ConeGeometry(0.02, 0.028, 4), satin, [
-        NECK[0] + sx * 0.025,
-        NECK[1] - 0.012,
-        bowZ,
-      ], { rot: [0, 0, sx * (Math.PI / 2)], scale: [1, 1, 0.6] });
+      put(core, new THREE.BoxGeometry(0.03, 0.03, 0.01), navy, [
+        sx * 0.026,
+        0.055,
+        0.222,
+      ], { rot: [0.25, 0, sx * 0.7] });
     }
+    put(core, new THREE.BoxGeometry(0.02, 0.023, 0.014), tie, [0, 0.04, 0.234]);
+    put(core, new THREE.BoxGeometry(0.027, 0.055, 0.013), tie, [0, 0.007, 0.238], {
+      rot: [0.16, 0, 0],
+    });
+    put(core, new THREE.ConeGeometry(0.019, 0.024, 4), tie, [0, -0.024, 0.233], {
+      rot: [Math.PI + 0.16, Math.PI / 4, 0],
+    });
   }
 
   if (outfit === 'tactical') {
@@ -346,10 +355,34 @@ export function applyLumiOutfit(model: THREE.Group, outfit: LumiOutfit): void {
       rot: [0.12, 0, 0],
     });
     put(core, new THREE.SphereGeometry(0.007, 10, 8), amber, [-0.04, 0.207 - CORE.y, 0.01 - CORE.z]);
+
+    // Combat helmet. Her ear cones start inside the skull and are taller than
+    // the shell, so they pierce it — which reads as ear holes, exactly what a
+    // cat helmet needs. The shell must STOP above her eye line: her eyes sit
+    // at theta ≈ 1.39 from the crown, and the -0.24 forward tilt pushes the
+    // front edge down another 0.24, so thetaLength caps at ~1.0.
+    const helmet = mat(0x4a5138, 0.85);
+    const helmetDark = mat(0x33382a, 0.8);
+    put(head, shell(0, Math.PI * 2, 0, 1.0), helmet, [0, 0.004, -0.008], {
+      scale: [0.16, 0.152, 0.152],
+      rot: [-0.24, 0, 0],
+    });
+    // Dark rim band along the helmet's lower edge.
+    put(head, shell(0, Math.PI * 2, 0.94, 0.08), helmetDark, [0, 0.004, -0.008], {
+      scale: [0.164, 0.156, 0.156],
+      rot: [-0.24, 0, 0],
+    });
+    // NVG mount block on the front of the shell.
+    put(head, new THREE.BoxGeometry(0.03, 0.024, 0.02), helmetDark, [0, 0.04, 0.064], {
+      rot: [-0.22, 0, 0],
+    });
+    put(head, new THREE.BoxGeometry(0.024, 0.011, 0.013), mat(0x17181a, 0.6), [0, 0.057, 0.058], {
+      rot: [-0.22, 0, 0],
+    });
   }
 
   if (outfit === 'cyber') {
-    // Glowing collar plus her own little neural halo, matching his.
+    // Glowing collar, her own neural halo, and wraparound cyberpunk shades.
     const cyan = glow(0x2fd8f5, 1.2);
     const magenta = glow(0xe23fc4, 1.1);
     put(core, new THREE.TorusGeometry(0.079, 0.008, 10, 26), cyan, NECK, { rot: [0.5, 0, 0] });
@@ -357,5 +390,31 @@ export function applyLumiOutfit(model: THREE.Group, outfit: LumiOutfit): void {
     put(head, new THREE.TorusGeometry(0.058, 0.006, 10, 30), cyan, [0, 0.125, -0.022], {
       rot: [Math.PI / 2 - 0.16, 0, 0],
     });
+
+    // Shades: a curved visor band solved onto the eye line. Her eyes sit at
+    // head-local y=0.012, i.e. theta = acos(0.012 / 0.0685) ≈ 1.39 from the
+    // crown, so the band is centred there and wrapped around the front.
+    const lens = mat(0x0d1a24, 0.18, {
+      metalness: 0.5,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.92,
+    });
+    const rim = glow(0x2fd8f5, 1.0);
+    put(head, shell(0.94, 1.26, 1.24, 0.33), lens, [0, 0, 0], {
+      scale: [0.154, 0.146, 0.146],
+    });
+    // Lit rim along the top edge of the visor.
+    put(head, shell(0.94, 1.26, 1.2, 0.05), rim, [0, 0, 0], {
+      scale: [0.157, 0.149, 0.149],
+    });
+    // Temple arms sweeping back toward her ears.
+    for (const sx of [1, -1]) {
+      put(head, new THREE.BoxGeometry(0.045, 0.008, 0.007), mat(0x1c1e2a, 0.4, { metalness: 0.6 }), [
+        sx * 0.058,
+        0.016,
+        0.012,
+      ], { rot: [0, sx * 0.5, 0] });
+    }
   }
 }
