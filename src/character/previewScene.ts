@@ -12,9 +12,12 @@
  *                                         silhouette diagnostics)
  *   ?pose=walk|wave                       rotates the named pivots to verify the
  *                                         animation contract (interaction pass)
+ *   ?outfit=dev|suit|tactical|cyber       apply an era outfit (site costumes)
  */
 import * as THREE from 'three';
 import { createLeviChibiModel, type LeviChibiStage } from './createLeviChibiModel.ts';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { applyOutfit, type Outfit } from './outfits.ts';
 
 const BACKGROUND = 0xd4d7da; // light neutral: distinct from skin, shirt, and blacks
 
@@ -38,6 +41,12 @@ export function mountPreview(container: HTMLElement, params: URLSearchParams): v
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
+  // Match the site's environment so metals read the same here as in the app.
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04);
+  scene.environment = envRT.texture;
+  scene.environmentIntensity = 0.55;
+  pmrem.dispose();
   scene.background = new THREE.Color(BACKGROUND);
 
   const flat = params.get('flat') === '1';
@@ -71,6 +80,8 @@ export function mountPreview(container: HTMLElement, params: URLSearchParams): v
   }
 
   const model = createLeviChibiModel({ stage, clay, castShadow: shadow });
+  const outfit = params.get('outfit');
+  if (outfit && !clay) applyOutfit(model, outfit as Outfit);
   scene.add(model);
 
   if (shadow) {

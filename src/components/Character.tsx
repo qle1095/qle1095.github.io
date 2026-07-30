@@ -7,6 +7,7 @@ import {
 } from 'react';
 import gsap from 'gsap';
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { createLeviChibiModel } from '../character/createLeviChibiModel';
 import { applyOutfit, type Outfit } from '../character/outfits';
 
@@ -66,6 +67,14 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
+    // Metals need something to reflect: a generated room gives the cyborg's
+    // alloy plating real specular response instead of rendering near-black.
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04);
+    scene.environment = envRT.texture;
+    scene.environmentIntensity = 0.55;
+    pmrem.dispose();
+
     const camera = new THREE.PerspectiveCamera(30, CANVAS_W / CANVAS_H, 0.1, 10);
     camera.position.set(0, 0.6, 2.9);
     camera.lookAt(0, 0.47, 0);
@@ -124,6 +133,17 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
         s.amp * Math.abs(Math.cos(s.phase)) * 0.028 +
         (1 - s.amp) * Math.sin(t * 2) * 0.007;
 
+      // Cyborg circuitry breathes: slow pulse plus a faint faster flicker.
+      const pulseMats = rig.model.userData.__pulseMats as
+        | (THREE.MeshStandardMaterial & { userData: { baseEmissive?: number } })[]
+        | undefined;
+      if (pulseMats?.length) {
+        const k = 0.78 + Math.sin(t * 2.1) * 0.22 + Math.sin(t * 7.3) * 0.04;
+        for (const m of pulseMats) {
+          m.emissiveIntensity = (m.userData.baseEmissive ?? 1) * k;
+        }
+      }
+
       // Face nearly front while waving hello, walk direction otherwise.
       const walkTarget = s.dir === 1 ? FACING : Math.PI - FACING;
       const targetY = walkTarget * (1 - s.waveAmp) + 0.12 * s.waveAmp;
@@ -136,6 +156,7 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
 
     return () => {
       cancelAnimationFrame(raf);
+      envRT.dispose();
       renderer.dispose();
       if (renderer.domElement.parentElement === mount) {
         mount.removeChild(renderer.domElement);
