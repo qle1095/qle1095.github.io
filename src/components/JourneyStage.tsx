@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { buildLayout } from '../lib/layout';
 import Character, { type CharacterHandle } from './Character';
 import MilestoneCard from './MilestoneCard';
+import Rich from './Rich';
 import SkillHUD from './SkillHUD';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -30,6 +31,27 @@ export default function JourneyStage() {
       const scrollDist = () =>
         Math.max(1, layout.worldWidth - window.innerWidth);
 
+      // The card nearest the character is "active": full size, story expanded.
+      const cardEls = gsap.utils.toArray<HTMLElement>('.milestone');
+      let lastActive = -2;
+      const updateActive = (progress: number) => {
+        const charWorldX =
+          scrollDist() * progress + CHARACTER_AT * window.innerWidth;
+        let best = -1;
+        let bestDist = Infinity;
+        layout.milestones.forEach((m, i) => {
+          const d = Math.abs(m.x - charWorldX);
+          if (d < bestDist) {
+            bestDist = d;
+            best = i;
+          }
+        });
+        const active = bestDist < 340 ? best : -1;
+        if (active === lastActive) return;
+        lastActive = active;
+        cardEls.forEach((el, i) => el.classList.toggle('active', i === active));
+      };
+
       // Master timeline: scroll scrubs the world horizontally.
       const worldTween = gsap.to(world, {
         x: () => -scrollDist(),
@@ -45,6 +67,7 @@ export default function JourneyStage() {
             if (progressFillRef.current) {
               progressFillRef.current.style.width = `${self.progress * 100}%`;
             }
+            updateActive(self.progress);
             const v = self.getVelocity();
             if (Math.abs(v) > 30) {
               characterRef.current?.setWalking(true, v >= 0 ? 1 : -1);
@@ -122,6 +145,7 @@ export default function JourneyStage() {
         });
       });
       stage.setAttribute('data-theme', layout.chapters[0].chapter.theme);
+      updateActive(worldTween.scrollTrigger?.progress ?? 0);
     }, stage);
 
     return () => ctx.revert();
@@ -155,8 +179,8 @@ export default function JourneyStage() {
 
         <div className="ground" />
 
-        {layout.milestones.map((m) => (
-          <MilestoneCard key={m.id} milestone={m} />
+        {layout.milestones.map((m, i) => (
+          <MilestoneCard key={m.id} milestone={m} index={i} />
         ))}
 
         {layout.skills.map((s) => (
@@ -176,7 +200,9 @@ export default function JourneyStage() {
           <div key={q.id} className="side-quest" style={{ left: q.x }}>
             <article className="side-quest-card">
               <h4>{q.title}</h4>
-              <p>{q.story}</p>
+              <p>
+                <Rich text={q.story} />
+              </p>
             </article>
           </div>
         ))}

@@ -1,4 +1,5 @@
 import { chapters, sideQuests } from '../data/journey';
+import Rich from './Rich';
 
 // Fallback for prefers-reduced-motion: the same story as a clean vertical
 // timeline, no pinning, no animation.
@@ -14,7 +15,9 @@ export default function StaticTimeline() {
                 <span className="static-date">{m.date}</span>
                 <h3>{m.title}</h3>
                 {m.subtitle && <p className="milestone-subtitle">{m.subtitle}</p>}
-                <p>{m.story}</p>
+                <p>
+                  <Rich text={m.story} />
+                </p>
                 {m.skills && m.skills.length > 0 && (
                   <p className="static-skills">
                     {m.skills.map((s) => `${s.icon} ${s.label}`).join(' · ')}
@@ -32,7 +35,9 @@ export default function StaticTimeline() {
             <li key={q.id} className="static-milestone">
               <span className="static-date">{q.date}</span>
               <h3>{q.title}</h3>
-              <p>{q.story}</p>
+              <p>
+                <Rich text={q.story} />
+              </p>
             </li>
           ))}
         </ol>

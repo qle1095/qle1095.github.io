@@ -60,7 +60,7 @@ export const chapters: Chapter[] = [
         title: 'First Internship',
         subtitle: 'JPMorgan Chase — Tampa, FL',
         story:
-          'Built a web app that collects human-labeled training data for an OCR model. First taste of shipping real software.',
+          'Built a web app that collects **human-labeled training data** for an OCR model. **First taste of shipping real software.**',
         kind: 'job',
         skills: [
           { id: 'javascript', label: 'JavaScript', icon: '🟨' },
@@ -73,7 +73,7 @@ export const chapters: Chapter[] = [
         title: 'Second Internship',
         subtitle: 'JPMorgan Chase — Integrated Receivables',
         story:
-          'Built a full-stack web app that onboards new clients to the program and version-tracks every configuration file.',
+          'Built a **full-stack web app** that onboards new clients to the program and **version-tracks every configuration file**.',
         kind: 'job',
         skills: [
           { id: 'java', label: 'Java', icon: '☕' },
@@ -85,7 +85,7 @@ export const chapters: Chapter[] = [
         date: '2019-12',
         title: 'B.S. — IT Software Development',
         subtitle: 'Florida International University · magna cum laude',
-        story: 'Graduated magna cum laude from FIU in Miami, already with two internships in the bag.',
+        story: 'Graduated **magna cum laude** from FIU in Miami, already with **two internships** in the bag.',
         kind: 'education',
         celebrate: true,
         skills: [{ id: 'sql', label: 'SQL', icon: '🗄️' }],
@@ -103,7 +103,7 @@ export const chapters: Chapter[] = [
         title: 'Software Engineer',
         subtitle: 'JPMorgan Chase — Software Engineer Program',
         story:
-          'Joined the bank full-time, building backend REST services for client charge processing on the Billing & Pricing platform.',
+          'Joined the bank full-time, building **backend REST services** for client charge processing on the **Billing & Pricing platform**.',
         kind: 'job',
         skills: [
           { id: 'spring', label: 'Spring Boot', icon: '🍃' },
@@ -116,7 +116,7 @@ export const chapters: Chapter[] = [
         title: 'Service Container Platform',
         subtitle: 'Payments infrastructure',
         story:
-          'Built four shared utilities — messaging toolkit, failure handler, retry, validation suite — and containerized legacy Java apps for the cloud migration.',
+          'Built **four shared utilities** — messaging toolkit, failure handler, retry, validation suite — and **containerized legacy Java apps** for the cloud migration.',
         kind: 'launch',
         skills: [
           { id: 'docker', label: 'Docker', icon: '🐳' },
@@ -129,7 +129,7 @@ export const chapters: Chapter[] = [
         title: 'Fast-Tracked',
         subtitle: 'SEP graduated in 18 months',
         story:
-          'Finished the bank’s two-year engineering program six months early — and mentored four junior engineers along the way.',
+          'Finished the bank’s two-year program **six months early** — and **mentored four junior engineers** along the way.',
         kind: 'achievement',
         celebrate: true,
       },
@@ -146,7 +146,7 @@ export const chapters: Chapter[] = [
         title: 'Joined Raft',
         subtitle: 'Associate Software Engineer',
         story:
-          'Traded big-bank guardrails for startup speed, building cloud-native systems for government customers.',
+          'Traded big-bank guardrails for **startup speed**, building **cloud-native systems** for government customers.',
         kind: 'job',
         skills: [
           { id: 'go', label: 'Go', icon: '🐹' },
@@ -159,7 +159,7 @@ export const chapters: Chapter[] = [
         title: 'The Live Demo',
         subtitle: 'Multi-million-dollar contract win',
         story:
-          'Built a customer-requested feature live during an executive demo — helping win the contract on the spot.',
+          'Built a customer-requested feature **live during an executive demo** — helping **win the multi-million-dollar contract** on the spot.',
         kind: 'achievement',
         celebrate: true,
         skills: [
@@ -173,7 +173,7 @@ export const chapters: Chapter[] = [
         title: 'Air-Gap Specialist',
         subtitle: 'High-security delivery',
         story:
-          'Became the go-to engineer for air-gapped networks: deploying and debugging production on-site in restricted facilities — no internet, no standard tooling.',
+          'Became the go-to engineer for **air-gapped networks**: debugging production on-site in restricted facilities — **no internet, no standard tooling**.',
         kind: 'job',
       },
       {
@@ -182,7 +182,7 @@ export const chapters: Chapter[] = [
         title: 'Associate → Staff',
         subtitle: 'Skipped Senior entirely',
         story:
-          'Promoted from Associate directly to Staff Software Engineer in one year — leapfrogging the Senior level, with multiple spot bonuses en route.',
+          'Promoted from Associate **directly to Staff** in one year — **skipping the Senior level entirely**, with multiple spot bonuses en route.',
         kind: 'achievement',
         celebrate: true,
       },
@@ -199,7 +199,7 @@ export const chapters: Chapter[] = [
         title: 'Data Fabric — Tech Lead',
         subtitle: '12-engineer cross-functional team',
         story:
-          '“Google over your data”: search thousands of datasets across 200+ sources, with row- and column-level access control. Led data engineering, software, and DevSecOps end to end.',
+          '**“Google over your data”**: search thousands of datasets across **200+ sources**, with **row- and column-level access control**. Led a **12-engineer team** end to end.',
         kind: 'launch',
         skills: [
           { id: 'kafka', label: 'Kafka', icon: '🌀' },
@@ -213,7 +213,7 @@ export const chapters: Chapter[] = [
         title: 'CBC2 — 10,000 msg/s',
         subtitle: 'Real-time mission pipeline',
         story:
-          'Designed Raft’s initial architecture for a real-time decision-making pipeline, then hit the contract’s 10,000 messages-per-second requirement with Kafka Streams.',
+          'Designed Raft’s initial architecture for a real-time mission pipeline, then hit the contract’s **10,000 messages-per-second** requirement with **Kafka Streams**.',
         kind: 'launch',
         skills: [{ id: 'scala', label: 'Scala', icon: '🌶️' }],
       },
@@ -223,7 +223,7 @@ export const chapters: Chapter[] = [
         title: 'Platform Multiplier',
         subtitle: '~30 teams onboarded',
         story:
-          'Deployed Backstage with custom plugins, giving every team one view of project status, security posture, and compliance readiness.',
+          'Deployed **Backstage with custom plugins**, giving **~30 teams** one view of project status, security posture, and compliance readiness.',
         kind: 'launch',
         skills: [
           { id: 'backstage', label: 'Backstage', icon: '🎭' },
@@ -236,7 +236,7 @@ export const chapters: Chapter[] = [
         title: 'CKAD Certified',
         subtitle: '+ CompTIA Security+',
         story:
-          'Certified Kubernetes Application Developer, stacked on CompTIA Security+ and an active TS/SCI clearance.',
+          '**Certified Kubernetes Application Developer**, stacked on **CompTIA Security+** and an active **TS/SCI clearance**.',
         kind: 'achievement',
         celebrate: true,
       },
@@ -253,7 +253,7 @@ export const chapters: Chapter[] = [
         title: 'Vulnerability Assessment Platform',
         subtitle: 'Full-stack owner',
         story:
-          'The platform security analysts use to clear releases carrying tens of thousands of CVE findings — automated aggregation, risk scoring, and auditable decisions.',
+          'The platform security analysts use to clear releases carrying **tens of thousands of CVE findings** — automated aggregation, **risk scoring**, and **auditable decisions**.',
         kind: 'launch',
         skills: [
           { id: 'typescript', label: 'TypeScript', icon: '🟦' },
@@ -266,7 +266,7 @@ export const chapters: Chapter[] = [
         title: 'Self-Hosted AI Agents',
         subtitle: 'Privacy-preserving LLM workflows',
         story:
-          'Designed multi-agent workflows on fully self-hosted models — drafting CVE justifications from analyst-approved precedent. No customer data ever leaves the environment.',
+          'Designed **multi-agent workflows** on **fully self-hosted models** — drafting CVE justifications from analyst-approved precedent. **No customer data ever leaves the environment.**',
         kind: 'launch',
         skills: [
           { id: 'ollama', label: 'Ollama', icon: '🦙' },
@@ -279,7 +279,7 @@ export const chapters: Chapter[] = [
         title: 'The $450M Exit',
         subtitle: 'Leonardo DRS acquires Raft',
         story:
-          'Data Fabric anchors the multi-domain data-fusion capability cited in Leonardo DRS’s $450M acquisition of Raft.',
+          '**Data Fabric anchors** the multi-domain data-fusion capability cited in Leonardo DRS’s **$450M acquisition** of Raft.',
         kind: 'achievement',
         celebrate: true,
       },
@@ -293,14 +293,14 @@ export const sideQuests: SideQuest[] = [
     date: '2024-06',
     title: 'Side Quest: Tea Shop Automation',
     story:
-      'Full-stack ops platform for a local tea shop — in production at up to 100 orders/day. Self-service kiosk, live prep queue, recipe enforcement; new-hire ramp-up cut from a month to days.',
+      'Full-stack ops platform for a local tea shop — **in production at up to 100 orders/day**. Self-service kiosk, live prep queue; **new-hire ramp-up cut from a month to days**.',
   },
   {
     id: 'health-coach',
     date: '2025-11',
     title: 'Side Quest: AI Health Coach',
     story:
-      'Multi-agent Fitbit assistant — nutrition, exercise, and sleep agents collaborate on your data for personalized coaching.',
+      'Multi-agent Fitbit assistant — **nutrition, exercise, and sleep agents** collaborate on your data for personalized coaching.',
   },
 ];
 

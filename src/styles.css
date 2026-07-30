@@ -142,65 +142,174 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 21rem;
+  width: 20rem;
 }
+
+.milestone.is-celebrate { width: 23rem; }
+
+/* Kind palette drives the tag, accent edge, and icon chip. */
+.kind-job         { --kind-color: #ff7a59; --kind-soft: #ffede7; }
+.kind-education   { --kind-color: #2f7dd1; --kind-soft: #e7f1fb; }
+.kind-achievement { --kind-color: #d99a06; --kind-soft: #fdf3da; }
+.kind-launch      { --kind-color: #2c9c72; --kind-soft: #e4f6ee; }
 
 .milestone-card {
+  position: relative;
+  width: 100%;
   background: var(--card);
-  border-radius: 14px;
-  padding: 1.1rem 1.25rem;
+  border-radius: 16px;
+  padding: 0.95rem 1.15rem 1.05rem;
+  border: 1px solid rgba(31, 35, 51, 0.07);
+  border-top: 5px solid var(--kind-color);
   box-shadow: 0 14px 34px rgba(31, 35, 51, 0.14);
-  border: 1px solid rgba(31, 35, 51, 0.06);
+  cursor: pointer;
+  transition:
+    transform 0.4s ease,
+    opacity 0.4s ease,
+    filter 0.4s ease,
+    box-shadow 0.4s ease;
 }
 
-.milestone-post {
-  width: 5px;
-  height: 3.2rem;
-  background: rgba(31, 35, 51, 0.35);
-  border-radius: 3px;
+/* Dim + shrink everything except the active / manually opened card. */
+.milestone:not(.active):not(.open) .milestone-card {
+  transform: scale(0.93);
+  opacity: 0.68;
+  filter: saturate(0.75);
+  box-shadow: 0 8px 18px rgba(31, 35, 51, 0.1);
+}
+
+.milestone.active .milestone-card {
+  box-shadow: 0 22px 48px rgba(31, 35, 51, 0.2);
+}
+
+.milestone-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
 }
 
 .milestone-tag {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--accent);
-  margin-bottom: 0.35rem;
+  color: var(--kind-color);
 }
 
-.kind-achievement .milestone-tag { color: #c98a04; }
-.kind-education .milestone-tag { color: #2f7dd1; }
-.kind-launch .milestone-tag { color: #2c9c72; }
+.milestone-kind-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  font-size: 0.95rem;
+  background: var(--kind-soft);
+  border-radius: 8px;
+}
 
 .milestone-date {
-  float: right;
   font-size: 0.75rem;
+  font-weight: 600;
   color: #8a8fa3;
+  white-space: nowrap;
 }
 
 .milestone-title {
-  font-size: 1.15rem;
-  line-height: 1.25;
+  font-size: 1.18rem;
+  font-weight: 800;
+  line-height: 1.22;
 }
 
+.is-celebrate .milestone-title { font-size: 1.35rem; }
+
 .milestone-subtitle {
-  font-size: 0.85rem;
+  font-size: 0.84rem;
+  font-weight: 600;
   color: #6a6f85;
-  margin-top: 0.15rem;
+  margin-top: 0.2rem;
+}
+
+/* Story collapses to nothing until the card is active or clicked open. */
+.milestone-body {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.55s ease, opacity 0.4s ease;
+}
+
+.milestone.active .milestone-body,
+.milestone.open .milestone-body {
+  max-height: 14rem;
+  opacity: 1;
 }
 
 .milestone-story {
   font-size: 0.9rem;
-  line-height: 1.5;
-  margin-top: 0.5rem;
+  line-height: 1.55;
+  margin-top: 0.55rem;
   color: #3c4157;
 }
 
+/* Keyword highlight for skimming. */
+.hl {
+  font-weight: 700;
+  color: #23273a;
+  background: linear-gradient(transparent 58%, rgba(255, 122, 89, 0.32) 58%);
+  border-radius: 2px;
+  padding: 0 0.08em;
+}
+
+.milestone-more {
+  position: absolute;
+  bottom: 0.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: #b6b9c9;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.milestone.active .milestone-more,
+.milestone.open .milestone-more {
+  transform: translateX(-50%) rotate(180deg);
+  opacity: 0.5;
+}
+
+.milestone-post {
+  width: 5px;
+  height: var(--post-h, 3.2rem);
+  background: rgba(31, 35, 51, 0.35);
+  border-radius: 3px;
+}
+
+/* Celebrate moments: gold hero cards with a star seal. */
 .is-celebrate .milestone-card {
-  border: 2px solid #ffd166;
-  box-shadow: 0 14px 34px rgba(201, 138, 4, 0.22);
+  border: 1px solid rgba(217, 154, 6, 0.35);
+  border-top: 5px solid #ffc933;
+  background: linear-gradient(#fffdf5, #fff8e4);
+}
+
+.milestone.is-celebrate.active .milestone-card {
+  box-shadow: 0 22px 52px rgba(201, 138, 4, 0.32);
+}
+
+.milestone-star {
+  position: absolute;
+  top: -14px;
+  right: -12px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(#ffd75e, #f0a819);
+  color: #fff;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(201, 138, 4, 0.45);
 }
 
 /* ===== Skill pickups ===== */
