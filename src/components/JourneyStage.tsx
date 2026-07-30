@@ -3,6 +3,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { buildLayout } from '../lib/layout';
 import { type CharacterHandle } from './Character';
+import { type Outfit } from '../character/outfits';
 import MilestoneCard from './MilestoneCard';
 import Rich from './Rich';
 import ParallaxLayer from './Scenery';
@@ -16,6 +17,15 @@ gsap.registerPlugin(ScrollTrigger);
 // slides past so that a point at world-x meets the character when
 // scroll-x = x - CHARACTER_AT * viewportWidth.
 const CHARACTER_AT = 0.35;
+
+// What the character wears in each era.
+const CHAPTER_OUTFITS: Record<string, Outfit> = {
+  foundations: 'dev',
+  'the-bank': 'suit',
+  'startup-ascent': 'tactical',
+  'platform-era': 'tactical',
+  'ai-frontier': 'cyber',
+};
 
 export default function JourneyStage({
   characterRef,
@@ -196,6 +206,7 @@ export default function JourneyStage({
       // the company badge.
       const applyChapter = (chapter: (typeof layout.chapters)[number]['chapter']) => {
         stage.setAttribute('data-theme', chapter.theme);
+        characterRef.current?.setOutfit(CHAPTER_OUTFITS[chapter.id] ?? 'dev');
         const badge = companyRef.current;
         if (badge && badge.textContent !== chapter.company) {
           badge.textContent = chapter.company;

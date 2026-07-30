@@ -8,12 +8,14 @@ import {
 import gsap from 'gsap';
 import * as THREE from 'three';
 import { createLeviChibiModel } from '../character/createLeviChibiModel';
+import { applyOutfit, type Outfit } from '../character/outfits';
 
 // The character contract used by JourneyStage. The 3D chibi (img2threejs
 // pipeline output) implements it; a CSS chibi remains as the no-WebGL fallback.
 export type CharacterHandle = {
   setWalking: (walking: boolean, direction: 1 | -1) => void;
   setWaving: (waving: boolean) => void;
+  setOutfit: (outfit: Outfit) => void;
   celebrate: () => void;
 };
 
@@ -43,6 +45,7 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
     waving: false,
     waveAmp: 0,
   });
+  const outfitRef = useRef<Outfit>('dev');
   const [webglFailed, setWebglFailed] = useState(false);
 
   useEffect(() => {
@@ -80,6 +83,7 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
 
     const model = createLeviChibiModel();
     model.rotation.y = FACING;
+    applyOutfit(model, outfitRef.current);
     scene.add(model);
 
     rigRef.current = {
@@ -153,6 +157,31 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
     },
     setWaving(waving) {
       stateRef.current.waving = waving;
+    },
+    setOutfit(outfit) {
+      if (outfitRef.current === outfit) return;
+      outfitRef.current = outfit;
+      const rig = rigRef.current;
+      if (!rig) return; // applied on mount instead
+      // Squash-pop costume change: shrink, swap at the low point, spring back.
+      const swap = () => applyOutfit(rig.model, outfitRef.current);
+      gsap
+        .timeline()
+        .to(rig.model.scale, {
+          x: 1.18,
+          y: 0.62,
+          z: 1.18,
+          duration: 0.14,
+          ease: 'power2.in',
+          onComplete: swap,
+        })
+        .to(rig.model.scale, {
+          x: 1,
+          y: 1,
+          z: 1,
+          duration: 0.5,
+          ease: 'elastic.out(1.1, 0.45)',
+        });
     },
     celebrate() {
       const el = rootRef.current;
