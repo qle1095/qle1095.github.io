@@ -216,7 +216,7 @@ export const chapters: Chapter[] = [
         title: 'Data Fabric',
         subtitle: 'Cross-functional platform team of 12',
         story:
-          '**“Google over your data”**: search thousands of datasets across **200+ sources**, serving **hundreds of users** with **row- and column-level access control**. **Helped drive it end to end** — data engineering, software, and DevSecOps — onboarding **~10 data vendors**.',
+          '**“Google over your data”**: search thousands of datasets across **200+ sources**, serving **hundreds of users** with **row- and column-level access control**. **Drove it end to end** — data engineering, software, and DevSecOps — onboarding **~10 data vendors**.',
         kind: 'launch',
         skills: [
           { id: 'kafka', label: 'Kafka', icon: '🌀' },
