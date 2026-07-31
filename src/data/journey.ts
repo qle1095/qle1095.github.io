@@ -213,10 +213,10 @@ export const chapters: Chapter[] = [
         id: 'data-fabric',
         date: '2023-07',
         display: '2023',
-        title: 'Data Fabric — Tech Lead',
-        subtitle: '12-engineer cross-functional team',
+        title: 'Data Fabric',
+        subtitle: 'Cross-functional platform team of 12',
         story:
-          '**“Google over your data”**: search thousands of datasets across **200+ sources**, serving **hundreds of users** with **row- and column-level access control**. Led a **12-engineer team** end to end and onboarded **~10 data vendors**.',
+          '**“Google over your data”**: search thousands of datasets across **200+ sources**, serving **hundreds of users** with **row- and column-level access control**. **Helped drive it end to end** — data engineering, software, and DevSecOps — onboarding **~10 data vendors**.',
         kind: 'launch',
         skills: [
           { id: 'kafka', label: 'Kafka', icon: '🌀' },
