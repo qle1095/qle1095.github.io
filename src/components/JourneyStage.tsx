@@ -173,6 +173,18 @@ export default function JourneyStage({
           .to(charLayer, { y: () => dropY(), ease: 'power2.in', duration: 0.65 }, 0.35);
       }
 
+      // The character layer is position:fixed, so without this it hovers over
+      // the tech stack below the outro. Fade it once the stack scrolls in.
+      const stackEl = document.querySelector<HTMLElement>('.tech-stack');
+      if (charLayer && stackEl) {
+        ScrollTrigger.create({
+          trigger: stackEl,
+          start: 'top 88%',
+          onEnter: () => gsap.to(charLayer, { autoAlpha: 0, duration: 0.35 }),
+          onLeaveBack: () => gsap.to(charLayer, { autoAlpha: 1, duration: 0.35 }),
+        });
+      }
+
       // Milestone cards rise in as the character approaches them.
       gsap.utils.toArray<HTMLElement>('.milestone').forEach((el) => {
         gsap.from(el, {

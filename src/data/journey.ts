@@ -335,5 +335,53 @@ export const sideQuests: SideQuest[] = [
   },
 ];
 
+/** The full technology list, grouped exactly as the resume groups it. The
+ *  skill pickups during the journey are a game mechanic; this is the
+ *  scannable inventory a recruiter actually reads. */
+export type TechGroup = { label: string; items: string[] };
+
+export const techStack: TechGroup[] = [
+  {
+    label: 'Languages',
+    items: ['Go', 'Java', 'Python', 'Scala', 'TypeScript', 'JavaScript', 'SQL', 'Bash'],
+  },
+  {
+    label: 'AI',
+    items: ['LLM integration & tool calling', 'Multi-agent workflows', 'Ollama', 'Gemma', 'OpenAI API'],
+  },
+  {
+    label: 'Platform & Cloud',
+    items: ['Kubernetes', 'Operators / CRDs', 'Kubebuilder', 'Docker', 'Helm', 'Istio', 'AWS (EKS, S3)', 'Azure (AKS)', 'MinIO', 'Linux'],
+  },
+  {
+    label: 'Data & Streaming',
+    items: ['Kafka', 'Kafka Streams', 'Kafka Connect', 'Strimzi', 'Avro', 'Trino', 'Delta Lake', 'Superset', 'PostgreSQL', 'MongoDB'],
+  },
+  {
+    label: 'Architecture',
+    items: ['Distributed systems', 'Microservices', 'Event-driven streaming', 'ETL'],
+  },
+  {
+    label: 'Backend & Frontend',
+    items: ['Spring Boot', 'Quarkus', 'REST APIs', 'WebSockets', 'React', 'Next.js', 'Material UI'],
+  },
+  {
+    label: 'Security & Identity',
+    items: ['Keycloak', 'OPA / Rego', 'OAuth', 'SSO', 'ABAC', 'DevSecOps'],
+  },
+  {
+    label: 'Testing & CI/CD',
+    items: ['JUnit', 'Mockito', 'Hamcrest', 'Cypress', 'JMeter', 'GitLab CI/CD', 'Backstage', 'Git'],
+  },
+  {
+    label: 'Certifications & Clearance',
+    items: ['CKAD', 'CompTIA Security+ (SY0-701)', 'CompTIA SecurityX (in progress)', 'Active TS/SCI'],
+  },
+  {
+    label: 'Spoken',
+    items: ['English (bilingual)', 'Vietnamese (native)'],
+  },
+];
+
 export const allMilestones: Milestone[] = chapters.flatMap((c) => c.milestones);
 export const allSkills: Skill[] = allMilestones.flatMap((m) => m.skills ?? []);

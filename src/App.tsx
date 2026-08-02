@@ -7,6 +7,7 @@ import Hero from './components/Hero';
 import JourneyStage from './components/JourneyStage';
 import Outro from './components/Outro';
 import StaticTimeline from './components/StaticTimeline';
+import TechStack from './components/TechStack';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -46,6 +47,7 @@ export default function App() {
         <Hero staticMode />
         <StaticTimeline />
         <Outro />
+        <TechStack />
       </>
     );
   }
@@ -61,6 +63,7 @@ export default function App() {
       </div>
       <JourneyStage characterRef={characterRef} />
       <Outro />
+      <TechStack />
     </>
   );
 }

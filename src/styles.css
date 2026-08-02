@@ -882,7 +882,7 @@ button { font-family: inherit; }
 /* ===== Outro ===== */
 .outro {
   position: relative;
-  min-height: 78vh;
+  min-height: 72vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -941,6 +941,74 @@ button { font-family: inherit; }
 }
 
 .btn-primary:hover { background: #ff8f73; box-shadow: 0 12px 32px -6px rgba(255, 122, 89, 0.7); }
+
+
+/* ===== Tech stack (the scannable inventory) =====
+   Visually continuous with the outro so it reads as one closing section
+   rather than a stray appendix a recruiter might never scroll to. */
+.tech-stack {
+  position: relative;
+  padding: 1rem 2rem 5rem;
+  background: #1f2333;
+  color: #f2f3f8;
+}
+
+.tech-stack-heading {
+  max-width: 62rem;
+  margin: 0 auto;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+.tech-stack-sub {
+  max-width: 62rem;
+  margin: 0.4rem auto 2.4rem;
+  text-align: center;
+  color: #9aa0b8;
+  font-size: 0.92rem;
+}
+
+.tech-grid {
+  max-width: 62rem;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1.6rem 2rem;
+}
+
+.tech-group-label {
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+  margin-bottom: 0.6rem;
+}
+
+.tech-items {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+}
+
+.tech-chip {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  padding: 0.26rem 0.6rem;
+  font-size: 0.82rem;
+  color: #e3e6f0;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .tech-stack { padding: 0.5rem 1.2rem 3.5rem; }
+  .tech-grid { gap: 1.3rem; }
+  .tech-chip { font-size: 0.78rem; }
+}
 
 /* ===== Static timeline (reduced motion) ===== */
 .static-timeline {
