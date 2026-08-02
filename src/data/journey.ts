@@ -50,7 +50,7 @@ export const profile = {
   linkedin: 'https://linkedin.com/in/levi-q-le',
   resumePdf: '/resume.pdf',
   intro:
-    'From intern to Staff Engineer — leading the data platform behind a $450M acquisition. Scroll to walk the journey.',
+    'Six years from intern to Staff Engineer, and the data platform behind a $450M acquisition. Scroll to walk the journey.',
 };
 
 export const chapters: Chapter[] = [
@@ -67,7 +67,7 @@ export const chapters: Chapter[] = [
         title: 'First Internship',
         subtitle: 'JPMorgan Chase — Tampa, FL',
         story:
-          'Built a web app that collects **human-labeled training data** for an OCR model. **First taste of shipping real software.**',
+          'First internship, first shipped software: a web app collecting the **human-labeled training data** an **OCR model** trained on.',
         kind: 'job',
         skills: [
           { id: 'javascript', label: 'JavaScript', icon: '🟨' },
@@ -81,7 +81,7 @@ export const chapters: Chapter[] = [
         title: 'Second Internship',
         subtitle: 'JPMorgan Chase — Integrated Receivables',
         story:
-          'Built a **full-stack web app** that onboards new clients to the program and **version-tracks every configuration file**.',
+          'Back for a second summer — a **full-stack web app** that **onboards new clients** to the bank’s Integrated Receivables program and **version-tracks every configuration file**.',
         kind: 'job',
         skills: [
           { id: 'java', label: 'Java', icon: '☕' },
@@ -114,7 +114,7 @@ export const chapters: Chapter[] = [
         title: 'Software Engineer',
         subtitle: 'JPMorgan Chase — Software Engineer Program',
         story:
-          'Joined the bank full-time, building **backend REST services** for client charge processing on the **Billing & Pricing platform**.',
+          'Joined the bank full-time on the **Billing & Pricing platform** — **backend REST services** processing client charges, load-tested with **JMeter and BlazeMeter** before they reached production.',
         kind: 'job',
         skills: [
           { id: 'spring', label: 'Spring Boot', icon: '🍃' },
@@ -127,7 +127,7 @@ export const chapters: Chapter[] = [
         title: 'Service Container Platform',
         subtitle: 'Payments infrastructure',
         story:
-          'Built **four shared utilities** — messaging toolkit, failure handler, retry, validation suite — and **containerized legacy Java apps** for the cloud migration.',
+          'Built the **shared library that lets payment teams adopt new tools without from-scratch integrations** — messaging toolkit, failure handler, retry, validation suite — and **containerized legacy Java apps** for the bank’s cloud migration.',
         kind: 'launch',
         skills: [
           { id: 'docker', label: 'Docker', icon: '🐳' },
@@ -187,7 +187,7 @@ export const chapters: Chapter[] = [
         title: 'Air-Gap Specialist',
         subtitle: 'High-security delivery',
         story:
-          'Became the go-to engineer for **air-gapped networks**: debugging production on-site in restricted facilities — **no internet, no standard tooling**.',
+          'The **go-to engineer for air-gapped networks** — **rescued several deployments ahead of executive demos**, debugging production on-site in restricted facilities with **no internet and no standard tooling**. Holds an active **TS/SCI clearance**.',
         kind: 'job',
       },
       {
@@ -197,7 +197,7 @@ export const chapters: Chapter[] = [
         title: 'Associate → Staff',
         subtitle: 'Skipped Senior entirely',
         story:
-          'Promoted from Associate **directly to Staff** in one year — **skipping the Senior level entirely**, with multiple spot bonuses en route.',
+          'Promoted from Associate **directly to Staff** in one year — **skipping the Senior level entirely**, with multiple spot bonuses. Now **mentor every engineer joining the team** and **interview for every role**.',
         kind: 'achievement',
         celebrate: true,
       },
@@ -240,7 +240,7 @@ export const chapters: Chapter[] = [
         title: 'Platform Multiplier',
         subtitle: '~30 teams onboarded',
         story:
-          'Deployed **Backstage with custom plugins**, giving **~30 teams** one view of project status, security posture, and compliance readiness.',
+          'Deployed **Backstage with custom plugins** and automated manual steps out of the **org-wide CI/CD flow** — giving **~30 teams** one view of project status, security posture, and compliance readiness.',
         kind: 'launch',
         skills: [
           { id: 'backstage', label: 'Backstage', icon: '🎭' },
@@ -254,7 +254,7 @@ export const chapters: Chapter[] = [
         title: 'CKAD Certified',
         subtitle: '+ CompTIA Security+ (SY0-701)',
         story:
-          '**Certified Kubernetes Application Developer**, stacked on **CompTIA Security+ (SY0-701)** and an active **TS/SCI clearance** held since 2022.',
+          '**Certified Kubernetes Application Developer**, stacked on **CompTIA Security+ (SY0-701)** — the credentials underwriting the platform and security work.',
         kind: 'achievement',
         celebrate: true,
       },
