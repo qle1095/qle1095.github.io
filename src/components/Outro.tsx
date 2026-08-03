@@ -1,8 +1,8 @@
 import { profile } from '../data/journey';
 
-export default function Outro() {
+export default function Outro({ staticMode = false }: { staticMode?: boolean }) {
   return (
-    <footer className="outro">
+    <footer className={staticMode ? 'outro outro-static' : 'outro'}>
       <h2 className="outro-title">…and the journey continues.</h2>
       <p className="outro-text">
         Today I lead AI/LLM integration on fully self-hosted models and the

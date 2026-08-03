@@ -889,13 +889,19 @@ button { font-family: inherit; }
   justify-content: center;
   text-align: center;
   gap: 1.3rem;
-  padding: 3rem 2rem;
+  /* The bottom padding is the character's landing pad: he ends the journey
+     standing under the contact buttons, and he is ~190px tall. Without it the
+     contact row sits low enough that he lands on top of it on short windows. */
+  padding: 3rem 2rem 13rem;
   overflow: hidden;
   background:
     radial-gradient(ellipse at 50% 120%, rgba(255, 122, 89, 0.16) 0%, transparent 55%),
     linear-gradient(#2b2e4a, #1f2333);
   color: #f2f3f8;
 }
+
+/* Reduced motion renders no character, so there is nothing to leave room for. */
+.outro-static { padding-bottom: 3rem; }
 
 .outro-title {
   font-size: clamp(2.2rem, 6vw, 4rem);
@@ -1005,6 +1011,10 @@ button { font-family: inherit; }
 }
 
 @media (max-width: 640px) {
+  /* The contact buttons wrap to two rows here, so the landing pad needs a
+     little more room for him to stand clear of both them and the seam. */
+  .outro { padding-bottom: 15rem; }
+  .outro-static { padding-bottom: 3rem; }
   .tech-stack { padding: 0.5rem 1.2rem 3.5rem; }
   .tech-grid { gap: 1.3rem; }
   .tech-chip { font-size: 0.78rem; }

@@ -46,7 +46,7 @@ export default function App() {
       <>
         <Hero staticMode />
         <StaticTimeline />
-        <Outro />
+        <Outro staticMode />
         <TechStack />
       </>
     );

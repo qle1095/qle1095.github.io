@@ -149,9 +149,47 @@ export default function JourneyStage({
       // positions include the pin's added distance — otherwise its range
       // overlaps the whole pinned journey and he waves the entire way. ---
       const outroEl = document.querySelector<HTMLElement>('.outro');
-      if (charLayer && outroEl) {
+      const actionsEl = outroEl?.querySelector<HTMLElement>('.outro-actions');
+      if (charLayer && outroEl && actionsEl) {
         const centerX = () => window.innerWidth * 0.5 - charW / 2;
-        const dropY = () => window.innerHeight * 0.115;
+
+        // The canvas carries transparent padding, so his visible pixels run
+        // from CHAR_HEAD to CHAR_FEET inside the layer's own box.
+        const CHAR_HEAD = 27;
+        const CHAR_FEET = 213;
+
+        // His resting offset from the bottom of the viewport, cached rather
+        // than read on demand. Docking (below) swaps `bottom` for a
+        // document-space `top`, and getComputedStyle would then resolve
+        // `bottom` against the whole document — a five-figure number that
+        // throws the landing thousands of pixels off screen.
+        let restBottom = parseFloat(getComputedStyle(charLayer).bottom);
+        const measureRest = () => {
+          if (charLayer.style.position !== 'absolute') {
+            restBottom = parseFloat(getComputedStyle(charLayer).bottom);
+          }
+        };
+        const restTop = () =>
+          window.innerHeight - restBottom - charLayer.offsetHeight;
+
+        // Where the layer box has to end up, relative to the outro's top, for
+        // him to stand in the landing pad under the contact buttons. Measured
+        // from the outro's real layout rather than a fraction of the viewport:
+        // on short windows and on mobile — where the buttons wrap to two rows —
+        // a fixed drop lands him on top of them.
+        const landingInOutro = () => {
+          const outroRect = outroEl.getBoundingClientRect();
+          const padTop = actionsEl.getBoundingClientRect().bottom - outroRect.top;
+          const pad = outroRect.height - padTop;
+          return (
+            padTop + Math.max(12, (pad - (CHAR_FEET - CHAR_HEAD)) / 2) - CHAR_HEAD
+          );
+        };
+
+        // The drop ends when the outro's top hits 25% of the viewport (see the
+        // trigger below), so the landing is a known viewport position there.
+        const dropY = () =>
+          window.innerHeight * 0.25 + landingInOutro() - restTop();
         gsap
           .timeline({
             scrollTrigger: {
@@ -171,17 +209,45 @@ export default function JourneyStage({
           .to(charLayer, { x: () => centerX(), ease: 'none', duration: 1 }, 0)
           .to(charLayer, { y: -70, ease: 'power2.out', duration: 0.35 }, 0)
           .to(charLayer, { y: () => dropY(), ease: 'power2.in', duration: 0.65 }, 0.35);
-      }
 
-      // The character layer is position:fixed, so without this it hovers over
-      // the tech stack below the outro. Fade it once the stack scrolls in.
-      const stackEl = document.querySelector<HTMLElement>('.tech-stack');
-      if (charLayer && stackEl) {
+        // Once he has landed, hand the layer off from position:fixed to a spot
+        // anchored in the page under the contact buttons — otherwise he stays
+        // glued to the viewport and hovers over the tech stack below.
+        // Only the `bottom` anchor is converted to a document-space `top`; the
+        // drop timeline keeps owning the transform, so the swap is jump-free
+        // even while the scrub is still settling.
+        // `at` is the scroll position the landing belongs to — the trigger's
+        // own start, not the live scroll, so a jump straight into the outro
+        // (deep link, back button) docks him in the same spot as a slow scroll.
+        const dock = (at: number) => {
+          if (charLayer.style.position === 'absolute') return;
+          charLayer.style.top = `${at + restTop()}px`;
+          charLayer.style.bottom = 'auto';
+          charLayer.style.position = 'absolute';
+        };
+        const undock = () => {
+          charLayer.style.position = '';
+          charLayer.style.bottom = '';
+          charLayer.style.top = '';
+          measureRest();
+        };
         ScrollTrigger.create({
-          trigger: stackEl,
-          start: 'top 88%',
-          onEnter: () => gsap.to(charLayer, { autoAlpha: 0, duration: 0.35 }),
-          onLeaveBack: () => gsap.to(charLayer, { autoAlpha: 1, duration: 0.35 }),
+          trigger: outroEl,
+          start: 'top 25%', // where the drop above ends
+          end: 'max',
+          invalidateOnRefresh: true,
+          onEnter: (self) => dock(self.start),
+          // Only scrolling back UP undocks him. Reaching the very bottom of the
+          // page counts as leaving the trigger forward, and undocking there
+          // would snap him back into view over the tech stack.
+          onEnterBack: (self) => dock(self.start),
+          onLeaveBack: undock,
+          // A docked `top` is stale after a resize: undock so the resting
+          // offset is re-measured against the new viewport, then re-dock.
+          onRefreshInit: undock,
+          onRefresh: (self) => {
+            if (self.scroll() >= self.start) dock(self.start);
+          },
         });
       }
 
@@ -267,7 +333,12 @@ export default function JourneyStage({
       updateActive(worldTween.scrollTrigger?.progress ?? 0);
     }, stage);
 
-    return () => ctx.revert();
+    return () => {
+      ctx.revert();
+      // ctx.revert() only unwinds GSAP-set styles; the dock's are ours.
+      const layer = document.querySelector<HTMLElement>('.character-layer');
+      if (layer) layer.style.cssText = '';
+    };
   }, [layout]);
 
   const jumpTo = (x: number) => {
