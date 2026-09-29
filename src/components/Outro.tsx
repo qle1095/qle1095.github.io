@@ -8,6 +8,17 @@ export default function Outro({ staticMode = false }: { staticMode?: boolean }) 
         Today I lead AI/LLM integration on fully self-hosted models and the
         platforms security teams rely on. Want the classic one-pager, or to talk?
       </p>
+      <a className="bookshelf-promo" href="/bookshelf/">
+        <span className="bookshelf-kicker">Learning Bookshelf</span>
+        <span className="bookshelf-headline">
+          A visual course on inference engineering
+        </span>
+        <span className="bookshelf-pitch">
+          Lessons, diagrams, and practice for how production inference actually
+          works. Open it and start at the first lesson.
+        </span>
+        <span className="bookshelf-cta">Check out my Learning Bookshelf</span>
+      </a>
       <div className="outro-actions">
         <a className="btn btn-primary" href={profile.resumePdf} download>
           Download resume (PDF)
@@ -17,9 +28,6 @@ export default function Outro({ staticMode = false }: { staticMode?: boolean }) 
         </a>
         <a className="btn" href={profile.linkedin} target="_blank" rel="noreferrer">
           LinkedIn
-        </a>
-        <a className="btn" href="/bookshelf/">
-          Check out my Learning Bookshelf
         </a>
       </div>
     </footer>
