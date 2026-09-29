@@ -18,6 +18,9 @@ export default function Outro({ staticMode = false }: { staticMode?: boolean }) 
         <a className="btn" href={profile.linkedin} target="_blank" rel="noreferrer">
           LinkedIn
         </a>
+        <a className="btn" href="/bookshelf/">
+          Check out my Learning Bookshelf
+        </a>
       </div>
     </footer>
   );
