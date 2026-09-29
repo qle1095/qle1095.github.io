@@ -11,11 +11,10 @@ export default function Outro({ staticMode = false }: { staticMode?: boolean }) 
       <a className="bookshelf-promo" href="/bookshelf/">
         <span className="bookshelf-kicker">Learning Bookshelf</span>
         <span className="bookshelf-headline">
-          A visual course on inference engineering
+          Books, turned into lessons you can use
         </span>
         <span className="bookshelf-pitch">
-          Lessons, diagrams, and practice for how production inference actually
-          works. Open it and start at the first lesson.
+          Diagrams, worked examples, and practice. Open the shelf and start.
         </span>
         <span className="bookshelf-cta">Check out my Learning Bookshelf</span>
       </a>
