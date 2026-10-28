@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Can a 30B Model Draw a Cat? · Levi Le</title>
+<meta name="description" content="Four open ~30B models get one try each to draw a tuxedo kitten in Canvas JavaScript on a single RTX 5090 with vLLM. Watch them race, compare the cats, and see what broke.">
+<meta property="og:title" content="Can a 30B Model Draw a Cat? · Levi Le">
+<meta property="og:description" content="Four open models, one RTX 5090, one try each. A side-by-side drawing race with real timings.">
+<meta property="og:image" content="/playground/procedural-cat/assets/ornith-dflash.png">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  @font-face { font-family: 'Bricolage Grotesque'; src: url('/fonts/bricolage-800.woff2') format('woff2'); font-weight: 800; font-display: swap; }
+  @font-face { font-family: 'Inter'; src: url('/fonts/inter-400.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+  @font-face { font-family: 'Inter'; src: url('/fonts/inter-600.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+  @font-face { font-family: 'Inter'; src: url('/fonts/inter-800.woff2') format('woff2'); font-weight: 800; font-display: swap; }
+
+  :root {
+    color-scheme: light;
+    --bg: #fffdf8; --surface: #ffffff; --surface-2: #f6f1e8; --text: #23273a; --muted: #4a4f63; --faint: #6e7388;
+    --border: #ebe4d6; --grid: #ece7dc; --accent: #c4472b; --accent-soft: #ffeee8;
+    --s1: #2a78d6; --s2: #eb6834;                 /* chart series: standard / speculative (validated pair) */
+    --good: #0b7d0b; --good-soft: #e3f4ea; --bad: #b3261e; --bad-soft: #fbe6e3; --warn: #8a5a00; --warn-soft: #fbf1dc;
+    --stage: #262a3f; --stage-2: #30344d; --stage-line: rgba(255,255,255,.12); --stage-text: #f2f3f8; --stage-muted: #b9bdd0;
+    --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #17181f; --surface: #1f2029; --surface-2: #272834; --text: #eceef4; --muted: #a6a9b8; --faint: #8b8fa1;
+      --border: #333545; --grid: #2c2e3b; --accent: #ff9a7f; --accent-soft: #3a2620;
+      --s1: #3987e5; --s2: #d95926;
+      --good: #4cc46a; --good-soft: #1b3326; --bad: #f08a7e; --bad-soft: #3a211e; --warn: #f0c36b; --warn-soft: #3a2f17;
+      --stage: #101119; --stage-2: #1b1d2a;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #17181f; --surface: #1f2029; --surface-2: #272834; --text: #eceef4; --muted: #a6a9b8; --faint: #8b8fa1;
+    --border: #333545; --grid: #2c2e3b; --accent: #ff9a7f; --accent-soft: #3a2620;
+    --s1: #3987e5; --s2: #d95926;
+    --good: #4cc46a; --good-soft: #1b3326; --bad: #f08a7e; --bad-soft: #3a211e; --warn: #f0c36b; --warn-soft: #3a2f17;
+    --stage: #101119; --stage-2: #1b1d2a;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 var(--font-body); -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  button, select, input { font: inherit; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 16px; }
+  h1, h2 { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; }
+  h2 { font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.15; margin: 0 0 8px; }
+  h3 { font-size: 1.05rem; margin: 0; }
+  .eyebrow { font-size: .74rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+  .sub { color: var(--muted); max-width: 720px; margin: 0 0 24px; }
+  section { padding: 64px 0 0; }
+  .small { font-size: .88rem; }
+  .muted { color: var(--muted); }
+  code { font-family: var(--mono); font-size: .86em; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
+
+  /* ---------- Top bar ---------- */
+  .topbar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+  .topbar .wrap { display: flex; align-items: center; gap: 16px; height: 52px; }
+  .topbar .back { font-weight: 600; font-size: .9rem; text-decoration: none; white-space: nowrap; }
+  .topbar nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; margin-left: auto; }
+  .topbar nav::-webkit-scrollbar { display: none; }
+  .topbar nav a { color: var(--muted); text-decoration: none; font-size: .86rem; padding: 6px 10px; border-radius: 999px; white-space: nowrap; }
+  .topbar nav a:hover { background: var(--surface-2); color: var(--text); }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 48px 0 28px; }
+  .hero h1 { font-size: clamp(2.2rem, 6vw, 4rem); line-height: 1.02; margin: 10px 0 14px; }
+  .hero .lede { font-size: clamp(1.05rem, 2vw, 1.25rem); color: var(--muted); max-width: 760px; margin: 0 0 10px; }
+  .hero .byline { color: var(--faint); font-size: .9rem; margin: 0 0 28px; }
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
+  .tile .lbl { font-size: .8rem; color: var(--muted); }
+  .tile .val { font-size: 1.5rem; font-weight: 800; line-height: 1.2; margin-top: 2px; }
+  .tile .note { font-size: .82rem; color: var(--faint); }
+  @media (max-width: 820px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+
+  /* ---------- Race stage ---------- */
+  .stage { background: var(--stage); color: var(--stage-text); border-radius: 22px; padding: 18px; margin-top: 8px; position: relative; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 4px 4px 14px; }
+  .seg { display: inline-flex; background: var(--stage-2); border-radius: 999px; padding: 3px; }
+  .seg button { border: 0; background: transparent; color: var(--stage-muted); padding: 7px 14px; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: .9rem; }
+  .seg button[aria-pressed="true"] { background: #fff; color: #23273a; }
+  .ctl { border: 1px solid var(--stage-line); background: transparent; color: var(--stage-text); padding: 7px 14px; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: .9rem; }
+  .ctl:hover { background: rgba(255,255,255,.08); }
+  .ctl.primary { background: #ff7a59; border-color: #ff7a59; color: #fff; }
+  .ctl.primary:hover { background: #ff8f73; }
+  .speed { display: inline-flex; align-items: center; gap: 6px; color: var(--stage-muted); font-size: .88rem; }
+  .speed select { background: var(--stage-2); color: var(--stage-text); border: 1px solid var(--stage-line); border-radius: 999px; padding: 6px 10px; }
+  .clock { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--stage-muted); font-size: .9rem; }
+  .clock b { color: var(--stage-text); font-size: 1.05rem; }
+  .scrub { width: 100%; accent-color: #ff7a59; margin: 0 4px 12px; }
+  .stage-note { color: var(--stage-muted); font-size: .82rem; margin: 12px 4px 2px; }
+
+  .models { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .model { display: grid; grid-template-rows: auto auto auto; gap: 10px; min-width: 0; }
+  .model-head { padding: 2px 4px; }
+  .model-head h3 { font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; color: var(--stage-text); }
+  .model-head p { margin: 0; font-size: .8rem; color: var(--stage-muted); }
+  @media (max-width: 980px) { .models { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) {
+    .models { grid-template-columns: 1fr; gap: 18px; }
+    .model { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; }
+    .model-head { grid-column: 1 / -1; }
+    .stage { padding: 12px; border-radius: 16px; }
+  }
+
+  .panel { background: var(--stage-2); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+  .media { position: relative; aspect-ratio: 1 / 1; background: #fffdf8; overflow: hidden; }
+  .media video, .media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cover { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: #1b1d2a; color: var(--stage-text); text-align: center; padding: 12px; transition: opacity .35s ease; }
+  .cover.gone { opacity: 0; pointer-events: none; }
+  .cover .tok { font-size: clamp(1.4rem, 3vw, 2.1rem); font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+  .cover .tok-l { font-size: .75rem; color: var(--stage-muted); letter-spacing: .04em; }
+  .cover .ph { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.08); margin-top: 6px; }
+  .cover .ph::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--stage-muted); }
+  .cover[data-phase="think"] .ph::before { background: #5598e7; animation: pulse 1s infinite; }
+  .cover[data-phase="code"] .ph::before { background: #ff8a5c; animation: pulse .6s infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  @media (prefers-reduced-motion: reduce) { .cover .ph::before { animation: none !important; } }
+  .badge { position: absolute; top: 8px; left: 8px; font-size: .74rem; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: rgba(35,39,58,.86); color: #fff; }
+  .badge.best { left: auto; right: 8px; background: #ff7a59; }
+  .meter { display: flex; gap: 2px; height: 6px; background: rgba(255,255,255,.08); }
+  .meter i { display: block; height: 100%; width: 0; }
+  .meter .m-think { background: #5598e7; }
+  .meter .m-code { background: #ff8a5c; }
+  .foot { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px 10px; font-size: .78rem; color: var(--stage-muted); }
+  .foot .mode { color: var(--stage-text); font-weight: 600; }
+  .foot .stat { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .fail { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 14px; background: #f6f1e8; color: #23273a; font-size: .8rem; line-height: 1.4; }
+  .fail p { margin: 0; }
+  .fail .chip { align-self: flex-start; }
+  .fail ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; }
+  .fail li { background: #fff; border-radius: 8px; padding: 5px 8px; font-size: .74rem; color: #4a4f63; }
+  .fail li b { color: #b3261e; }
+  .fail pre { margin: 0; background: #23273a; color: #e8e9f0; border-radius: 8px; padding: 8px 10px; font: .72rem/1.45 var(--mono); white-space: pre; overflow: hidden; }
+  .fail pre mark { background: #ffd9cf; color: #b3261e; border-radius: 3px; padding: 0 2px; }
+  @media (max-width: 1100px) and (min-width: 561px) { .fail li:nth-child(3) { display: none; } }
+  @media (max-width: 560px) { .fail { font-size: .72rem; padding: 10px; } .fail li:nth-child(n+2) { display: none; } .fail pre { font-size: .64rem; } }
+
+  .chip { display: inline-flex; align-items: center; gap: 5px; font-size: .74rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+  .chip.good { background: var(--good-soft); color: var(--good); }
+  .chip.bad { background: var(--bad-soft); color: var(--bad); }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .fail .chip.bad { background: #fbe6e3; color: #b3261e; }
+  .fail .chip.warn { background: #fbf1dc; color: #8a5a00; }
+
+  .start { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(16,17,25,.55); border-radius: inherit; z-index: 5; }
+  .start[hidden] { display: none; }
+  .start button { font-size: 1.1rem; padding: 14px 26px; box-shadow: 0 14px 40px -10px rgba(255,122,89,.9); }
+
+  /* ---------- Scoreboard ---------- */
+  .board { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; overflow-x: auto; }
+  .board table { width: 100%; border-collapse: collapse; font-size: .9rem; min-width: 760px; }
+  .board th { text-align: left; font-size: .76rem; font-weight: 700; color: var(--muted); padding: 12px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .board td { padding: 10px 14px; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+  .board tr:last-child td { border-bottom: 0; }
+  .board .rank { font-weight: 800; font-size: 1.1rem; color: var(--faint); width: 36px; }
+  .board .thumb { width: 64px; }
+  .board .thumb img, .board .thumb .none { width: 52px; height: 52px; border-radius: 10px; display: block; background: var(--surface-2); object-fit: cover; }
+  .board .none { display: grid !important; place-items: center; color: var(--faint); font-size: 1.1rem; }
+  .board .cfg b { display: block; }
+  .board .cfg span { color: var(--muted); font-size: .82rem; }
+  .board .why { color: var(--muted); font-size: .84rem; max-width: 280px; }
+  .bar { display: flex; align-items: center; gap: 8px; min-width: 150px; font-variant-numeric: tabular-nums; }
+  .bar i { display: block; height: 10px; border-radius: 0 4px 4px 0; background: var(--s1); min-width: 2px; }
+  .bar.na i { background: var(--grid); }
+  .bar span { font-size: .84rem; white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---------- Takeaways ---------- */
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+  .card h3 { font-family: var(--font-display); font-weight: 800; font-size: 1.25rem; line-height: 1.2; }
+  .card p { margin: 0; color: var(--muted); font-size: .92rem; }
+  .card .best-img { width: 100%; height: 220px; border-radius: 12px; object-fit: cover; object-position: 50% 30%; }
+  @media (max-width: 900px) { .cards { grid-template-columns: 1fr; } .card .best-img { height: 260px; } }
+
+  .hbars { display: grid; gap: 12px; margin-top: 4px; }
+  .hrow { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: center; }
+  .hrow > b { font-size: .86rem; }
+  .pair { display: grid; gap: 4px; }
+  .hb { display: flex; align-items: center; gap: 8px; font-size: .8rem; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+  .hb i { display: block; height: 12px; border-radius: 0 4px 4px 0; min-width: 2px; }
+  .hb.s1 i { background: var(--s1); } .hb.s2 i { background: var(--s2); }
+  .hb em { font-style: normal; color: var(--text); font-weight: 700; }
+  .legend { display: flex; gap: 14px; font-size: .8rem; color: var(--muted); flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend span::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
+  .axis { display: flex; justify-content: space-between; font-size: .72rem; color: var(--faint); border-top: 1px solid var(--grid); padding-top: 4px; margin-left: 74px; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Qwen budget ---------- */
+  .budget { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 20px; display: grid; gap: 16px; }
+  .brow { display: grid; grid-template-columns: 210px 1fr; gap: 14px; align-items: center; }
+  .brow .who b { display: block; font-size: .92rem; }
+  .brow .who span { font-size: .8rem; color: var(--muted); }
+  .track { position: relative; height: 26px; background: var(--surface-2); border-radius: 6px; display: flex; gap: 2px; overflow: hidden; }
+  .track i { display: block; height: 100%; }
+  .track .r { background: var(--s1); } .track .c { background: var(--s2); border-radius: 0 4px 4px 0; }
+  .track .lab { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: .76rem; font-weight: 700; color: #fff; white-space: nowrap; }
+  .brow .out { grid-column: 2; font-size: .82rem; color: var(--muted); margin-top: -8px; }
+  @media (max-width: 640px) { .brow { grid-template-columns: 1fr; gap: 6px; } .brow .out { grid-column: 1; margin-top: 0; } }
+  .quote { border-left: 3px solid var(--s1); padding: 4px 0 4px 14px; color: var(--muted); font-size: .9rem; display: grid; gap: 4px; }
+  .quote b { color: var(--text); }
+
+  /* ---------- Setup ---------- */
+  .specs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .spec { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
+  .spec h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); margin-bottom: 8px; }
+  .spec dl { margin: 0; display: grid; gap: 6px; font-size: .88rem; }
+  .spec dt { color: var(--muted); font-size: .78rem; }
+  .spec dd { margin: 0 0 4px; font-weight: 600; }
+  @media (max-width: 900px) { .specs { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .specs { grid-template-columns: 1fr; } }
+  details.more { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-top: 12px; }
+  details.more > summary { cursor: pointer; padding: 14px 18px; font-weight: 700; list-style: none; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more > summary::after { content: "+"; color: var(--accent); font-size: 1.2rem; line-height: 1; margin-left: auto; }
+  details.more[open] > summary::after { content: "–"; }
+  details.more > summary span { font-weight: 400; color: var(--muted); font-size: .88rem; }
+  .more-body { padding: 0 18px 18px; overflow-x: auto; }
+  .more-body table { width: 100%; border-collapse: collapse; font-size: .86rem; min-width: 640px; }
+  .more-body th, .more-body td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  .more-body th { color: var(--muted); font-size: .76rem; font-weight: 700; white-space: nowrap; }
+  .prompt { background: var(--surface-2); border-radius: 12px; padding: 14px 16px; white-space: pre-line; font-size: .92rem; margin: 0; }
+
+  /* ---------- Log ---------- */
+  .log { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .log article { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; display: grid; gap: 6px; align-content: start; }
+  .log .n { font-size: .74rem; font-weight: 800; color: var(--accent); letter-spacing: .08em; }
+  .log h3 { font-size: 1rem; }
+  .log p { margin: 0; color: var(--muted); font-size: .88rem; }
+  .log .fix { font-size: .84rem; }
+  .log .fix b { color: var(--good); }
+  @media (max-width: 760px) { .log { grid-template-columns: 1fr; } }
+
+  footer { margin: 72px 0 0; padding: 24px 0 48px; border-top: 1px solid var(--border); color: var(--faint); font-size: .86rem; }
+
+  #tip { position: fixed; z-index: 50; pointer-events: none; background: #23273a; color: #fff; font-size: .8rem; padding: 6px 9px; border-radius: 8px; max-width: 240px; opacity: 0; transition: opacity .1s; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <a class="back" href="/playground/">← Playground</a>
+    <nav aria-label="Sections">
+      <a href="#race">Race</a><a href="#results">Results</a><a href="#takeaways">Takeaways</a><a href="#qwen">Why Qwen failed</a><a href="#setup">Setup</a><a href="#log">What broke</a>
+    </nav>
+  </div>
+</div>
+
+<main>
+<header class="hero wrap">
+  <span class="eyebrow">AI Inference Playground · Benchmark</span>
+  <h1>Can a 30B open model draw a cat?</h1>
+  <p class="lede">Four open models of about 30 billion parameters each got <strong>one try</strong> to draw a tuxedo kitten in pure Canvas JavaScript, served with vLLM on a single rented RTX&nbsp;5090. No retries, no fixing their code.</p>
+  <p class="byline">By Levi Le · 28 October 2026 · 8 runs: each model with and without speculative decoding</p>
+  <div class="tiles">
+    <div class="tile"><div class="lbl">Best picture</div><div class="val">Ornith 1.5</div><div class="note">with DFlash speculative decoding</div></div>
+    <div class="tile"><div class="lbl">Drew a valid cat</div><div class="val">5 of 8</div><div class="note">Qwen never wrote code</div></div>
+    <div class="tile"><div class="lbl">Fastest finished cat</div><div class="val">22.6 s</div><div class="note">Muse Glimmer with DFlash</div></div>
+    <div class="tile"><div class="lbl">Total cloud cost</div><div class="val">$4.59</div><div class="note">all GPU time, incl. failed hosts</div></div>
+  </div>
+</header>
+
+<section id="race" class="wrap" aria-labelledby="race-h">
+  <span class="eyebrow">The race</span>
+  <h2 id="race-h">All eight runs, side by side</h2>
+  <p class="sub">The race replays each request on its <strong>real recorded timeline</strong>, fast-forwarded: watch every model think, write code, and draw its cat the moment it finishes. Switch to <em>Side-by-side replay</em> to compare the five drawings in sync.</p>
+
+  <div class="stage" id="stage">
+    <div class="controls">
+      <div class="seg" role="group" aria-label="View">
+        <button type="button" data-view="race" aria-pressed="true">Race</button>
+        <button type="button" data-view="replay" aria-pressed="false">Side-by-side replay</button>
+      </div>
+      <button type="button" class="ctl primary" id="play">Play</button>
+      <button type="button" class="ctl" id="restart">Restart</button>
+      <button type="button" class="ctl" id="skip">Skip to end</button>
+      <label class="speed" id="speedwrap">Fast-forward
+        <select id="speed"><option value="5">5×</option><option value="10" selected>10×</option><option value="25">25×</option></select>
+      </label>
+      <span class="clock" id="clock"><b>0.0 s</b> real time</span>
+    </div>
+    <input type="range" class="scrub" id="scrub" min="0" max="22" step="0.01" value="0" aria-label="Replay position" hidden>
+
+    <div class="models">
+      <div class="model">
+        <div class="model-head"><h3>Qwen 3.8</h3><p>27B dense · NVFP4</p></div>
+        <article class="panel" data-slot="qwen-baseline" data-kind="nocode">
+          <div class="media">
+            <div class="fail">
+              <span class="chip bad">✕ No code</span>
+              <p>Planned for 32,494 tokens, filled the whole context, never wrote the page. It kept re-planning:</p>
+              <ul>
+                <li>“Now, let me think about the eyes more…” <b>×9</b></li>
+                <li>“Eye design (for each eye, let me define a function drawEye…)” <b>×9</b></li>
+                <li>“Let me also add a subtle ‘sheen’ on the black fur…” <b>×9</b></li>
+              </ul>
+            </div>
+          </div>
+          <div class="meter" aria-hidden="true"><i class="m-think"></i><i class="m-code"></i></div>
+          <div class="foot"><span class="mode">Standard</span><span class="stat">525 s · 32.5K tok</span></div>
+        </article>
+        <article class="panel" data-slot="qwen-speculative" data-kind="nocode">
+          <div class="media">
+            <div class="fail">
+              <span class="chip bad">✕ No code</span>
+              <p>The same 32,494-token loop, 1.8× faster. Speculation changes speed, not the outcome.</p>
+              <ul><li>MTP draft acceptance <b>66%</b></li><li>Ran out of context at <b>286 s</b></li></ul>
+            </div>
+          </div>
+          <div class="meter" aria-hidden="true"><i class="m-think"></i><i class="m-code"></i></div>
+          <div class="foot"><span class="mode">MTP · 3 drafts</span><span class="stat">286 s · 32.5K tok</span></div>
+        </article>
+      </div>
+
+      <div class="model">
+        <div class="model-head"><h3>Flint</h3><p>39.8B MoE · ~2.5B active</p></div>
+        <article class="panel" data-slot="flint-baseline" data-kind="valid">
+          <div class="media"><video src="assets/flint-baseline-replay.mp4" poster="assets/flint-baseline.png" muted playsinline preload="auto" aria-label="Flint drawing its cat"></video></div>
+          <div class="meter" aria-hidden="true"><i class="m-think"></i><i class="m-code"></i></div>
+          <div class="foot"><span class="mode">Standard</span><span class="stat">40.7 s · 11.3K tok</span></div>
+        </article>
+        <article class="panel" data-slot="flint-speculative" data-kind="valid">
+          <div class="media"><video src="assets/flint-ngram-replay.mp4" poster="assets/flint-ngram.png" muted playsinline preload="auto" aria-label="Flint with n-gram speculation drawing its cat"></video></div>
+          <div class="meter" aria-hidden="true"><i class="m-think"></i><i class="m-code"></i></div>
+          <div class="foot"><span class="mode">n-gram · 3 drafts</span><span class="stat">26.0 s · 9.4K tok</span></div>
+        </article>
+      </div>
+
+      <div class="model">
+        <div class="model-head"><h3>Muse Glimmer</h3><p>30B dense · NVFP4 W4A4</p></div>
+        <article class="panel" data-slot="muse-baseline" data-kind="valid">
+          <div class="media"><video src="assets/muse-baseline-replay.mp4" poster="assets/muse-baseline.png" muted playsinline preload="auto" aria-label="Muse Glimmer drawing its cat"></video></div>
+          <div class="meter" aria-hidden="true"><i class="m-think"></i><i class="m-code"></i></div>
+          <div class="foot"><span class="mode">Standard</span><span class="stat">60.5 s · 4.0K tok</span></div>
+        </article>
+        <article class="panel" data-slot="muse-speculative" data-kind="valid">
+          <div class="media"><video src="assets/muse-dflash-replay.mp4" poster="assets/muse-dflash.png" muted playsinline preload="auto" aria-label="Muse Glimmer with DFlash drawing its cat"></video></div>
+          <div class="meter" aria-hidden="true"><i class="m-think"></i><i class="m-code"></i></div>
+          <div class="foot"><span class="mode">DFlash · 15 drafts</span><span class="stat">22.6 s · 4.4K tok</span></div>
+        </article>
+      </div>
+
+      <div class="model">
+        <div class="model-head"><h3>Ornith 1.5</h3><p>35B MoE · ~3B active</p></div>
+        <article class="panel" data-slot="ornith-baseline" data-kind="invalid">
+          <div class="media">
+            <div class="fail">
+              <span class="chip warn">⚠ Rejected</span>
+              <p>Finished in 75.9 s with a complete 11.5 KB page, but wrapped it in a Markdown fence the prompt forbids. Output is never repaired.</p>
+<pre><mark>```html</mark>
+&lt;!doctype html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;…</pre>
+            </div>
+          </div>
+          <div class="meter" aria-hidden="true"><i class="m-think"></i><i class="m-code"></i></div>
+          <div class="foot"><span class="mode">Standard</span><span class="stat">75.9 s · 19.5K tok</span></div>
+        </article>
+        <article class="panel" data-slot="ornith-speculative" data-kind="valid">
+          <div class="media"><video src="assets/ornith-dflash-replay.mp4" poster="assets/ornith-dflash.png" muted playsinline preload="auto" aria-label="Ornith 1.5 with DFlash drawing its cat"></video></div>
+          <div class="meter" aria-hidden="true"><i class="m-think"></i><i class="m-code"></i></div>
+          <div class="foot"><span class="mode">DFlash · 8 drafts</span><span class="stat">69.9 s · 24.9K tok</span></div>
+        </article>
+      </div>
+    </div>
+
+    <p class="stage-note" id="stagenote">Bars under each panel fill the 32K-token context: <span style="color:#86b6ef">blue</span> = thinking, <span style="color:#ffab8a">orange</span> = writing the final HTML. Timings come from each request's saved stream; drawing videos re-run the saved program at a normalized pace and say nothing about inference speed.</p>
+    <div class="start" id="start"><button type="button" class="ctl primary" id="startbtn">▶ Start the race</button></div>
+  </div>
+</section>
+
+<section id="results" class="wrap" aria-labelledby="results-h">
+  <span class="eyebrow">Results</span>
+  <h2 id="results-h">Ranked by picture quality</h2>
+  <p class="sub">Quality is my own read of the five valid pictures. Time is how long the one request took, start to finish. Speed is generation throughput while streaming.</p>
+  <div class="board">
+    <table>
+      <thead><tr><th>#</th><th></th><th>Configuration</th><th>Verdict</th><th>Time to finished cat</th><th>Tokens used (of 32K)</th><th class="num">Speed</th></tr></thead>
+      <tbody>
+        <tr><td class="rank">1</td><td class="thumb"><img src="assets/ornith-dflash.png" alt="" width="52" height="52" loading="lazy"></td><td class="cfg"><b>Ornith 1.5</b><span>DFlash · 8 drafts</span></td><td><span class="chip good">✓ Best picture</span><div class="why">Shaded, detailed, unmistakably a tuxedo kitten.</div></td><td><div class="bar" data-tip="69.9 s from request to finished HTML"><i style="width:87%"></i><span>69.9 s</span></div></td><td><div class="bar"><i style="width:76%"></i><span>24,876</span></div></td><td class="num">357 tok/s</td></tr>
+        <tr><td class="rank">2</td><td class="thumb"><img src="assets/flint-baseline.png" alt="" width="52" height="52" loading="lazy"></td><td class="cfg"><b>Flint</b><span>Standard</span></td><td><span class="chip good">✓ Valid</span><div class="why">Clean flat cat, blue eyes, wrapped tail.</div></td><td><div class="bar"><i style="width:51%"></i><span>40.7 s</span></div></td><td><div class="bar"><i style="width:35%"></i><span>11,309</span></div></td><td class="num">279 tok/s</td></tr>
+        <tr><td class="rank">3</td><td class="thumb"><img src="assets/flint-ngram.png" alt="" width="52" height="52" loading="lazy"></td><td class="cfg"><b>Flint</b><span>n-gram · 3 drafts</span></td><td><span class="chip good">✓ Valid</span><div class="why">Rosy cheeks, white-tipped tail; small gaps by the paws.</div></td><td><div class="bar"><i style="width:33%"></i><span>26.0 s</span></div></td><td><div class="bar"><i style="width:29%"></i><span>9,411</span></div></td><td class="num">363 tok/s</td></tr>
+        <tr><td class="rank">4</td><td class="thumb"><img src="assets/muse-dflash.png" alt="" width="52" height="52" loading="lazy"></td><td class="cfg"><b>Muse Glimmer</b><span>DFlash · 15 drafts</span></td><td><span class="chip good">✓ Valid</span><div class="why">Tidy, but more penguin than kitten.</div></td><td><div class="bar"><i style="width:28%"></i><span>22.6 s</span></div></td><td><div class="bar"><i style="width:14%"></i><span>4,430</span></div></td><td class="num">197 tok/s</td></tr>
+        <tr><td class="rank">5</td><td class="thumb"><img src="assets/muse-baseline.png" alt="" width="52" height="52" loading="lazy"></td><td class="cfg"><b>Muse Glimmer</b><span>Standard</span></td><td><span class="chip good">✓ Valid</span><div class="why">Penguin-like; one paw drawn black on black.</div></td><td><div class="bar"><i style="width:76%"></i><span>60.5 s</span></div></td><td><div class="bar"><i style="width:12%"></i><span>4,007</span></div></td><td class="num">66 tok/s</td></tr>
+        <tr><td class="rank">–</td><td class="thumb"><span class="none">!</span></td><td class="cfg"><b>Ornith 1.5</b><span>Standard</span></td><td><span class="chip warn">⚠ Rejected</span><div class="why">Complete page, but inside a forbidden Markdown fence.</div></td><td><div class="bar na"><i style="width:95%"></i><span>75.9 s</span></div></td><td><div class="bar"><i style="width:59%"></i><span>19,478</span></div></td><td class="num">257 tok/s</td></tr>
+        <tr><td class="rank">–</td><td class="thumb"><span class="none">✕</span></td><td class="cfg"><b>Qwen 3.8</b><span>MTP · 3 drafts</span></td><td><span class="chip bad">✕ No code</span><div class="why">Reasoned until the context was full.</div></td><td><div class="bar na"><span>no cat · stopped at 286 s</span></div></td><td><div class="bar"><i style="width:99%"></i><span>32,494</span></div></td><td class="num">114 tok/s</td></tr>
+        <tr><td class="rank">–</td><td class="thumb"><span class="none">✕</span></td><td class="cfg"><b>Qwen 3.8</b><span>Standard</span></td><td><span class="chip bad">✕ No code</span><div class="why">Same loop, slower.</div></td><td><div class="bar na"><span>no cat · stopped at 525 s</span></div></td><td><div class="bar"><i style="width:99%"></i><span>32,494</span></div></td><td class="num">62 tok/s</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small muted">Time bars share one scale from 0 to 80 s; token bars show the share of the 32,768-token context. The full per-request metrics are under <a href="#all-metrics">Setup → All measurements</a>.</p>
+</section>
+
+<section id="takeaways" class="wrap" aria-labelledby="take-h">
+  <span class="eyebrow">Takeaways</span>
+  <h2 id="take-h">Three things this run showed</h2>
+  <div class="cards">
+    <article class="card">
+      <h3>The small-active MoE drew the best cat</h3>
+      <img class="best-img" src="assets/ornith-dflash.png" alt="Ornith 1.5 tuxedo kitten" width="800" height="800" loading="lazy">
+      <p>Ornith 1.5 runs only about 3B of its 35B parameters per token, so it can afford to think for 21K tokens and still finish in 70 s. It spent that budget on shading, highlights and a curled tail.</p>
+    </article>
+    <article class="card">
+      <h3>Speculative decoding: up to 3× faster</h3>
+      <div class="legend"><span style="--c:var(--s1)">Standard</span><span style="--c:var(--s2)">Speculative</span></div>
+      <div class="hbars" id="specbars">
+        <div class="hrow"><b>Muse</b><div class="pair"><div class="hb s1" data-tip="Muse, standard: 66.4 tok/s"><i style="width:16.6%"></i>66</div><div class="hb s2" data-tip="Muse, DFlash: 197.3 tok/s"><i style="width:49.3%"></i>197 <em>3.0×</em></div></div></div>
+        <div class="hrow"><b>Qwen</b><div class="pair"><div class="hb s1" data-tip="Qwen, standard: 61.9 tok/s"><i style="width:15.5%"></i>62</div><div class="hb s2" data-tip="Qwen, MTP: 113.7 tok/s"><i style="width:28.4%"></i>114 <em>1.8×</em></div></div></div>
+        <div class="hrow"><b>Ornith</b><div class="pair"><div class="hb s1" data-tip="Ornith, standard: 257.4 tok/s"><i style="width:64.4%"></i>257</div><div class="hb s2" data-tip="Ornith, DFlash: 356.8 tok/s"><i style="width:89.2%"></i>357 <em>1.4×</em></div></div></div>
+        <div class="hrow"><b>Flint</b><div class="pair"><div class="hb s1" data-tip="Flint, standard: 278.9 tok/s"><i style="width:69.7%"></i>279</div><div class="hb s2" data-tip="Flint, n-gram: 363.4 tok/s"><i style="width:90.9%"></i>363 <em>1.3×</em></div></div></div>
+      </div>
+      <div class="axis"><span>0</span><span>100</span><span>200</span><span>300</span><span>400 tok/s</span></div>
+      <p>A small drafter guesses several tokens and the full model checks them in one pass. Dense models gain the most; the fast MoEs were already quick.</p>
+    </article>
+    <article class="card">
+      <h3>One serving flag: 7.3× faster</h3>
+      <div class="hbars">
+        <div class="hrow"><b>Eager</b><div class="pair"><div class="hb s1" data-tip="Qwen standard, eager mode: 8.5 tok/s"><i style="width:8.9%"></i>8.5 tok/s</div></div></div>
+        <div class="hrow"><b>Graphs</b><div class="pair"><div class="hb s1" data-tip="Qwen standard, CUDA graphs: 61.9 tok/s"><i style="width:65%"></i>61.9 tok/s</div></div></div>
+      </div>
+      <p>The original setup ran vLLM with <code>--enforce-eager</code> for memory safety. Qwen crawled at 8.5 tok/s while the GPU sat about 17% busy, waiting on kernel launches. vLLM's default CUDA-graph mode: 61.9 tok/s on the same model.</p>
+    </article>
+  </div>
+</section>
+
+<section id="qwen" class="wrap" aria-labelledby="qwen-h">
+  <span class="eyebrow">Why Qwen failed</span>
+  <h2 id="qwen-h">It never stopped planning</h2>
+  <p class="sub">Qwen clearly knew how: its reasoning contains about 67 canvas drawing snippets. It just never moved on to the answer. A follow-up run with Qwen's own recommended sampling (<code>top_k 20</code>, temperature 1.0) fixed the looping, but not the length.</p>
+  <div class="budget">
+    <div class="legend"><span style="--c:var(--s1)">Reasoning tokens</span><span style="--c:var(--s2)">Final HTML tokens</span><span style="--c:var(--surface-2)">Unused context</span></div>
+    <div class="brow"><div class="who"><b>Uniform sampling · Standard</b><span>temperature 0.6, top_p 0.95</span></div><div class="track" data-tip="32,494 reasoning tokens, 0 code"><i class="r" style="width:99.2%"></i><span class="lab">32,494 reasoning · loop ×9</span></div><div class="out">No code after 525 s</div></div>
+    <div class="brow"><div class="who"><b>Uniform sampling · MTP</b><span>same settings, speculative</span></div><div class="track" data-tip="32,494 reasoning tokens, 0 code"><i class="r" style="width:99.2%"></i><span class="lab">32,494 reasoning · same loop</span></div><div class="out">No code after 286 s</div></div>
+    <div class="brow"><div class="who"><b>Publisher sampling · Standard</b><span>temperature 1.0, top_k 20</span></div><div class="track" data-tip="32,494 reasoning tokens, no repetition, 0 code"><i class="r" style="width:99.2%"></i><span class="lab">32,494 reasoning · no loop</span></div><div class="out">Still checking coordinates at 550 s</div></div>
+    <div class="brow"><div class="who"><b>Publisher sampling · MTP</b><span>temperature 1.0, top_k 20</span></div><div class="track" data-tip="32,050 reasoning tokens, then 444 tokens of HTML before the context ran out"><i class="r" style="width:97.8%"></i><i class="c" style="width:1.4%"></i><span class="lab">32,050 reasoning</span></div><div class="out">Wrote “Let's final.” at 294.8 s, started the page, cut off after 1,036 characters</div></div>
+    <div class="quote">
+      <span><b>×9</b> “Now, let me think about the eyes more, since they're the focal point.”</span>
+      <span><b>×9</b> “Eye design (for each eye, let me define a function drawEye(cx, cy, r))”</span>
+      <span class="small">Uniform-sampling run: only 282 of 682 long reasoning lines are distinct. With top_k 20: 632 of 638.</span>
+    </div>
+  </div>
+  <p class="small muted">Likely contributors: sampling settings (fixed by top_k), aggressive 4-bit weight-and-activation quantization of a dense model, and an open-ended creative prompt. A 64K context is not possible for Qwen MTP on one 32 GB card; turning thinking off is the next experiment.</p>
+</section>
+
+<section id="setup" class="wrap" aria-labelledby="setup-h">
+  <span class="eyebrow">Setup</span>
+  <h2 id="setup-h">How it was run</h2>
+  <p class="sub">Production-style serving on one consumer GPU, the same rules for every model.</p>
+  <div class="specs">
+    <div class="spec"><h3>Hardware</h3><dl><dt>GPU</dt><dd>1× RTX 5090, 32 GB</dd><dt>Cloud</dt><dd>Runpod Secure · $1.19/h</dd><dt>Host</dt><dd>16 vCPU · 62 GB RAM</dd></dl></div>
+    <div class="spec"><h3>Serving</h3><dl><dt>Engine</dt><dd>vLLM 0.32.1 · CUDA graphs</dd><dt>Context</dt><dd>32,768 tokens · FP8 KV cache</dd><dt>Load</dt><dd>One request at a time</dd></dl></div>
+    <div class="spec"><h3>Request</h3><dl><dt>Sampling</dt><dd>temp 0.6 · top_p 0.95 · seed 42</dd><dt>Limits</dt><dd>No token cap · no time limit</dd><dt>Thinking</dt><dd>Each model's default</dd></dl></div>
+    <div class="spec"><h3>Rules</h3><dl><dt>Attempts</dt><dd>One per configuration</dd><dt>Rendering</dt><dd>Sandboxed browser, no network</dd><dt>Repairs</dt><dd>None, not even a fence</dd></dl></div>
+  </div>
+
+  <details class="more">
+    <summary>The exact prompt <span>sent verbatim to every model</span></summary>
+    <div class="more-body"><p class="prompt">Create a charming, polished illustration of a tuxedo kitten using only procedural JavaScript drawing on an HTML Canvas.
+
+Return exactly one complete standalone HTML document, with no Markdown fences or explanatory text. Begin with &lt;!doctype html&gt; and end with &lt;/html&gt;. The document must contain one 800 by 800 pixel canvas with id "cat-canvas". Keep the canvas displayed at its native 800 by 800 CSS-pixel size, without CSS transforms, scaling, padding, or borders. Use Canvas 2D drawing operations and inline JavaScript only. Draw a recognizable black-and-white tuxedo kitten with a white chest and paws, expressive eyes, whiskers, ears, and a tail. Choose the pose, composition, colors, lighting and artistic details yourself.
+
+The illustration must be a static finished image when the page loads. Do not use images, external assets, external fonts, libraries, network requests, embedded image data, SVG, animation, user interaction, or random numbers. Keep all code inside the HTML document. Do not create any other files.</p></div>
+  </details>
+
+  <details class="more">
+    <summary>Models and checkpoints <span>pinned revisions, sizes, speculative method</span></summary>
+    <div class="more-body"><table>
+      <thead><tr><th>Model</th><th>Architecture</th><th>Checkpoint @ revision</th><th>Quantization</th><th>Weights</th><th>Speculative method</th></tr></thead>
+      <tbody>
+        <tr><td>Qwen 3.8 27B</td><td>Dense, 64 layers, hybrid Gated DeltaNet + attention</td><td><code>Inferact/Qwen3.8-27B-NVFP4</code> @ 6128240e</td><td>NVFP4</td><td class="num">26.38 GB</td><td>MTP, 3 tokens (heads inside the checkpoint)</td></tr>
+        <tr><td>Flint 39.8B</td><td>MoE, ~2.5B active</td><td><code>RecursiveSI/flint-nvfp4-gguf</code> @ 6ec43e19</td><td>NVFP4 W4A16 GGUF</td><td class="num">22.86 GB</td><td>n-gram prompt lookup, 3 tokens</td></tr>
+        <tr><td>Muse Glimmer 30B</td><td>Dense vision-language, served text-only</td><td><code>Inferact/Muse-Glimmer-30B-NVFP4-W4A4</code> @ d35cb790</td><td>NVFP4 W4A4</td><td class="num">25.42 GB</td><td>DFlash, 15 tokens · 5.11 GB BF16 drafter</td></tr>
+        <tr><td>Ornith 1.5 35B-A3B</td><td>MoE, ~3B active</td><td><code>ornith-ai/Ornith-1.5-35B-A3B-NVFP4</code> @ 94e431d9</td><td>NVFP4</td><td class="num">23.42 GB</td><td>DFlash, 8 tokens · 0.77 GB BF16 drafter</td></tr>
+      </tbody></table></div>
+  </details>
+
+  <details class="more">
+    <summary>Every serving setting and why <span>vLLM flags</span></summary>
+    <div class="more-body"><table>
+      <thead><tr><th>Setting</th><th>Value</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><code>--max-model-len</code></td><td>32,768</td><td>Room for long reasoning; output is capped only by this</td></tr>
+        <tr><td><code>--kv-cache-dtype</code></td><td>fp8 (Flint: bfloat16)</td><td>Halves KV memory so 32K fits every model; Flint's vLLM code only accepts BF16</td></tr>
+        <tr><td>Execution mode</td><td>torch.compile + CUDA graphs</td><td>vLLM's production default; eager mode was 7.3× slower</td></tr>
+        <tr><td><code>--gpu-memory-utilization</code></td><td>0.95</td><td>Maximum KV headroom on a 32 GB card</td></tr>
+        <tr><td><code>--max-num-batched-tokens</code></td><td>2,048</td><td>8,192 ran out of memory during compiled warmup</td></tr>
+        <tr><td><code>--max-num-seqs</code></td><td>1</td><td>Single-user latency, not batch throughput</td></tr>
+        <tr><td>Prefix caching / CPU offload</td><td>off / 0</td><td>Honest time-to-first-token; a model that doesn't fit must fail</td></tr>
+        <tr><td>Muse only</td><td><code>--language-model-only</code></td><td>Skips an unused 3.58 GiB vision encoder</td></tr>
+        <tr><td>Image</td><td><code>vllm/vllm-openai@sha256:deb9ad8c…</code></td><td>Pinned by digest; PyTorch 2.14 + CUDA 13.0</td></tr>
+      </tbody></table></div>
+  </details>
+
+  <details class="more" id="all-metrics">
+    <summary>All measurements <span>per request</span></summary>
+    <div class="more-body"><table>
+      <thead><tr><th>Configuration</th><th>Finish</th><th class="num">Total s</th><th class="num">First token s</th><th class="num">First code s</th><th class="num">Output tokens</th><th class="num">Reasoning tokens</th><th class="num">Decode tok/s</th><th class="num">Peak GPU MiB</th><th class="num">Draft accept</th></tr></thead>
+      <tbody>
+        <tr><td>Qwen · Standard</td><td>length</td><td class="num">525.1</td><td class="num">0.19</td><td class="num">–</td><td class="num">32,494</td><td class="num">32,494</td><td class="num">61.9</td><td class="num">30,315</td><td class="num">–</td></tr>
+        <tr><td>Qwen · MTP</td><td>length</td><td class="num">286.0</td><td class="num">0.16</td><td class="num">–</td><td class="num">32,494</td><td class="num">32,494</td><td class="num">113.7</td><td class="num">30,538</td><td class="num">66%</td></tr>
+        <tr><td>Flint · Standard</td><td>stop</td><td class="num">40.7</td><td class="num">0.13</td><td class="num">36.2</td><td class="num">11,309</td><td class="num">10,097</td><td class="num">278.9</td><td class="num">31,568</td><td class="num">–</td></tr>
+        <tr><td>Flint · n-gram</td><td>stop</td><td class="num">26.0</td><td class="num">0.12</td><td class="num">24.2</td><td class="num">9,411</td><td class="num">8,070</td><td class="num">363.4</td><td class="num">32,073</td><td class="num">21%</td></tr>
+        <tr><td>Muse · Standard</td><td>stop</td><td class="num">60.5</td><td class="num">0.16</td><td class="num">42.5</td><td class="num">4,007</td><td class="num">unknown*</td><td class="num">66.4</td><td class="num">28,952</td><td class="num">–</td></tr>
+        <tr><td>Muse · DFlash</td><td>stop</td><td class="num">22.6</td><td class="num">0.15</td><td class="num">18.9</td><td class="num">4,430</td><td class="num">unknown*</td><td class="num">197.3</td><td class="num">29,668</td><td class="num">22%</td></tr>
+        <tr><td>Ornith · Standard</td><td>stop</td><td class="num">75.9</td><td class="num">0.19</td><td class="num">55.1</td><td class="num">19,478</td><td class="num">14,158</td><td class="num">257.4</td><td class="num">30,002</td><td class="num">–</td></tr>
+        <tr><td>Ornith · DFlash</td><td>stop</td><td class="num">69.9</td><td class="num">0.22</td><td class="num">64.2</td><td class="num">24,876</td><td class="num">21,308</td><td class="num">356.8</td><td class="num">30,620</td><td class="num">34%</td></tr>
+      </tbody></table>
+      <p class="small muted">* Muse's server reported 0 reasoning tokens while streaming visible reasoning, so the split is marked unknown. <em>stop</em> = the model ended on its own; <em>length</em> = the context ran out. Draft acceptance = accepted ÷ proposed draft tokens.</p></div>
+  </details>
+
+  <details class="more">
+    <summary>Method and rules <span>how fairness and honesty were enforced</span></summary>
+    <div class="more-body"><table><tbody>
+      <tr><th>One attempt</th><td>Each request counts the moment it is sent. No retries, repairs or picking the best of several.</td></tr>
+      <tr><th>Fresh server</th><td>Every configuration gets a newly started vLLM server and one unscored warmup (a neutral JSON prompt, never the cat prompt).</td></tr>
+      <tr><th>Identity checks</th><td>Before each request: GPU UUID, the exact running vLLM command against an immutable launch receipt, pinned image, Pod identity.</td></tr>
+      <tr><th>Rendering</th><td>The HTML must start with <code>&lt;!doctype html&gt;</code> and end with <code>&lt;/html&gt;</code>. Rendered once in a sandboxed Chromium, no network, 800×800.</td></tr>
+      <tr><th>Replays</th><td>The saved program re-runs while canvas states are captured; the last frame must match the scored picture pixel for pixel.</td></tr>
+      <tr><th>Judging</th><td>Pictures were shuffled into blind galleries; the quality ranking here is my read after revealing them.</td></tr>
+    </tbody></table></div>
+  </details>
+</section>
+
+<section id="log" class="wrap" aria-labelledby="log-h">
+  <span class="eyebrow">Engineering log</span>
+  <h2 id="log-h">What broke, and how it got fixed</h2>
+  <p class="sub">Getting eight cold-started 30B models to run on one consumer GPU took more debugging than the benchmark itself.</p>
+  <div class="log">
+    <article><span class="n">01 · MEMORY</span><h3>Muse DFlash ran out of memory while loading</h3><p>Summing the checkpoint's tensor headers showed 28.4 GiB of weights on a 31.4 GiB card, including a 3.58 GiB vision encoder the text prompt never uses.</p><p class="fix"><b>Fix:</b> <code>--language-model-only</code>. It loaded and ran 3× faster than standard.</p></article>
+    <article><span class="n">02 · SPEED</span><h3>Eager mode was the bottleneck</h3><p>Qwen decoded at 8.5 tok/s with the GPU about 17% busy, stalled on per-layer kernel launches.</p><p class="fix"><b>Fix:</b> vLLM's default compiled + CUDA-graph mode: 61.9 tok/s, 7.3×.</p></article>
+    <article><span class="n">03 · HARDWARE</span><h3>Two cloud hosts were broken</h3><p>One returned <code>CUDA unknown error</code> for any GPU work while <code>nvidia-smi</code> looked fine; another couldn't start GPU containers at all.</p><p class="fix"><b>Fix:</b> a CUDA tensor check before downloading anything, and a driver that stops instead of burning a slot on a host fault.</p></article>
+    <article><span class="n">04 · METHOD</span><h3>A 300-second limit measured the wrong thing</h3><p>The original design capped requests at 300 s and 6,144 tokens; Qwen spent all of it planning.</p><p class="fix"><b>Fix:</b> no time or token cap; measure the time instead.</p></article>
+    <article><span class="n">05 · CONTEXT</span><h3>8K context was too small</h3><p>With a BF16 KV cache, Qwen MTP had room for only 18,521 tokens.</p><p class="fix"><b>Fix:</b> an FP8 KV cache for every model, so 32K fits everywhere.</p></article>
+    <article><span class="n">06 · MEMORY</span><h3>Compiled warmup ran out of memory</h3><p>With 32K FP8 KV reserved, warmup at an 8,192-token batch needed 544 MiB with 364 MiB free.</p><p class="fix"><b>Fix:</b> <code>max_num_batched_tokens</code> 2,048; prompts are far shorter.</p></article>
+    <article><span class="n">07 · ENGINE</span><h3>Flint rejected the FP8 KV cache</h3><p>Its vLLM attention code hard-asserts BF16.</p><p class="fix"><b>Fix:</b> a recorded per-model BF16 exception; it still fits 32K.</p></article>
+    <article><span class="n">08 · SAMPLING</span><h3>Qwen looped</h3><p>Under shared sampling it repeated the same design thoughts up to 9 times.</p><p class="fix"><b>Fix:</b> its publisher's <code>top_k 20</code> removed the loop, and showed it simply needs more than 32K tokens here.</p></article>
+  </div>
+
+  <details class="more">
+    <summary>Limitations <span>read before quoting these numbers</span></summary>
+    <div class="more-body"><ul>
+      <li>One sample per configuration. Another seed could draw a noticeably different cat, as the two Flint runs show.</li>
+      <li>Shared sampling for every model in the main run, not each publisher's recommendation.</li>
+      <li>All models are 4-bit quantized on one 32 GB GPU; full-precision or multi-GPU setups may behave differently.</li>
+      <li>Flint uses a BF16 KV cache while the others use FP8, because of an engine limitation.</li>
+      <li>Picture quality is judged by eye. Drawing-replay timing is normalized and is not inference speed.</li>
+      <li>Server startup (loading, compiling, graph capture: 1.5–4 minutes per model) is excluded from request timings.</li>
+    </ul></div>
+  </details>
+  <details class="more">
+    <summary>Reproducibility <span>sessions, archives, cost</span></summary>
+    <div class="more-body"><table><tbody>
+      <tr><th>Bound configuration</th><td>Every runner, launcher, lock, prompt and renderer file is SHA-256 bound into each session; any change forces a new session.</td></tr>
+      <tr><th>Launch records</th><td>The exact <code>vllm serve</code> command for every server is saved as an immutable receipt.</td></tr>
+      <tr><th>Sessions</th><td><code>scored-005</code> (Qwen standard) · <code>scored-006</code> (other seven) · <code>qwen-publisher-001</code> (Qwen follow-up)</td></tr>
+      <tr><th>Archives (SHA-256)</th><td><code>6c0ea1c0…797d</code> · <code>780003c9…296c</code> · <code>dd4b3945…bc6</code></td></tr>
+      <tr><th>Cost</th><td>$4.59 in posted Runpod charges for 27–28 October, including preparation, two faulty hosts and the follow-up.</td></tr>
+    </tbody></table></div>
+  </details>
+</section>
+</main>
+
+<footer class="wrap">Can a 30B open model draw a cat? · Levi Le · <a href="/playground/">More experiments in the Playground</a> · <a href="/">Résumé</a></footer>
+<div id="tip" role="tooltip"></div>
+
+<script>
+/* Real per-request timelines: [seconds since request, approx tokens so far], from saved SSE streams. */
+const RACE = {"qwen-baseline":{"total_s":525.1,"first_token_s":0.19,"first_code_s":null,"tokens":32494,"curve":[[0.19,0],[6.65,518],[13.11,992],[19.58,1443],[26.05,1867],[32.52,2252],[39.0,2714],[45.47,3160],[51.95,3619],[58.49,4006],[65.01,4404],[71.49,4715],[77.96,5129],[84.45,5490],[90.93,5846],[97.41,6080],[103.89,6552],[110.38,6966],[116.87,7265],[123.36,7588],[129.86,7968],[136.35,8345],[142.85,8839],[149.36,9329],[155.87,9805],[162.38,10224],[168.9,10646],[175.44,11101],[181.98,11574],[188.51,11992],[195.05,12395],[201.6,12735],[208.14,13109],[214.68,13507],[221.22,13946],[227.77,14415],[234.31,14829],[240.86,15181],[247.41,15526],[253.96,15913],[260.51,16318],[267.06,16790],[273.62,17233],[280.18,17646],[286.74,17995],[293.3,18331],[299.87,18750],[306.44,19183],[313.01,19630],[319.58,20049],[326.16,20480],[332.74,20830],[339.33,21176],[345.92,21595],[352.53,21993],[359.13,22468],[365.74,22883],[372.35,23289],[378.96,23633],[385.57,24009],[392.18,24406],[398.79,24836],[405.41,25306],[412.03,25721],[418.65,26080],[425.27,26425],[431.9,26810],[438.53,27205],[445.16,27681],[451.8,28131],[458.44,28546],[465.07,28889],[471.71,29218],[478.36,29641],[485.0,30073],[491.65,30522],[498.31,30942],[504.96,31372],[511.62,31724],[518.28,32069],[524.96,32487],[525.06,32494]]},"qwen-speculative":{"total_s":286.0,"first_token_s":0.16,"first_code_s":null,"tokens":32494,"curve":[[0.16,0],[3.56,629],[7.0,1093],[10.43,1570],[13.87,1975],[17.3,2391],[20.74,2791],[24.18,3124],[27.61,3624],[31.05,4020],[34.49,4472],[37.93,4893],[41.37,5301],[44.81,5686],[48.25,6168],[51.69,6589],[55.13,7006],[58.57,7381],[62.02,7784],[65.46,8182],[68.91,8572],[72.36,8983],[75.82,9405],[79.27,9747],[82.72,10083],[86.18,10567],[89.65,10912],[93.11,11273],[96.58,11677],[100.06,12053],[103.54,12449],[107.01,12854],[110.49,13299],[113.97,13659],[117.45,14013],[120.93,14496],[124.41,14855],[127.89,15258],[131.37,15708],[134.85,16122],[138.33,16573],[141.8,17082],[145.27,17560],[148.74,17930],[152.22,18273],[155.69,18747],[159.16,19171],[162.64,19667],[166.11,20017],[169.59,20433],[173.06,20745],[176.54,21090],[180.02,21530],[183.5,21811],[186.98,22153],[190.47,22615],[193.96,22969],[197.46,23276],[200.95,23598],[204.45,23920],[207.94,24244],[211.44,24611],[214.93,24974],[218.43,25371],[221.93,25756],[225.42,26132],[228.92,26585],[232.42,26948],[235.92,27250],[239.42,27712],[242.92,28104],[246.42,28607],[249.92,29051],[253.43,29514],[256.93,29983],[260.44,30357],[263.95,30702],[267.46,31077],[270.96,31573],[274.48,32093],[285.96,32494]]},"flint-baseline":{"total_s":40.7,"first_token_s":0.13,"first_code_s":36.2,"tokens":11309,"curve":[[0.13,0],[0.6,207],[1.09,397],[1.56,579],[2.06,728],[2.52,891],[2.99,1060],[3.46,1225],[3.95,1390],[4.43,1525],[4.93,1677],[5.4,1857],[5.88,2020],[6.37,2177],[6.88,2317],[7.37,2469],[7.84,2640],[8.31,2771],[8.79,2942],[9.27,3101],[9.77,3254],[10.32,3383],[10.88,3525],[11.4,3683],[11.88,3850],[12.37,4009],[12.87,4156],[13.39,4291],[13.9,4439],[14.43,4580],[14.95,4722],[15.48,4845],[15.96,5001],[16.48,5131],[16.99,5251],[17.48,5400],[18.04,5510],[18.57,5642],[19.09,5781],[19.61,5897],[20.14,6016],[20.67,6138],[21.21,6260],[21.74,6381],[22.23,6533],[22.75,6663],[23.26,6806],[23.78,6949],[24.31,7068],[24.79,7238],[25.28,7371],[25.78,7505],[26.26,7672],[26.75,7839],[27.23,8014],[27.78,8158],[28.32,8284],[28.9,8397],[29.46,8514],[30.0,8630],[30.53,8747],[31.08,8867],[31.63,8987],[32.16,9115],[32.65,9263],[33.16,9385],[33.65,9543],[34.14,9711],[34.63,9867],[35.13,10018],[35.62,10169],[36.11,10335],[36.62,10477],[37.11,10570],[37.6,10667],[38.09,10760],[38.58,10865],[39.07,10973],[39.56,11074],[40.05,11179],[40.54,11281],[40.68,11309]]},"flint-speculative":{"total_s":26.0,"first_token_s":0.12,"first_code_s":24.2,"tokens":9411,"curve":[[0.12,0],[0.44,143],[0.75,248],[1.05,369],[1.37,476],[1.67,568],[1.98,657],[2.28,763],[2.59,864],[2.92,945],[3.25,1024],[3.55,1095],[3.85,1188],[4.16,1265],[4.47,1350],[4.78,1443],[5.12,1524],[5.43,1606],[5.74,1702],[6.06,1788],[6.37,1880],[6.68,1970],[6.99,2035],[7.33,2111],[7.67,2223],[8.0,2341],[8.31,2424],[8.65,2532],[8.97,2643],[9.31,2757],[9.63,2849],[9.95,2956],[10.27,3049],[10.61,3204],[10.93,3381],[11.25,3557],[11.55,3648],[11.87,3760],[12.18,3860],[12.49,3959],[12.8,4045],[13.11,4152],[13.44,4276],[13.78,4411],[14.1,4504],[14.41,4608],[14.76,4705],[15.07,4792],[15.41,4897],[15.73,4989],[16.05,5084],[16.37,5189],[16.68,5301],[17.0,5417],[17.31,5569],[17.64,5698],[17.98,5850],[18.31,5984],[18.64,6104],[19.0,6244],[19.33,6398],[19.66,6522],[19.99,6635],[20.31,6739],[20.63,6855],[20.94,6981],[21.27,7074],[21.59,7184],[21.92,7326],[22.24,7475],[22.56,7646],[22.89,7814],[23.2,7950],[23.52,8086],[23.84,8208],[24.17,8329],[24.5,8537],[24.82,8725],[25.14,8917],[25.47,9110],[25.8,9301],[26.02,9411]]},"muse-baseline":{"total_s":60.5,"first_token_s":0.16,"first_code_s":42.5,"tokens":4007,"curve":[[0.11,0],[0.89,76],[1.63,136],[2.38,199],[3.12,274],[3.86,336],[4.6,402],[5.35,467],[6.1,524],[6.84,578],[7.6,651],[8.33,699],[9.09,767],[9.84,824],[10.58,901],[11.32,968],[12.05,1025],[12.79,1094],[13.53,1154],[14.28,1205],[15.02,1262],[15.76,1323],[16.5,1385],[17.24,1438],[17.99,1503],[18.76,1556],[19.5,1615],[20.25,1678],[20.99,1726],[21.73,1757],[22.47,1799],[23.21,1839],[23.95,1869],[24.69,1904],[25.43,1948],[26.17,1990],[26.91,2032],[27.64,2073],[28.38,2119],[29.12,2152],[29.86,2187],[30.6,2218],[31.34,2250],[32.08,2286],[32.82,2325],[33.56,2369],[34.3,2429],[35.06,2474],[35.79,2520],[36.53,2549],[37.29,2599],[38.03,2644],[38.77,2711],[39.51,2765],[40.26,2834],[41.0,2906],[41.74,2974],[42.58,3036],[43.32,3085],[44.08,3135],[44.82,3168],[45.56,3210],[46.3,3247],[47.03,3288],[47.77,3324],[48.51,3368],[49.25,3411],[49.99,3454],[50.73,3494],[51.47,3530],[52.21,3566],[52.95,3601],[53.69,3642],[54.43,3681],[55.17,3721],[55.91,3757],[56.65,3795],[57.39,3828],[58.13,3880],[58.87,3919],[59.61,3957],[60.35,3999],[60.53,4007]]},"muse-speculative":{"total_s":22.6,"first_token_s":0.15,"first_code_s":18.9,"tokens":4430,"curve":[[0.13,0],[0.39,229],[0.66,338],[0.94,399],[1.21,493],[1.47,534],[1.76,596],[2.02,646],[2.29,679],[2.55,713],[2.81,752],[3.08,778],[3.34,821],[3.61,851],[3.87,886],[4.14,925],[4.4,954],[4.67,989],[4.93,1017],[5.19,1041],[5.46,1070],[5.72,1106],[5.99,1132],[6.25,1165],[6.52,1214],[6.78,1276],[7.05,1318],[7.32,1349],[7.58,1410],[7.84,1444],[8.11,1472],[8.4,1520],[8.66,1558],[8.93,1586],[9.19,1628],[9.46,1665],[9.73,1697],[9.99,1731],[10.26,1766],[10.52,1799],[10.79,1837],[11.05,1875],[11.32,1919],[11.58,1987],[11.85,2041],[12.12,2076],[12.4,2108],[12.69,2140],[12.96,2178],[13.22,2247],[13.49,2280],[13.76,2333],[14.02,2391],[14.29,2448],[14.55,2523],[14.82,2594],[15.09,2656],[15.35,2689],[15.62,2728],[15.89,2761],[16.15,2787],[16.42,2825],[16.68,2862],[16.95,2925],[17.22,2959],[17.49,2995],[17.75,3058],[18.02,3098],[18.29,3143],[18.55,3176],[18.82,3219],[19.08,3315],[19.35,3397],[19.61,3476],[19.88,3502],[20.15,3581],[20.41,3687],[20.68,3812],[20.95,3928],[21.21,4054],[21.48,4127],[21.75,4198],[22.01,4282],[22.28,4342],[22.55,4415],[22.61,4430]]},"ornith-baseline":{"total_s":75.9,"first_token_s":0.19,"first_code_s":55.1,"tokens":19478,"curve":[[0.19,0],[1.12,373],[2.06,689],[3.02,1002],[3.95,1310],[4.89,1606],[5.83,1873],[6.77,2131],[7.71,2369],[8.65,2738],[9.58,3012],[10.52,3223],[11.46,3515],[12.4,3765],[13.34,4108],[14.28,4306],[15.22,4520],[16.16,4721],[17.1,4970],[18.03,5183],[18.97,5400],[19.91,5652],[20.85,5835],[21.79,6059],[22.73,6288],[23.67,6543],[24.61,6751],[25.56,7051],[26.5,7345],[27.44,7708],[28.38,8019],[29.32,8284],[30.27,8612],[31.21,8794],[32.15,8999],[33.1,9302],[34.04,9594],[34.98,9900],[35.93,10131],[36.87,10380],[37.81,10608],[38.76,10824],[39.7,11074],[40.65,11410],[41.59,11766],[42.54,12109],[43.48,12409],[44.42,12561],[45.37,12718],[46.31,12891],[47.26,13122],[48.2,13307],[49.15,13514],[50.1,13775],[51.04,14025],[51.99,14265],[52.94,14466],[53.89,14689],[54.83,14956],[55.78,15225],[56.73,15492],[57.68,15702],[58.63,15899],[59.57,16077],[60.52,16254],[61.47,16436],[62.42,16610],[63.37,16828],[64.32,17020],[65.27,17228],[66.22,17420],[67.18,17618],[68.13,17803],[69.08,18017],[70.03,18217],[70.98,18435],[71.94,18617],[72.89,18810],[73.84,19038],[74.8,19238],[75.75,19450],[75.87,19478]]},"ornith-speculative":{"total_s":69.9,"first_token_s":0.22,"first_code_s":64.2,"tokens":24876,"curve":[[0.22,0],[1.06,429],[1.9,702],[2.75,1023],[3.6,1354],[4.44,1641],[5.28,1925],[6.13,2212],[6.98,2486],[7.82,2770],[8.68,3189],[9.52,3508],[10.37,3836],[11.22,4150],[12.07,4487],[12.92,4775],[13.78,5032],[14.63,5320],[15.48,5560],[16.33,5828],[17.19,6182],[18.04,6530],[18.9,6844],[19.76,7131],[20.62,7550],[21.48,7875],[22.35,8235],[23.2,8590],[24.07,8944],[24.94,9349],[25.8,9637],[26.68,9889],[27.55,10154],[28.42,10406],[29.28,10681],[30.14,10933],[31.02,11188],[31.88,11456],[32.75,11703],[33.61,12015],[34.47,12269],[35.34,12523],[36.2,12783],[37.07,13079],[37.93,13364],[38.8,13650],[39.66,13952],[40.53,14204],[41.4,14507],[42.27,14791],[43.14,15058],[44.02,15308],[44.9,15565],[45.77,15830],[46.65,16222],[47.52,16526],[48.4,16751],[49.27,16997],[50.15,17229],[51.02,17530],[51.89,17814],[52.77,18103],[53.64,18357],[54.51,18647],[55.38,18878],[56.25,19155],[57.12,19463],[58.01,19870],[58.89,20222],[59.77,20488],[60.66,20739],[61.53,21003],[62.41,21290],[63.29,21585],[64.17,21901],[65.07,22389],[65.95,22804],[66.85,23305],[67.75,23752],[68.64,24209],[69.54,24671],[69.93,24876]]}};
+(() => {
+  const CONTEXT = 32768, REPLAY_LEN = 22, VIDEO_DRAW = 1.0;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = (s, r = document) => r.querySelector(s);
+  const stage = $('#stage'), clock = $('#clock'), scrub = $('#scrub'), playBtn = $('#play'), note = $('#stagenote');
+  const panels = [...stage.querySelectorAll('.panel')].map(el => {
+    const id = el.dataset.slot, d = RACE[id], media = $('.media', el);
+    const cover = document.createElement('div');
+    cover.className = 'cover';
+    cover.innerHTML = '<div class="tok">0</div><div class="tok-l">tokens</div><div class="ph">Waiting</div>';
+    media.appendChild(cover);
+    const badge = document.createElement('span'); badge.className = 'badge'; badge.hidden = true; media.appendChild(badge);
+    const codeAt = d.first_code_s ? interp(d.curve, d.first_code_s) : d.tokens;
+    return { el, id, d, kind: el.dataset.kind, video: $('video', el), cover, tok: $('.tok', cover), ph: $('.ph', cover), badge,
+             think: $('.m-think', el), code: $('.m-code', el), codeAt, done: false };
+  });
+  const valid = panels.filter(p => p.kind === 'valid').sort((a, b) => a.d.total_s - b.d.total_s);
+  valid.forEach((p, i) => p.rank = i + 1);
+  const END = Math.max(...panels.map(p => p.d.total_s));
+  const ord = n => n + ({ 1: 'st', 2: 'nd', 3: 'rd' }[n] || 'th');
+
+  function interp(c, t) {
+    if (t <= c[0][0]) return t < c[0][0] ? 0 : c[0][1];
+    for (let i = 1; i < c.length; i++) if (t <= c[i][0]) {
+      const [t0, y0] = c[i - 1], [t1, y1] = c[i];
+      return y0 + (y1 - y0) * ((t - t0) / (t1 - t0 || 1));
+    }
+    return c[c.length - 1][1];
+  }
+  const fmt = n => Math.round(n).toLocaleString('en-US');
+  const fmtT = s => s < 60 ? s.toFixed(1) + ' s' : Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+
+  let view = 'race', playing = false, t = 0, rt = 0, speed = 10, last = 0, started = false;
+
+  function meter(p, tokens) {
+    const th = Math.min(tokens, p.codeAt), co = Math.max(0, tokens - p.codeAt);
+    p.think.style.width = (th / CONTEXT * 100) + '%';
+    p.code.style.width = (co / CONTEXT * 100) + '%';
+  }
+  function finish(p) {
+    p.done = true; p.cover.classList.add('gone'); meter(p, p.d.tokens);
+    if (p.kind === 'valid') {
+      p.badge.hidden = false;
+      p.badge.textContent = p.el.clientWidth < 240 ? ord(p.rank) : ord(p.rank) + ' · ' + p.d.total_s.toFixed(1) + ' s';
+      if (p.id === 'ornith-speculative') { const b = document.createElement('span'); b.className = 'badge best'; b.textContent = '★ Best picture'; p.el.querySelector('.media').appendChild(b); p.best = b; }
+      if (p.video) { p.video.playbackRate = VIDEO_DRAW; p.video.currentTime = 0; if (playing) p.video.play().catch(() => {}); }
+    }
+  }
+  function resetRace() {
+    t = 0;
+    panels.forEach(p => {
+      p.done = false; p.cover.classList.remove('gone'); p.badge.hidden = true; if (p.best) { p.best.remove(); p.best = null; }
+      if (p.video) { p.video.pause(); p.video.currentTime = 0; }
+      paintRace(p);
+    });
+  }
+  function paintRace(p) {
+    if (t >= p.d.total_s) { if (!p.done) finish(p); return; }
+    const tokens = t < p.d.first_token_s ? 0 : interp(p.d.curve, t);
+    p.tok.textContent = fmt(tokens);
+    const phase = t < p.d.first_token_s ? 'wait' : (!p.d.first_code_s || t < p.d.first_code_s) ? 'think' : 'code';
+    p.cover.dataset.phase = phase;
+    p.ph.textContent = phase === 'wait' ? 'Waiting' : phase === 'think' ? 'Thinking' : 'Writing code';
+    meter(p, tokens);
+  }
+  function tick(now) {
+    const dt = last ? Math.min(0.1, (now - last) / 1000) : 0; last = now;
+    if (playing) {
+      if (view === 'race') {
+        t = Math.min(END, t + dt * speed);
+        panels.forEach(paintRace);
+        if (t >= END && panels.every(p => !p.video || p.video.ended || p.video.paused)) setPlaying(false);
+      } else {
+        rt += dt; if (rt >= REPLAY_LEN) { rt = 0; panels.forEach(p => p.video && (p.video.currentTime = 0)); }
+        scrub.value = rt;
+        panels.forEach(p => { if (p.video && Math.abs(p.video.currentTime - rt) > 0.25) p.video.currentTime = rt; });
+      }
+    }
+    clock.innerHTML = view === 'race'
+      ? `<b>${fmtT(t)}</b> real time · ${speed}× fast-forward`
+      : `<b>${rt.toFixed(1)} s</b> / ${REPLAY_LEN} s · drawing replay`;
+    requestAnimationFrame(tick);
+  }
+  function setPlaying(on) {
+    playing = on; playBtn.textContent = on ? 'Pause' : (view === 'race' && t >= END ? 'Replay' : 'Play');
+    panels.forEach(p => {
+      if (!p.video) return;
+      const active = view === 'replay' || p.done;
+      if (on && active && !(view === 'race' && p.video.ended)) p.video.play().catch(() => {}); else p.video.pause();
+    });
+  }
+  function setView(v) {
+    view = v; setPlaying(false);
+    stage.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    scrub.hidden = v !== 'replay'; $('#speedwrap').hidden = v !== 'race'; $('#skip').hidden = v !== 'race';
+    if (v === 'replay') {
+      panels.forEach(p => { p.cover.classList.add('gone'); p.badge.hidden = true; if (p.best) p.best.hidden = true; meter(p, p.d.tokens); if (p.video) { p.video.pause(); p.video.currentTime = rt; } });
+      note.textContent = 'All five drawings re-run their saved programs in sync: 20 seconds of normalized drawing, then a 2-second hold on the scored picture. Drag the bar to compare any moment.';
+      setPlaying(true);
+    } else {
+      note.innerHTML = 'Bars under each panel fill the 32K-token context: <span style="color:#86b6ef">blue</span> = thinking, <span style="color:#ffab8a">orange</span> = writing the final HTML. Timings come from each request\'s saved stream; drawing videos re-run the saved program at a normalized pace and say nothing about inference speed.';
+      panels.forEach(p => { if (p.best) p.best.hidden = false; });
+      resetRace();
+    }
+  }
+
+  stage.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { hideStart(); setView(b.dataset.view); }));
+  playBtn.addEventListener('click', () => {
+    hideStart();
+    if (view === 'race' && t >= END) { resetRace(); setPlaying(true); return; }
+    setPlaying(!playing);
+  });
+  $('#restart').addEventListener('click', () => { hideStart(); if (view === 'race') { resetRace(); setPlaying(true); } else { rt = 0; panels.forEach(p => p.video && (p.video.currentTime = 0)); setPlaying(true); } });
+  $('#skip').addEventListener('click', () => {
+    hideStart(); t = END; setPlaying(false); panels.forEach(paintRace);
+    panels.forEach(p => { if (p.video) { p.video.pause(); p.video.currentTime = Math.max(0, (p.video.duration || REPLAY_LEN) - 0.05); } });
+  });
+  $('#speed').addEventListener('change', e => { speed = +e.target.value; });
+  scrub.addEventListener('input', () => { setPlaying(false); rt = +scrub.value; panels.forEach(p => p.video && (p.video.currentTime = rt)); });
+  $('#startbtn').addEventListener('click', () => { hideStart(); resetRace(); setPlaying(true); });
+  function hideStart() { started = true; $('#start').hidden = true; }
+
+  resetRace();
+  if (!reduce && 'IntersectionObserver' in window) {
+    new IntersectionObserver((entries, obs) => {
+      if (entries.some(e => e.isIntersecting) && !started) { obs.disconnect(); hideStart(); resetRace(); setPlaying(true); }
+    }, { threshold: 0.45 }).observe(stage);
+  }
+  requestAnimationFrame(tick);
+
+  /* Hover tooltips enhance labelled values; they never hold the only copy of a number. */
+  const tip = $('#tip');
+  document.querySelectorAll('[data-tip]').forEach(el => {
+    el.addEventListener('pointerenter', () => { tip.textContent = el.dataset.tip; tip.style.opacity = 1; });
+    el.addEventListener('pointermove', e => { tip.style.left = Math.min(innerWidth - 250, e.clientX + 12) + 'px'; tip.style.top = (e.clientY + 14) + 'px'; });
+    el.addEventListener('pointerleave', () => { tip.style.opacity = 0; });
+  });
+})();
+</script>
+</body>
+</html>

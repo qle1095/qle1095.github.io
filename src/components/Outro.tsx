@@ -39,6 +39,29 @@ export default function Outro({ staticMode = false }: { staticMode?: boolean }) 
           Start the course
         </a>
       </section>
+      {/* Static library of experiments in public/playground/. Must not use
+          .outro-actions: the character lands under the first one of those. */}
+      <a className="playground-promo" href="/playground/">
+        <img
+          className="playground-thumb"
+          src="/playground/procedural-cat/assets/ornith-dflash.png"
+          alt=""
+          width={88}
+          height={88}
+          loading="lazy"
+        />
+        <span className="playground-copy">
+          <span className="course-kicker">AI Inference Playground</span>
+          <span className="playground-headline">
+            I spend a lot of time benchmarking, breaking and tuning models
+          </span>
+          <span className="playground-pitch">
+            Real GPUs, real numbers, honest failures. Curious? Start with four
+            open LLMs drawing a cat on one RTX 5090.
+          </span>
+          <span className="playground-cta">Visit the Playground</span>
+        </span>
+      </a>
       <p className="outro-ask">Want the classic one-pager, or to talk?</p>
       <div className="outro-actions">
         <a className="btn btn-primary" href={profile.resumePdf} download>
