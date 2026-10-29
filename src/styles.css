@@ -42,12 +42,80 @@
 }
 
 :root {
-  --ink: #23273a;
-  --ink-soft: #4a4f63;
-  --ink-faint: #8a8fa3;
+  /* Ink (light surfaces) */
+  --ink-900: #1c2030; /* titles */
+  --ink-700: #3c4157; /* body */
+  --ink-500: #5b6075; /* meta, dates: 6.2:1 on white */
+  --ink-400: #6a6f85; /* minimum for small text: 4.97:1 */
+  --line: rgba(28, 32, 48, 0.1);
   --paper: #fffdf8;
-  --card: #ffffff;
-  --accent: #ff7a59;
+  --surface: #ffffff;
+
+  /* Night surfaces (frontier, outro, tech stack) */
+  --night-900: #171a29;
+  --night-800: #1f2333;
+  --night-700: #2a2d4d;
+  --ink-night: #eceef6;
+  --ink-night-700: #c9cddc; /* body on night: ~11:1 */
+  --ink-night-500: #a9aec4; /* meta on night: ~7:1 */
+  --line-night: rgba(255, 255, 255, 0.1);
+
+  /* Accent */
+  --accent-500: #ff7a59; /* fills, borders, illustration only */
+  --accent-700: #c2410c; /* text on light, button bg with white text: 5.18:1 */
+  --accent-night: #ffb09e; /* accent text on night: ~8.9:1 */
+  --focus: #2563eb;
+  --focus-night: #93c5fd;
+
+  /* Kind colours: decorative + text-safe */
+  --job: #ff7a59;         --job-text: #c2410c;
+  --education: #2f7dd1;   --education-text: #1d5fae;
+  --achievement: #ffc933; --achievement-text: #8f5e00; /* 4.9:1 on cream, 5.6:1 on white */
+  --launch: #2c9c72;      --launch-text: #1f7a57;
+
+  /* Radii */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* Elevation */
+  --shadow-1: 0 1px 2px rgba(28, 32, 48, 0.06), 0 2px 6px -2px rgba(28, 32, 48, 0.08);
+  --shadow-2: 0 2px 4px rgba(28, 32, 48, 0.05), 0 10px 28px -8px rgba(28, 32, 48, 0.18);
+  --shadow-3: 0 4px 10px rgba(28, 32, 48, 0.06), 0 24px 56px -14px rgba(28, 32, 48, 0.3);
+
+  /* Type scale (16px base, 12px floor) */
+  --fs-xs: 0.75rem;     /* 12: eyebrows (600, .12em, uppercase), meta */
+  --fs-sm: 0.875rem;    /* 14: subtitles, chips, buttons */
+  --fs-md: 0.9375rem;   /* 15: card story */
+  --fs-base: 1rem;      /* 16: body */
+  --fs-lg: 1.25rem;     /* 20: card title */
+  --fs-xl: 1.5625rem;   /* 25: celebrate title, promo headline */
+  --fs-2xl: 2.4rem;     /* section titles */
+  --fs-3xl: clamp(2.4rem, 5vw, 3.8rem);
+  --fs-display: clamp(3.5rem, 8vw, 7.5rem);
+  --lh-tight: 1.1;
+  --lh-snug: 1.3;
+  --lh-body: 1.55;
+
+  /* Spacing (4px grid) */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 72px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.3, 1.3, 0.5, 1);
+  --dur-1: 0.18s;
+  --dur-2: 0.35s;
+  --dur-3: 0.6s;
+
+  /* Legacy names, still read by the stage CSS */
+  --ink: var(--ink-900);
+  --ink-soft: var(--ink-700);
+  --ink-faint: var(--ink-500);
+  --card: var(--surface);
+  --accent: var(--accent-500);
+
   --ground-h: 17vh;
   --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
   --font-body: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -58,149 +126,456 @@ h1, h2, h3, h4 {
   font-family: var(--font-display);
   font-weight: 800;
   letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
-::selection { background: rgba(255, 122, 89, 0.3); }
+::selection {
+  background: color-mix(in srgb, var(--accent-500) 34%, transparent);
+  color: var(--ink-900);
+}
 
 html {
   scroll-behavior: auto;
 }
 
 body {
-  color: var(--ink);
+  color: var(--ink-900);
   background: var(--paper);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 button { font-family: inherit; }
 
-/* ===== Hero ===== */
-.hero {
-  position: relative;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+/* One focus ring for everything interactive; lighter on night surfaces. */
+:where(a, button, [role='button']):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+:where(.outro, .tech-stack, .site-footer, .stage[data-theme='frontier']) :where(a, button, [role='button']):focus-visible {
+  outline-color: var(--focus-night);
+}
+
+/* ===== Buttons ===== */
+.btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  gap: 1.4rem;
-  padding: 2rem;
+  gap: var(--sp-2);
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(28, 32, 48, 0.14);
+  background: var(--surface);
+  color: var(--ink-900);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: var(--shadow-1);
+  transition:
+    transform var(--dur-1) var(--ease-out),
+    background var(--dur-1) ease,
+    border-color var(--dur-1) ease,
+    box-shadow var(--dur-1) ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+
+.btn-primary {
+  background: var(--accent-700);
+  border-color: var(--accent-700);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(194, 65, 12, 0.25), 0 8px 22px -8px rgba(194, 65, 12, 0.6);
+}
+
+.btn-primary:hover {
+  background: #a9380a;
+  border-color: #a9380a;
+  box-shadow: 0 2px 4px rgba(194, 65, 12, 0.25), 0 14px 30px -10px rgba(194, 65, 12, 0.7);
+}
+
+.btn-icon {
+  width: 44px;
+  padding: 0;
+}
+
+/* The LinkedIn mark is trademark-restricted (not in Simple Icons), so the
+   button carries a typeset "in" instead of a logo. */
+.btn-in {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+/* Split button: "Email me" + copy-to-clipboard. */
+.btn-group { display: inline-flex; }
+.btn-group > .btn:first-child { border-radius: var(--r-pill) 0 0 var(--r-pill); padding-right: 1rem; }
+.btn-group > .btn + .btn { border-radius: 0 var(--r-pill) var(--r-pill) 0; margin-left: -1px; }
+
+/* ===== Hero: the title screen ===== */
+.hero {
+  --hero-ground: clamp(4.5rem, 11vh, 6.5rem);
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  gap: var(--sp-6);
+  padding: clamp(3.5rem, 9vh, 6rem) clamp(1.25rem, 6vw, 6rem) var(--hero-ground);
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 30% 18%, #ffe9d6 0%, transparent 55%),
-    radial-gradient(ellipse at 76% 82%, #d6ecff 0%, transparent 55%),
+    radial-gradient(ellipse at 18% 12%, #ffe9d6 0%, transparent 55%),
+    radial-gradient(ellipse at 84% 30%, #dcecfb 0%, transparent 50%),
+    linear-gradient(transparent 55%, rgba(255, 217, 168, 0.32)),
     var(--paper);
 }
 
-.hero > * {
-  opacity: 0;
-  animation: hero-rise 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-5);
+  max-width: 36rem;
 }
 
-.hero > :nth-child(1) { animation-delay: 0.05s; }
-.hero > :nth-child(2) { animation-delay: 0.18s; }
-.hero > :nth-child(3) { animation-delay: 0.34s; }
-.hero > :nth-child(4) { animation-delay: 0.5s; }
-.hero > :nth-child(5) { animation-delay: 0.75s; }
+.hero-copy > *,
+.hero-scroll-hint {
+  opacity: 0;
+  animation: hero-rise 0.9s var(--ease-out) forwards;
+}
+
+.hero-copy > :nth-child(1) { animation-delay: 0.05s; }
+.hero-copy > :nth-child(2) { animation-delay: 0.14s; }
+.hero-copy > :nth-child(3) { animation-delay: 0.26s; }
+.hero-copy > :nth-child(4) { animation-delay: 0.38s; }
+.hero-copy > :nth-child(5) { animation-delay: 0.5s; }
+.hero-copy > :nth-child(6) { animation-delay: 0.62s; }
+.hero-scroll-hint { animation-delay: 0.9s; }
 
 @keyframes hero-rise {
-  from { opacity: 0; transform: translateY(28px); }
+  from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .hero-kicker {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
+  gap: var(--sp-3);
   text-transform: uppercase;
-  letter-spacing: 0.32em;
-  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  font-size: var(--fs-xs);
   font-weight: 600;
-  color: var(--ink-faint);
+  color: var(--ink-500);
+  white-space: nowrap;
 }
 
-.hero-kicker::before,
-.hero-kicker::after {
+.hero-kicker::before {
   content: '';
-  width: 3rem;
-  height: 1px;
-  background: currentColor;
-  opacity: 0.5;
+  width: 2rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent-500);
 }
 
 .hero-name {
-  font-size: clamp(3.2rem, 11vw, 8rem);
-  line-height: 0.95;
-  letter-spacing: -0.03em;
-  color: var(--ink);
+  font-size: var(--fs-display);
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+  color: var(--ink-900);
+  white-space: nowrap;
+  margin: calc(var(--sp-2) * -1) 0 0 -0.04em; /* optical: align the L stem with the kicker */
 }
 
-.hero-name em {
-  font-style: normal;
-  color: var(--accent);
-}
+.hero-name-dot { color: var(--accent-500); }
 
 .hero-tagline {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: clamp(1.1rem, 2.6vw, 1.5rem);
-  color: var(--ink-soft);
+  font-size: clamp(1.125rem, 1.7vw, 1.375rem);
+  line-height: var(--lh-snug);
+  color: var(--ink-500);
+  text-wrap: balance;
 }
 
-.hero-tagline span { color: var(--ink-faint); }
+.hero-tagline strong {
+  display: block;
+  font-weight: 800;
+  color: var(--ink-900);
+}
+
+.hero-tagline span {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-base);
+}
 
 .hero-intro {
-  max-width: 32rem;
-  font-size: 1.02rem;
+  max-width: 34rem;
+  font-size: var(--fs-base);
   line-height: 1.65;
-  color: var(--ink-soft);
+  color: var(--ink-700);
+  text-wrap: pretty;
+}
+
+.hero-intro .hl { --kind-color: var(--accent-500); }
+
+/* Proof strip: four numbers a recruiter can read in one glance. */
+.hero-stats {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  justify-content: start;
+  gap: var(--sp-4) var(--sp-6);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  width: 100%;
+}
+
+.hero-stats li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  max-width: 9rem;
+}
+
+.hero-stats strong {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.75rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-stats span {
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+  color: var(--ink-500);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+
+/* The character's spot. The slot is measured by JourneyStage; its bottom edge
+   is the top of the ground band, so he stands on it. */
+.hero-stage {
+  display: flex;
+  justify-content: center;
+}
+
+/* A low sunrise behind him: gives the right column weight and previews the
+   first era's palette. (The ground band paints over its lower half.) */
+.hero-character-slot::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10rem;
+  translate: -50% 0;
+  width: 20rem;
+  max-width: 100vw;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: linear-gradient(#ffd3a3, #ffb486);
+  box-shadow: 0 0 120px 40px rgba(255, 196, 140, 0.35);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.hero-character-slot {
+  position: relative;
+  width: 220px;
+  height: 240px;
+}
+
+/* First strip of the sunrise world, full-bleed along the bottom. */
+.hero-platform {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--hero-ground);
+  pointer-events: none;
+  border-top: 1px solid rgba(28, 32, 48, 0.08);
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.75) 0 44px, transparent 44px 128px)
+      top 22px left / 100% 4px no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.35) 0 46px, transparent 46px),
+    linear-gradient(#f9d9b6, #f4c9a0);
 }
 
 .hero-scroll-hint {
   position: absolute;
-  bottom: 2.4rem;
   left: 50%;
-  translate: -50% 0;
+  bottom: calc(var(--hero-ground) * 0.5 - 1.1rem);
+  translate: -50% 50%;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.55rem;
-  font-size: 0.7rem;
+  gap: var(--sp-3);
+  font-size: var(--fs-xs);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.28em;
-  color: var(--ink-faint);
+  letter-spacing: 0.2em;
+  color: #6b4a2e; /* 5.6:1 on the sand band */
+  white-space: nowrap;
 }
 
-.hero-scroll-hint::after {
+/* A tiny mouse with a rolling wheel. */
+.hero-scroll-hint::before {
   content: '';
-  width: 2px;
-  height: 3.2rem;
-  border-radius: 2px;
-  background: linear-gradient(var(--accent) 30%, rgba(31, 35, 51, 0.15) 30%);
-  background-size: 100% 200%;
-  animation: scroll-cue 1.8s ease-in-out infinite;
+  flex: none;
+  width: 16px;
+  height: 24px;
+  border: 1.5px solid currentColor;
+  border-radius: 9px;
+  background: radial-gradient(circle at 50% 7px, currentColor 1.6px, transparent 2.2px) no-repeat;
+  animation: scroll-wheel 1.8s var(--ease-out) infinite;
 }
 
-@keyframes scroll-cue {
-  from { background-position: 0 100%; }
-  to { background-position: 0 -100%; }
+@keyframes scroll-wheel {
+  0% { background-position: 0 0; }
+  60% { background-position: 0 7px; }
+  100% { background-position: 0 0; }
+}
+
+/* Two-column title screen: copy left, the character on the right. */
+@media (min-width: 960px) {
+  .hero {
+    grid-template-columns: minmax(0, 36rem) minmax(16rem, 1fr);
+    grid-template-rows: 1fr;
+    column-gap: clamp(2rem, 6vw, 7rem);
+    align-content: stretch;
+  }
+  .hero-copy { align-self: center; padding: var(--sp-5) 0 var(--sp-7); }
+  .hero-stage { align-self: end; }
+}
+
+@media (max-height: 760px) and (min-width: 960px) {
+  .hero-copy { gap: var(--sp-4); }
+  .hero-stats { padding-top: var(--sp-4); }
+}
+
+@media (max-width: 640px) {
+  .hero { gap: var(--sp-5); padding-top: 3rem; }
+  .hero-copy { gap: var(--sp-4); }
+  .hero-name { white-space: normal; }
+  .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+  .hero-stats li { max-width: none; }
+  .hero-stats strong { font-size: 1.5rem; }
+  .hero-actions .btn-primary { flex: 1 1 100%; }
+  .hero-actions .btn-secondary { flex: 1 1 auto; }
+  .hero-character-slot { height: 220px; }
+}
+
+/* Reduced motion: no stage, no character, a single centred column. */
+.hero-static { --hero-ground: 4.5rem; }
+@media (min-width: 960px) {
+  .hero-static { grid-template-columns: minmax(0, 40rem); justify-content: center; }
+}
+
+.hero-static .hero-scroll-hint { color: var(--ink-500); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-copy > *,
+  .hero-scroll-hint {
+    animation: none;
+    opacity: 1;
+  }
+  .hero-scroll-hint::before { animation: none; }
+  .btn,
+  .promo-card,
+  .sound-toggle { transition: none; }
+  .btn:hover,
+  .promo-card:hover,
+  .sound-toggle:hover { transform: none; }
 }
 
 /* ===== Stage & world ===== */
+/* Era palettes: sky, three scenery depths (far → mid → near, aerial
+   perspective), ground, accent, and the text colours that read on that sky.
+   Set on the stage (sky, ground, HUD-ish UI) AND on each era's own scenery
+   group, so an outgoing era keeps its colours while it cross-fades out. */
+@property --sky-top { syntax: '<color>'; inherits: true; initial-value: #ffd3a1; }
+@property --sky-bottom { syntax: '<color>'; inherits: true; initial-value: #fff1df; }
+@property --ground { syntax: '<color>'; inherits: true; initial-value: #e8c29b; }
+@property --era-accent { syntax: '<color>'; inherits: true; initial-value: #ff7a59; }
+@property --on-sky { syntax: '<color>'; inherits: true; initial-value: #5a3b22; }
+@property --on-sky-muted { syntax: '<color>'; inherits: true; initial-value: #7a5536; }
+
+.stage[data-theme='sunrise'], .era-sunrise {
+  --sky-top: #ffd3a1; --sky-bottom: #fff1df;
+  --far: #f5c9a0; --mid: #efb388; --near: #dc9469; --lite: #fff4e3;
+  --ground: #e9c29c; --sun: #ffbf5e; --cloud: rgba(255, 255, 255, 0.72);
+  --era-accent: #ff7a59; --on-sky: #4f321c; --on-sky-muted: #7a5536;
+}
+.stage[data-theme='bank'], .era-bank {
+  --sky-top: #c3d9f1; --sky-bottom: #eef5fc;
+  --far: #b9cfe7; --mid: #a2bddb; --near: #7896bb; --lite: #f4f9ff;
+  --ground: #cfdbe8; --cloud: rgba(255, 255, 255, 0.8);
+  --era-accent: #2f7dd1; --on-sky: #1f3555; --on-sky-muted: #3f5878;
+}
+.stage[data-theme='ascent'], .era-ascent {
+  --sky-top: #e2cdf4; --sky-bottom: #ffe3d1;
+  --far: #dcc6ee; --mid: #c0a2dc; --near: #9273b7; --lite: #fbf3ff;
+  --ground: #dfc9da; --cloud: rgba(255, 255, 255, 0.6);
+  --era-accent: #8b5cf6; --on-sky: #3a2656; --on-sky-muted: #5e4880;
+}
+.stage[data-theme='platform'], .era-platform {
+  --sky-top: #bfe8d5; --sky-bottom: #effaf2;
+  --far: #aedbc4; --mid: #8ec9ad; --near: #5a9d80; --lite: #f2fff8;
+  --ground: #c6dfd0; --cloud: rgba(255, 255, 255, 0.7);
+  --era-accent: #2c9c72; --on-sky: #1a4434; --on-sky-muted: #33664f;
+}
+.stage[data-theme='frontier'], .era-frontier {
+  --sky-top: #1b1e3d; --sky-bottom: #463a70;
+  --far: #3b3f70; --mid: #2b2f5b; --near: #20244a; --lite: #b9c0ff;
+  --ground: #1c1f3a; --cloud: transparent;
+  --era-accent: #7df9ff; --on-sky: #eceeff; --on-sky-muted: #b8bce0;
+}
+
 .stage {
   position: relative;
   height: 100vh;
+  /* clip, not hidden: a focused card must never scroll the stage sideways. */
   overflow: hidden;
-  transition: background 0.9s ease;
-  background: linear-gradient(#ffe9d6, #fff6ec);
+  overflow: clip;
+  color: var(--on-sky);
+  background: linear-gradient(var(--sky-top), var(--sky-bottom));
+  /* Registered colour properties interpolate, so the sky, ground and UI
+     tints cross-fade in step with the scenery (0.9s). */
+  transition:
+    --sky-top 0.9s ease,
+    --sky-bottom 0.9s ease,
+    --ground 0.9s ease,
+    --era-accent 0.9s ease,
+    --on-sky 0.9s ease,
+    --on-sky-muted 0.9s ease;
+  --chip-bg: rgba(255, 255, 255, 0.62);
+  --chip-line: rgba(28, 32, 48, 0.08);
+  --path: rgba(255, 255, 255, 0.3);
+  --path-dash: rgba(255, 255, 255, 0.7);
 }
 
-.stage[data-theme='sunrise'] { background: linear-gradient(#ffd9a8, #fff3e0); }
-.stage[data-theme='bank']    { background: linear-gradient(#c8dcf2, #eef5fc); }
-.stage[data-theme='ascent']  { background: linear-gradient(#e6d0f5, #ffe3d1); }
-.stage[data-theme='platform']{ background: linear-gradient(#c5ead9, #effaf2); }
-.stage[data-theme='frontier']{ background: linear-gradient(#2b2e4a, #4b3f72); }
+.stage[data-theme='frontier'] {
+  --chip-bg: rgba(23, 26, 41, 0.55);
+  --chip-line: rgba(255, 255, 255, 0.1);
+  --path: rgba(255, 255, 255, 0.05);
+  --path-dash: rgba(125, 249, 255, 0.35);
+}
 
 /* Fine grain, the quiet award-site signature. */
 .stage::after,
@@ -215,12 +590,28 @@ button { font-family: inherit; }
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+/* Static wrapper around the moving world: cards fade out at the screen
+   edges instead of being cut off hard. The second mask layer keeps the
+   ground band fully opaque edge to edge. */
+.stage-viewport {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%),
+    linear-gradient(to top, #000 var(--ground-h), transparent var(--ground-h));
+  mask-image:
+    linear-gradient(90deg, transparent 0, #000 6%, #000 94%, transparent 100%),
+    linear-gradient(to top, #000 var(--ground-h), transparent var(--ground-h));
+  -webkit-mask-composite: source-over;
+  mask-composite: add;
+}
+
 .world {
   position: absolute;
   inset: 0 auto 0 0;
   height: 100%;
   will-change: transform;
-  z-index: 2;
 }
 
 /* ===== Parallax scenery ===== */
@@ -232,50 +623,51 @@ button { font-family: inherit; }
   will-change: transform;
 }
 
-.parallax-far { z-index: 0; opacity: 0.85; }
-.parallax-mid { z-index: 1; opacity: 0.95; }
+.parallax-far  { z-index: 0; }
+.stage-haze    { z-index: 1; }
+.parallax-mid  { z-index: 2; }
+.parallax-near { z-index: 3; }
+
+/* Era cross-fade: only the current era's scenery is visible; the previous
+   one fades out over the same 0.9s as the sky. Hidden eras skip paint. */
+.parallax .era {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.9s ease, visibility 0s linear 0.9s;
+}
+
+.stage[data-theme='sunrise']  .parallax .era-sunrise,
+.stage[data-theme='bank']     .parallax .era-bank,
+.stage[data-theme='ascent']   .parallax .era-ascent,
+.stage[data-theme='platform'] .parallax .era-platform,
+.stage[data-theme='frontier'] .parallax .era-frontier {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.9s ease, visibility 0s;
+}
 
 .sc-item {
   position: absolute;
-  bottom: calc(var(--ground-h) - 8px);
+  bottom: calc(var(--ground-h) - 2px);
   transform: translateX(-50%);
   line-height: 0;
 }
 
-.sc-item svg { display: block; }
+.sc-item svg { display: block; overflow: visible; }
 
-.sc-sky { bottom: auto; }
+.sc-span { transform: none; }
 
-.sc-drift { animation: cloud-drift 46s ease-in-out infinite alternate; }
-
-@keyframes cloud-drift {
-  from { margin-left: 0; }
-  to { margin-left: 90px; }
-}
-
-.chapter-strip {
+/* Aerial perspective: the far ridge melts into the horizon. */
+.stage-haze {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  left: 0;
+  right: 0;
+  bottom: var(--ground-h);
+  height: 50%;
   pointer-events: none;
-}
-
-.chapter-label {
-  position: absolute;
-  top: 11vh;
-  left: 3rem;
-  font-family: var(--font-display);
-  font-size: clamp(3rem, 9vw, 7rem);
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  text-transform: uppercase;
-  color: transparent;
-  -webkit-text-stroke: 2px rgba(31, 35, 51, 0.13);
-}
-
-.stage[data-theme='frontier'] .chapter-label {
-  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.14);
+  background: linear-gradient(transparent, color-mix(in srgb, var(--sky-bottom) 45%, transparent));
 }
 
 .ground {
@@ -286,139 +678,172 @@ button { font-family: inherit; }
   height: var(--ground-h);
   background:
     /* dashed walking path */
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.5) 0 44px,
-      transparent 44px 128px
-    ) top 22px left/100% 5px no-repeat,
+    repeating-linear-gradient(90deg, var(--path-dash) 0 44px, transparent 44px 128px)
+      top 22px left / 100% 4px no-repeat,
     /* path band */
-    linear-gradient(
-      rgba(255, 255, 255, 0.22) 0 46px,
-      transparent 46px
-    ),
-    /* grass tufts */
-    radial-gradient(6px 10px at 12% 34%, rgba(44, 156, 114, 0.35) 98%, transparent),
-    radial-gradient(5px 9px at 31% 52%, rgba(44, 156, 114, 0.28) 98%, transparent),
-    radial-gradient(6px 10px at 53% 38%, rgba(44, 156, 114, 0.3) 98%, transparent),
-    radial-gradient(5px 8px at 72% 56%, rgba(44, 156, 114, 0.26) 98%, transparent),
-    radial-gradient(6px 10px at 91% 42%, rgba(44, 156, 114, 0.33) 98%, transparent),
-    linear-gradient(rgba(31, 35, 51, 0.16), rgba(31, 35, 51, 0.05));
-  background-size: 100% 5px, 100% 100%, 340px 100%, 340px 100%, 340px 100%, 340px 100%, 340px 100%, 100% 100%;
+    linear-gradient(var(--path) 0 46px, transparent 46px),
+    linear-gradient(var(--ground), color-mix(in srgb, var(--ground) 86%, #1c2030));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-/* Night ground for the dark era — the light path band reads wrong there. */
+/* The night ground ends on exactly the outro's first colour (#1f1d36), so
+   the stage → outro hand-off has no seam. */
 .stage[data-theme='frontier'] .ground {
   background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(125, 249, 255, 0.28) 0 44px,
-      transparent 44px 128px
-    ) top 22px left/100% 5px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.06) 0 46px, transparent 46px),
-    linear-gradient(rgba(16, 18, 34, 0.55), rgba(16, 18, 34, 0.75));
-  background-size: 100% 5px, 100% 100%, 100% 100%;
+    repeating-linear-gradient(90deg, var(--path-dash) 0 44px, transparent 44px 128px)
+      top 22px left / 100% 4px no-repeat,
+    linear-gradient(var(--path) 0 46px, transparent 46px),
+    linear-gradient(var(--ground), #1f1d36);
+  box-shadow: inset 0 1px 0 rgba(125, 249, 255, 0.12);
 }
 
 /* ===== Milestones ===== */
+/* Positioning (stage-owned): a signpost planted at the back of the path.
+   Cards paint above scenery (world is z 4) and below pickups. The active
+   card lifts 6px by growing its post, so the post stays planted. */
 .milestone {
   position: absolute;
-  bottom: calc(var(--ground-h) + 0.5rem);
+  bottom: calc(var(--ground-h) - 4px);
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 20rem;
+  z-index: 2;
 }
 
 .milestone.is-celebrate { width: 23rem; }
 
-/* Kind palette drives the tag, accent edge, and icon chip. */
-.kind-job         { --kind-color: #ff7a59; --kind-soft: #ffede7; }
-.kind-education   { --kind-color: #2f7dd1; --kind-soft: #e7f1fb; }
-.kind-achievement { --kind-color: #d99a06; --kind-soft: #fdf3da; }
-.kind-launch      { --kind-color: #2c9c72; --kind-soft: #e4f6ee; }
+.milestone .milestone-post {
+  height: calc(var(--post-h, 3.2rem) + 4px);
+  transition: height var(--dur-2, 0.35s) var(--ease-out, ease);
+}
+
+.milestone.active .milestone-post { height: calc(var(--post-h, 3.2rem) + 10px); }
+
+/* Kind palette: --kind-color decorates (accent edge, highlight band),
+   --kind-text is the text-safe value for tags and icons, --kind-soft tints chips. */
+.kind-job         { --kind-color: var(--job);         --kind-text: var(--job-text);         --kind-soft: #ffede7; }
+.kind-education   { --kind-color: var(--education);   --kind-text: var(--education-text);   --kind-soft: #e7f1fb; }
+.kind-achievement { --kind-color: var(--achievement); --kind-text: var(--achievement-text); --kind-soft: #fff1c7; }
+.kind-launch      { --kind-color: var(--launch);      --kind-text: var(--launch-text);      --kind-soft: #e4f6ee; }
 
 .milestone-card {
   position: relative;
   width: 100%;
-  background: var(--card);
-  border-radius: 18px;
-  padding: 1rem 1.2rem 1.1rem;
-  border: 1px solid rgba(31, 35, 51, 0.07);
-  border-top: 5px solid var(--kind-color);
-  box-shadow:
-    0 2px 6px rgba(31, 35, 51, 0.06),
-    0 18px 44px -12px rgba(31, 35, 51, 0.22);
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 1.1rem 1.25rem 1.2rem;
+  border: 1px solid var(--line);
+  /* A 3px inset top accent keeps the radius clean (a top border would square it). */
+  box-shadow: inset 0 3px 0 var(--kind-color), var(--shadow-2);
+  text-align: left;
   cursor: pointer;
+  transform-origin: 50% 100%;
   transition:
-    transform 0.4s ease,
-    opacity 0.4s ease,
-    filter 0.4s ease,
-    box-shadow 0.4s ease;
+    transform var(--dur-2) var(--ease-out),
+    box-shadow var(--dur-2) var(--ease-out),
+    filter var(--dur-2) ease;
 }
 
-/* Dim + shrink everything except the active / manually opened card. */
+.milestone-card > * { transition: opacity var(--dur-2) ease; }
+
+/* Everything except the active / opened card recedes. The surface stays
+   opaque (no scenery bleed-through); only the face softens. */
 .milestone:not(.active):not(.open) .milestone-card {
-  transform: scale(0.93);
-  opacity: 0.68;
-  filter: saturate(0.75);
-  box-shadow: 0 8px 18px rgba(31, 35, 51, 0.1);
+  transform: scale(0.94);
+  filter: saturate(0.7);
+  box-shadow: inset 0 3px 0 var(--kind-color), var(--shadow-1);
 }
+
+.milestone:not(.active):not(.open) .milestone-card > * { opacity: 0.9; }
 
 .milestone.active .milestone-card {
-  box-shadow: 0 22px 48px rgba(31, 35, 51, 0.2);
+  box-shadow:
+    inset 0 3px 0 var(--kind-color),
+    0 0 0 2px color-mix(in srgb, var(--kind-color) 45%, transparent),
+    var(--shadow-3);
 }
 
 .milestone-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  margin-bottom: 0.4rem;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
 }
 
 .milestone-tag {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.68rem;
-  font-weight: 700;
+  gap: var(--sp-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--kind-color);
+  color: var(--kind-text);
 }
 
 .milestone-kind-icon {
   display: inline-grid;
   place-items: center;
-  width: 1.7rem;
-  height: 1.7rem;
-  font-size: 0.95rem;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-sm);
   background: var(--kind-soft);
-  border-radius: 8px;
+  color: var(--kind-text);
 }
 
 .milestone-date {
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
-  color: #8a8fa3;
+  color: var(--ink-500);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .milestone-title {
-  font-size: 1.24rem;
+  font-size: var(--fs-lg);
   font-weight: 800;
-  line-height: 1.15;
+  line-height: 1.2;
   letter-spacing: -0.015em;
+  color: var(--ink-900);
 }
 
-.is-celebrate .milestone-title { font-size: 1.45rem; }
+.is-celebrate .milestone-title { font-size: var(--fs-xl); line-height: 1.12; }
 
 .milestone-subtitle {
-  font-size: 0.83rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  color: #6a6f85;
-  margin-top: 0.25rem;
+  line-height: 1.35;
+  color: var(--ink-500);
+  margin-top: var(--sp-1);
+}
+
+/* The skim number: always visible, even on receded cards. */
+.milestone-metric {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+.milestone-metric strong {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--kind-text, var(--ink-900));
+  font-variant-numeric: tabular-nums;
+}
+
+.milestone-metric span {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink-500);
 }
 
 /* Story collapses to nothing until the card is active or clicked open. */
@@ -426,45 +851,60 @@ button { font-family: inherit; }
   max-height: 0;
   opacity: 0;
   overflow: hidden;
-  transition: max-height 0.55s ease, opacity 0.4s ease;
+  transition: max-height 0.55s var(--ease-out), opacity 0.4s ease;
 }
 
 .milestone.active .milestone-body,
-.milestone.open .milestone-body {
-  max-height: 14rem;
+.milestone.open .milestone-body,
+.milestone-flat .milestone-body {
+  max-height: 16rem;
   opacity: 1;
 }
 
 .milestone-story {
-  font-size: 0.89rem;
-  line-height: 1.6;
-  margin-top: 0.6rem;
-  color: #3c4157;
+  font-size: var(--fs-md);
+  line-height: var(--lh-body);
+  margin-top: var(--sp-3);
+  color: var(--ink-700);
+  text-wrap: pretty;
 }
 
-/* Keyword highlight for skimming. */
+/* The one keyword highlight per story: a soft band in the kind colour. */
 .hl {
-  font-weight: 700;
-  color: #23273a;
-  background: linear-gradient(transparent 58%, rgba(255, 122, 89, 0.32) 58%);
+  font-weight: 600;
+  color: var(--ink-900);
+  background: linear-gradient(
+    transparent 62%,
+    color-mix(in srgb, var(--kind-color, var(--accent-500)) 26%, transparent) 62%
+  );
   border-radius: 2px;
-  padding: 0 0.08em;
+  padding: 0 0.06em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
 .milestone-more {
   position: absolute;
-  bottom: 0.25rem;
+  bottom: 2px;
   left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.7rem;
-  color: #b6b9c9;
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  translate: -50% 0;
+  display: grid;
+  color: var(--ink-400);
+  transition: transform var(--dur-2) var(--ease-out), opacity var(--dur-2) ease;
 }
 
 .milestone.active .milestone-more,
 .milestone.open .milestone-more {
-  transform: translateX(-50%) rotate(180deg);
+  transform: rotate(180deg);
   opacity: 0.5;
+}
+
+/* Flat variant: same face outside the world (static timeline, mobile panel). */
+.milestone-flat { position: relative; }
+
+.milestone-flat .milestone-card {
+  cursor: default;
+  box-shadow: inset 0 3px 0 var(--kind-color), var(--shadow-1);
 }
 
 .milestone-post {
@@ -474,79 +914,121 @@ button { font-family: inherit; }
   border-radius: 3px;
 }
 
-/* Celebrate moments: gold hero cards with a star seal. */
+/* Celebrate moments: gold cards with a star seal and a one-time sheen. */
 .is-celebrate .milestone-card {
-  border: 1px solid rgba(217, 154, 6, 0.35);
-  border-top: 5px solid #ffc933;
-  background: linear-gradient(#fffdf5, #fff8e4);
+  border-color: #f3d27a;
+  background: linear-gradient(#fffdf6, #fff8e4);
 }
 
 .milestone.is-celebrate.active .milestone-card {
-  box-shadow: 0 22px 52px rgba(201, 138, 4, 0.32);
+  box-shadow:
+    inset 0 3px 0 var(--kind-color),
+    0 0 0 2px #f3d27a,
+    0 24px 56px -14px rgba(143, 94, 0, 0.38);
+}
+
+.is-celebrate .milestone-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.8) 50%, transparent 62%) no-repeat;
+  background-size: 250% 100%;
+}
+
+/* Runs each time the card becomes active, then rests. */
+.milestone.is-celebrate.active .milestone-card::after {
+  animation: card-sheen 1.1s var(--ease-out) 0.2s 1 both;
+}
+
+@keyframes card-sheen {
+  from { opacity: 1; background-position: 130% 0; }
+  to { opacity: 1; background-position: -30% 0; }
 }
 
 .milestone-star {
   position: absolute;
-  top: -14px;
-  right: -12px;
+  top: -12px;
+  right: -10px;
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: linear-gradient(#ffd75e, #f0a819);
-  color: #fff;
-  font-size: 1rem;
-  box-shadow: 0 4px 12px rgba(201, 138, 4, 0.45);
+  background: linear-gradient(#ffe08a, #ffc933);
+  color: var(--achievement-text);
+  box-shadow: 0 0 0 2px var(--surface), 0 4px 10px rgba(143, 94, 0, 0.35);
 }
 
 /* ===== Skill pickups ===== */
+/* Pickups lie on the walking path like coins on a road, so they can never
+   meet a card. Only the next one ahead shows its name. */
 .skill-pickup {
   position: absolute;
-  bottom: calc(var(--ground-h) + 2.2rem);
+  bottom: calc(var(--ground-h) - 4.1rem);
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
-  transition:
-    transform 0.55s cubic-bezier(0.5, -0.3, 0.3, 1),
-    opacity 0.5s ease;
+  gap: 0.35rem;
+  z-index: 3;
+  transition: opacity 0.3s ease, scale 0.3s ease;
+}
+
+.skill-pickup-icon {
+  display: grid;
+  border-radius: var(--r-sm, 8px);
+  box-shadow: 0 6px 10px -4px rgba(28, 32, 48, 0.35);
   animation: pickup-float 2.4s ease-in-out infinite;
 }
 
 @keyframes pickup-float {
-  0%, 100% { margin-bottom: 0; }
-  50% { margin-bottom: 12px; }
-}
-
-.skill-pickup-icon {
-  font-size: 1.9rem;
-  filter: drop-shadow(0 6px 10px rgba(31, 35, 51, 0.25));
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -6px; }
 }
 
 .skill-pickup-label {
-  font-size: 0.72rem;
+  font-size: var(--fs-xs, 0.75rem);
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.85);
+  line-height: 1;
+  color: var(--ink-900, #1c2030);
+  background: rgba(255, 255, 255, 0.92);
   border-radius: 999px;
-  padding: 0.15rem 0.55rem;
+  padding: 0.3rem 0.6rem;
   white-space: nowrap;
+  box-shadow: var(--shadow-1, 0 1px 3px rgba(28, 32, 48, 0.12));
+  opacity: 0;
+  translate: 0 -4px;
+  transition: opacity 0.25s ease, translate 0.25s ease;
 }
 
+.skill-pickup.is-next .skill-pickup-label { opacity: 1; translate: 0 0; }
+
 .skill-pickup.collected {
-  transform: translateX(-50%) translateY(-42vh) scale(0.4);
   opacity: 0;
+  scale: 0.6;
   pointer-events: none;
+}
+
+/* The icon's flight from the path into the HUD (document-level, fixed). */
+.skill-pickup-ghost {
+  position: fixed;
+  z-index: 40;
+  display: grid;
+  pointer-events: none;
+  will-change: transform;
 }
 
 /* ===== Side quests ===== */
 .side-quest {
   position: absolute;
-  /* Lives in the band BETWEEN the ghost chapter wordmark and the milestone
-     cards. Anchored to the wordmark's own offset (11vh) plus its cap height,
-     so it clears the letters at any width instead of sitting across them. */
-  top: calc(11vh + 9rem);
+  /* Lives in the sky band between the progress bar (~8rem) and the tops of
+     the milestone cards; a side quest is optional reading, so it sits behind
+     the cards (z 1) if a tall card ever reaches up to it. */
+  top: 7.9rem;
+  z-index: 1;
   transform: translateX(-50%);
   /* Wider than it looks like it needs to be: fewer wrapped lines means a
      shorter card, which is what actually has to fit in the band. */
@@ -554,25 +1036,49 @@ button { font-family: inherit; }
 }
 
 .side-quest-card {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(4px);
-  border: 1.5px dashed rgba(31, 35, 51, 0.3);
-  border-radius: 12px;
-  padding: 0.85rem 1rem;
+  position: relative;
+  background: rgba(255, 253, 248, 0.95);
+  border: 1.5px dashed rgba(28, 32, 48, 0.3);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4) 0.9rem;
+  box-shadow: var(--shadow-1);
 }
 
 .side-quest-card h4 {
-  font-size: 0.92rem;
-  margin-bottom: 0.3rem;
+  font-size: var(--fs-base);
+  line-height: 1.25;
+  margin-bottom: var(--sp-1);
+  color: var(--ink-900);
 }
 
 .side-quest-card p {
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: #4a4f63;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--ink-700);
+  text-wrap: pretty;
 }
 
-/* ===== Character (CSS placeholder chibi) ===== */
+.side-quest-card .milestone-metric { margin: var(--sp-1) 0 var(--sp-2); }
+.side-quest-card .milestone-metric strong { font-size: 1.375rem; color: var(--ink-900); }
+.side-quest-card .milestone-metric span { font-size: var(--fs-xs); color: var(--ink-500); }
+
+/* Logo tile used by the HUD, pickups and popover; tinted with the brand colour. */
+.skill-tile {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--tile, 32px);
+  height: var(--tile, 32px);
+  border-radius: var(--r-sm);
+  color: color-mix(in srgb, var(--brand, #6a6f85) 50%, var(--ink-900));
+  background: color-mix(in srgb, var(--brand, #6a6f85) 12%, #fff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand, #6a6f85) 24%, transparent);
+}
+
+/* ===== Character =====
+   One fixed layer across hero, stage and outro. The .chibi* block further
+   down is the no-WebGL fallback (Character.tsx renders it when WebGL fails),
+   so it stays. */
 .character-layer {
   position: fixed;
   left: 0;
@@ -725,134 +1231,393 @@ button { font-family: inherit; }
 /* ===== Progress bar ===== */
 .progress {
   position: absolute;
-  top: 1.2rem;
+  top: 1rem;
   left: 50%;
   transform: translateX(-50%);
-  width: min(70rem, 86vw);
+  width: min(64rem, 88vw);
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.company-badge {
-  width: fit-content;
-  margin: 0 auto 0.55rem;
-  padding: 0.34rem 1.15rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(31, 35, 51, 0.1);
-  box-shadow: 0 4px 14px rgba(31, 35, 51, 0.12);
-  font-family: var(--font-display);
-  font-size: 0.85rem;
+/* Frosted surfaces so labels stay legible on every sky. */
+.chapter-chip,
+.progress-bar {
+  background: var(--chip-bg);
+  -webkit-backdrop-filter: blur(10px) saturate(1.3);
+  backdrop-filter: blur(10px) saturate(1.3);
+  border: 1px solid var(--chip-line);
+  box-shadow: var(--shadow-1, 0 1px 3px rgba(28, 32, 48, 0.1));
+}
+
+/* Chapter chip: `CHAPTER 03 · 2022–2023` over `Startup Ascent · Raft`. */
+.chapter-chip {
+  min-width: 15rem;
+  padding: 0.45rem 1.2rem 0.5rem;
+  border-radius: 14px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.chapter-chip-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.chapter-chip-eyebrow {
+  font-size: var(--fs-xs, 0.75rem);
   font-weight: 600;
-  letter-spacing: 0.08em;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #3c4157;
+  font-variant-numeric: tabular-nums;
+  color: var(--on-sky-muted);
+  animation: chip-in 0.5s var(--ease-out, ease) both;
 }
 
-.company-badge:empty { visibility: hidden; }
+.chapter-chip-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  color: var(--on-sky);
+  animation: chip-in 0.5s var(--ease-out, ease) 0.07s both;
+}
 
-.company-pop { animation: company-pop 0.45s cubic-bezier(0.2, 1.5, 0.4, 1); }
+.chapter-chip-company { font-weight: 600; color: var(--on-sky-muted); }
 
-@keyframes company-pop {
-  from { transform: scale(0.7); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+@keyframes chip-in {
+  from { opacity: 0; translate: 0 8px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+.progress-bar {
+  width: 100%;
+  padding: 0.6rem 1.1rem 0;
+  border-radius: 14px;
 }
 
 .progress-track {
   position: relative;
-  height: 6px;
-  background: rgba(31, 35, 51, 0.14);
+  height: 4px;
+  margin-bottom: 30px; /* the year row */
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--on-sky) 10%, transparent);
+}
+
+/* One segment per era, in that era's accent. */
+.progress-seg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 3px solid transparent;
+  background: color-mix(in srgb, var(--era-accent) 40%, transparent) padding-box;
   border-radius: 999px;
 }
 
 .progress-fill {
-  height: 100%;
-  width: 0;
-  background: var(--accent);
+  position: absolute;
+  inset: 0;
   border-radius: 999px;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  background: color-mix(in srgb, var(--era-accent) 70%, var(--on-sky));
 }
 
 .progress-year {
   position: absolute;
-  top: 10px;
-  transform: translateX(-50%);
-  background: none;
+  top: 2px;
+  translate: -50% 0;
+  min-width: 36px;
+  min-height: 32px;
+  padding: 0.6rem 0.35rem 0.3rem;
   border: none;
-  font-size: 0.72rem;
+  border-radius: 6px;
+  background: none;
+  font-size: var(--fs-xs, 0.75rem);
   font-weight: 600;
-  color: rgba(31, 35, 51, 0.55);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--on-sky-muted);
   cursor: pointer;
-  padding: 0.2rem 0.3rem;
+  transition: color var(--dur-1, 0.18s) ease;
 }
 
-.progress-year:hover { color: var(--accent); }
+/* Tick into the track. */
+.progress-year::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  width: 1px;
+  height: 6px;
+  background: currentColor;
+  opacity: 0.45;
+}
 
-.stage[data-theme='frontier'] .progress-year { color: rgba(255, 255, 255, 0.65); }
-.stage[data-theme='frontier'] .progress-track { background: rgba(255, 255, 255, 0.2); }
+.progress-year:hover { color: var(--on-sky); }
 
-/* ===== Skill HUD (compact inventory bar) ===== */
+.progress-year:focus-visible { outline-offset: 0; }
+
+.progress-year.is-dropped { display: none; }
+
+/* Centred chapter card on entering an era, like a game's "World 2-1". */
+.chapter-title-card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 22vh;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  text-align: center;
+  pointer-events: none;
+  color: var(--on-sky);
+  animation: title-card 1.7s var(--ease-out, ease) both;
+}
+
+.chapter-title-card span {
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--on-sky-muted);
+}
+
+.chapter-title-card strong {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  text-shadow: 0 2px 28px var(--sky-bottom);
+}
+
+/* The title card owns the sky band while it shows; a side quest that happens
+   to be there steps back for that second and a half. */
+.side-quest { transition: opacity 0.3s ease; }
+.stage:has(.chapter-title-card) .side-quest { opacity: 0; }
+
+@keyframes title-card {
+  0% { opacity: 0; translate: 0 12px; }
+  22% { opacity: 1; translate: 0 0; }
+  70% { opacity: 1; translate: 0 0; }
+  100% { opacity: 0; translate: 0 -6px; }
+}
+
+/* Finale confetti (pieces are animated by GSAP: transform/opacity only). */
+.confetti {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confetti i {
+  position: absolute;
+  width: 8px;
+  height: 12px;
+  margin: -6px 0 0 -4px;
+  border-radius: 2px;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chapter-title-card { display: none; }
+}
+
+/* ===== Skill HUD (one-row inventory tray) ===== */
 .skill-hud {
   position: absolute;
   left: 1.2rem;
   bottom: 1.2rem;
   z-index: 10;
-  max-width: min(34rem, 60vw);
-  padding: 0.55rem 0.7rem 0.6rem;
-  border-radius: 14px;
-  background: rgba(255, 253, 248, 0.72);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(31, 35, 51, 0.08);
-  box-shadow: 0 6px 18px rgba(31, 35, 51, 0.1);
 }
 
+.skill-hud-tray {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  height: 44px;
+  padding: 0 6px 0 var(--sp-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: rgba(255, 253, 248, 0.92);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-2);
+  color: var(--ink-900);
+  cursor: pointer;
+  transition: box-shadow var(--dur-1) ease;
+}
+
+.skill-hud-tray:hover { box-shadow: var(--shadow-3); }
+
 .skill-hud-label {
-  display: block;
-  font-size: 0.66rem;
-  font-weight: 800;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1.15;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: rgba(31, 35, 51, 0.55);
+  letter-spacing: 0.12em;
+  color: var(--ink-500);
+  white-space: nowrap;
+}
+
+.skill-hud-count {
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  letter-spacing: 0;
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
 }
 
 .skill-hud-items {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 0.28rem;
-  margin-top: 0.4rem;
+  gap: var(--sp-1);
 }
 
-.skill-hud-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.32rem;
-  height: 1.9rem;
-  min-width: 1.9rem;
-  justify-content: center;
-  background: #fff;
-  border: 1px solid rgba(31, 35, 51, 0.09);
-  border-radius: 999px;
-  padding: 0 0.3rem;
-  font-size: 0.72rem;
+.skill-hud-items:empty { display: none; }
+
+.skill-hud-tile { animation: badge-pop var(--dur-2) var(--ease-spring); }
+
+.skill-hud-more {
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border-radius: var(--r-sm);
+  background: rgba(28, 32, 48, 0.06);
+  font-size: var(--fs-xs);
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(31, 35, 51, 0.08);
-  animation: badge-pop 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+  color: var(--ink-700);
+  font-variant-numeric: tabular-nums;
 }
 
-.skill-hud-icon { font-size: 0.95rem; line-height: 1; }
-
-.skill-hud-name { padding-right: 0.25rem; white-space: nowrap; }
-
-.stage[data-theme='frontier'] .skill-hud {
-  background: rgba(31, 35, 51, 0.55);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-.stage[data-theme='frontier'] .skill-hud-label { color: rgba(255, 255, 255, 0.65); }
+.skill-hud-latest { display: none; }
 
 @keyframes badge-pop {
-  from { transform: scale(0.3); opacity: 0; }
+  from { transform: scale(0.4); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
+}
+
+/* "Kafka unlocked" — names the newest pickup instead of widening the tray. */
+.skill-hud-toast {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + var(--sp-2));
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  background: var(--ink-900);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--shadow-2);
+  pointer-events: none;
+  animation: hud-toast 1.5s var(--ease-out) both;
+}
+
+.skill-hud:has(.skill-hud-popover) .skill-hud-toast { display: none; }
+
+@keyframes hud-toast {
+  0% { opacity: 0; transform: translateY(6px); }
+  14% { opacity: 1; transform: none; }
+  80% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+
+.skill-hud-popover {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + var(--sp-2));
+  width: min(22rem, calc(100vw - 2.4rem));
+  max-height: min(60vh, 26rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--sp-4);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: var(--shadow-3);
+  color: var(--ink-900);
+  transform-origin: 0 100%;
+  animation: hud-pop var(--dur-2) var(--ease-out);
+}
+
+@keyframes hud-pop {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.skill-hud-popover-title {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-500);
+  margin-bottom: var(--sp-3);
+}
+
+.skill-hud-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2) var(--sp-3);
+}
+
+.skill-hud-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink-700);
+}
+
+.skill-hud-empty { font-size: var(--fs-sm); color: var(--ink-500); }
+
+.skill-hud-foot {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-xs);
+  color: var(--ink-500);
+}
+
+/* Phones: a pill under the progress bar, clear of the character. */
+@media (max-width: 640px) {
+  .skill-hud { top: 4.2rem; bottom: auto; left: 1rem; }
+  .skill-hud-tray {
+    height: 36px;
+    gap: var(--sp-2);
+    padding: 0 4px 0 var(--sp-3);
+    border-radius: var(--r-pill);
+  }
+  .skill-hud-label { flex-direction: row; align-items: baseline; gap: 6px; }
+  .skill-hud-label-long,
+  .skill-hud-items { display: none; }
+  .skill-hud-latest { display: inline-flex; }
+  .skill-hud-latest .skill-tile { border-radius: 50%; }
+  .skill-hud-toast,
+  .skill-hud-popover { top: calc(100% + var(--sp-2)); bottom: auto; }
+  .skill-hud-popover { transform-origin: 0 0; }
 }
 
 /* ===== Sound toggle ===== */
@@ -861,429 +1626,620 @@ button { font-family: inherit; }
   right: 1.2rem;
   bottom: 1.2rem;
   z-index: 10;
-  width: 2.6rem;
-  height: 2.6rem;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  border: 1px solid rgba(31, 35, 51, 0.12);
-  background: rgba(255, 255, 255, 0.9);
-  font-size: 1.1rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 253, 248, 0.92);
+  backdrop-filter: blur(10px);
+  color: var(--ink-900);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(31, 35, 51, 0.12);
-  transition: transform 0.15s ease;
+  box-shadow: var(--shadow-2);
+  transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-1) ease;
 }
 
-.sound-toggle:hover { transform: scale(1.08); }
+.sound-toggle:hover { transform: translateY(-2px); box-shadow: var(--shadow-3); }
+.sound-toggle[aria-pressed='false'] { color: var(--ink-500); }
 
-.stage[data-theme='frontier'] .sound-toggle {
-  background: rgba(31, 35, 51, 0.6);
-  border-color: rgba(255, 255, 255, 0.18);
-}
-
-/* ===== Outro ===== */
+/* ===== Outro =====
+   Picks up the frontier night the stage ends in and carries it through the
+   tech stack and footer, so the drop out of the world is one continuous
+   place rather than a new page. */
 .outro {
   position: relative;
-  min-height: 72vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 1.3rem;
-  /* The bottom padding is the character's landing pad: he ends the journey
-     standing under the contact buttons, and he is ~190px tall. Without it the
-     contact row sits low enough that he lands on top of it on short windows. */
-  padding: 3rem 2rem 13rem;
+  isolation: isolate;
+  padding: clamp(4rem, 10vh, 6.5rem) clamp(1.25rem, 5vw, 4rem) var(--sp-8);
   overflow: hidden;
-  background:
-    radial-gradient(ellipse at 50% 120%, rgba(255, 122, 89, 0.16) 0%, transparent 55%),
-    linear-gradient(#2b2e4a, #1f2333);
-  color: #f2f3f8;
+  background: linear-gradient(#1f1d36, var(--night-800) 75%);
+  color: var(--ink-night);
 }
 
-/* Reduced motion renders no character, so there is nothing to leave room for. */
-.outro-static { padding-bottom: 3rem; }
-
-.outro-title {
-  font-size: clamp(2.2rem, 6vw, 4rem);
-  letter-spacing: -0.02em;
+/* Warm horizon glow, faded out well before the section ends (no seam). */
+.outro::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 75%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 55% 70% at 72% 0%, rgba(255, 122, 89, 0.14), transparent 70%);
 }
 
-.outro-text {
-  max-width: 32rem;
-  color: #b9bdd0;
-  line-height: 1.65;
+.outro-head,
+.outro-extras {
+  max-width: 68rem;
+  margin: 0 auto;
 }
 
-.outro-ask {
-  color: #b9bdd0;
-  line-height: 1.65;
-  margin-top: 0.4rem;
+.outro-head {
+  display: grid;
+  gap: var(--sp-5);
+  align-items: end;
 }
 
-.course-promo {
+.outro-intro {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.5rem;
-  width: min(38rem, 100%);
-  margin-top: 0.4rem;
-  padding: 1.15rem 1.25rem 1.25rem;
-  text-align: left;
-  color: inherit;
-  background:
-    linear-gradient(180deg, rgba(255, 122, 89, 0.16), rgba(255, 122, 89, 0.06)),
-    rgba(255, 255, 255, 0.04);
-  border: 1.5px solid rgba(255, 122, 89, 0.85);
-  border-radius: 18px;
-  box-shadow: 0 16px 40px -18px rgba(255, 122, 89, 0.85);
+  gap: var(--sp-4);
+  max-width: 40rem;
 }
 
-.course-kicker {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.16em;
+.outro-title {
+  font-size: var(--fs-3xl);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.outro-text {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--ink-night-700);
+  text-wrap: pretty;
+}
+
+.outro-ask {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink-night-500);
+}
+
+.outro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+
+/* Night variant of the secondary buttons. */
+.outro .btn:not(.btn-primary) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--ink-night);
+  box-shadow: none;
+}
+
+.outro .btn:not(.btn-primary):hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* The "today" platform the character lands on. Empty on purpose. */
+.outro-landing {
+  position: relative;
+  height: 210px;
+}
+
+.outro-landing::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  translate: -50% 50%;
+  width: 240px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(125, 249, 255, 0.2), transparent);
+}
+
+.outro-landing::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  translate: -50% 0;
+  width: min(100%, 280px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+}
+
+@media (min-width: 900px) {
+  .outro-head { grid-template-columns: minmax(0, 1fr) 280px; }
+}
+
+.outro-static .outro-head { grid-template-columns: minmax(0, 1fr); }
+
+/* ----- Things I teach & tinker with ----- */
+.outro-extras { margin-top: var(--sp-8); }
+
+.outro-extras-title {
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
+  font-weight: 600;
   text-transform: uppercase;
-  color: #ffb09e;
+  letter-spacing: 0.12em;
+  color: var(--ink-night-500);
+  margin-bottom: var(--sp-4);
 }
 
-.course-headline {
+.promo-grid {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+@media (min-width: 900px) {
+  .promo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.promo-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-5);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line-night);
+  background: rgba(42, 45, 77, 0.55);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18), 0 18px 40px -18px rgba(0, 0, 0, 0.6);
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  transition: transform var(--dur-1) var(--ease-out), border-color var(--dur-1) ease, background var(--dur-1) ease;
+}
+
+a.promo-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 176, 158, 0.45);
+  background: rgba(42, 45, 77, 0.75);
+}
+
+.promo-kicker {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-night);
+}
+
+.promo-headline {
   font-family: var(--font-display);
+  font-size: var(--fs-xl);
   font-weight: 800;
-  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
-  letter-spacing: -0.02em;
   line-height: 1.15;
-  margin: 0;
+  letter-spacing: -0.02em;
+  color: var(--ink-night);
+  text-wrap: balance;
 }
 
-.course-pitch {
-  color: #d5d8e6;
-  line-height: 1.55;
-  font-size: 0.98rem;
-  margin: 0;
+.promo-pitch {
+  font-size: var(--fs-md);
+  line-height: var(--lh-body);
+  color: var(--ink-night-700);
+  text-wrap: pretty;
 }
 
 .course-tracks {
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0.35rem 0 0;
-  padding: 0;
+  gap: var(--sp-2);
 }
 
 .course-track {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.8rem 0.4rem 0.45rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.05);
-  color: #e6e8f2;
-  font-size: 0.88rem;
+  gap: var(--sp-2);
+  min-height: 36px;
+  padding: 0 var(--sp-3) 0 6px;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink-night);
+  font-size: var(--fs-sm);
   text-decoration: none;
-  transition: border-color 0.18s ease, background 0.18s ease;
+  transition: border-color var(--dur-1) ease, background var(--dur-1) ease;
 }
 
 .course-track:hover {
-  border-color: #ffb09e;
-  background: rgba(255, 122, 89, 0.14);
+  border-color: var(--accent-night);
+  background: rgba(255, 122, 89, 0.12);
 }
 
 .course-level {
   display: inline-grid;
   place-items: center;
-  min-width: 2.3rem;
-  padding: 0.12rem 0.45rem;
-  border-radius: 999px;
-  background: rgba(255, 122, 89, 0.22);
-  color: #ffb09e;
+  min-width: 2.25rem;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 122, 89, 0.18);
+  color: var(--accent-night);
+  font-size: var(--fs-xs);
   font-weight: 800;
-  font-size: 0.78rem;
   letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
 }
 
-.course-cta {
-  margin-top: 0.5rem;
-  display: inline-block;
-  padding: 0.7rem 1.15rem;
-  border-radius: 999px;
-  background: var(--accent);
-  color: #fff;
-  font-weight: 700;
-  font-size: 0.95rem;
-  text-decoration: none;
-  box-shadow: 0 8px 24px -6px rgba(255, 122, 89, 0.7);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-}
-
-.course-cta::after { content: ' →'; }
-
-.course-cta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px -6px rgba(255, 122, 89, 0.9);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .course-cta:hover { transform: none; }
-}
-
-.course-track:focus-visible,
-.course-cta:focus-visible {
-  outline: 3px solid #fff;
-  outline-offset: 3px;
-}
-
-/* Secondary to the course card: same shape, quieter border, one link. */
-.playground-promo {
-  display: flex;
+.promo-cta {
+  margin-top: auto;
+  padding-top: var(--sp-2);
+  display: inline-flex;
   align-items: center;
-  gap: 1rem;
-  width: min(38rem, 100%);
-  padding: 1rem 1.1rem;
-  text-align: left;
-  color: inherit;
+  gap: 6px;
+  min-height: 32px;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--accent-night);
   text-decoration: none;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1.5px solid rgba(255, 255, 255, 0.22);
-  border-radius: 18px;
-  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
 }
 
-.playground-promo:hover {
-  border-color: #ffb09e;
-  background: rgba(255, 122, 89, 0.08);
-  transform: translateY(-2px);
-}
+.promo-cta svg { transition: transform var(--dur-1) var(--ease-out); }
+.promo-cta:hover svg,
+a.promo-card:hover .promo-cta svg { transform: translateX(3px); }
 
-.playground-promo:focus-visible {
-  outline: 3px solid #fff;
-  outline-offset: 3px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .playground-promo:hover { transform: none; }
+.playground-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
 }
 
 .playground-thumb {
   flex: none;
-  width: 88px;
-  height: 88px;
-  border-radius: 12px;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--r-md);
   background: #fff;
   object-fit: cover;
 }
 
-.playground-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.playground-headline {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.15rem;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-}
-
-.playground-pitch {
-  color: #d5d8e6;
-  font-size: 0.92rem;
-  line-height: 1.5;
-}
-
-.playground-cta {
-  margin-top: 0.15rem;
-  color: #ffb09e;
-  font-weight: 700;
-  font-size: 0.92rem;
-}
-
-.playground-cta::after { content: ' →'; }
-
-@media (max-width: 480px) {
-  .playground-thumb { width: 64px; height: 64px; }
-}
-
-.outro-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.8rem;
-  justify-content: center;
-  margin-top: 0.2rem;
-}
-
-.btn {
-  display: inline-block;
-  padding: 0.75rem 1.5rem;
-  border-radius: 999px;
-  border: 1.5px solid rgba(255, 255, 255, 0.3);
-  color: #f2f3f8;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-}
-
-.btn:hover {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 10px 26px -8px rgba(0, 0, 0, 0.5);
-}
-
-.btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 8px 24px -6px rgba(255, 122, 89, 0.55);
-}
-
-.btn-primary:hover { background: #ff8f73; box-shadow: 0 12px 32px -6px rgba(255, 122, 89, 0.7); }
-
-
 /* ===== Tech stack (the scannable inventory) =====
-   Visually continuous with the outro so it reads as one closing section
-   rather than a stray appendix a recruiter might never scroll to. */
+   Same night surface as the end of the outro, so it reads as one closing
+   section rather than a stray appendix. */
 .tech-stack {
   position: relative;
-  padding: 1rem 2rem 5rem;
-  background: #1f2333;
-  color: #f2f3f8;
+  padding: 0 clamp(1.25rem, 5vw, 4rem) var(--sp-8);
+  background: var(--night-800);
+  color: var(--ink-night);
+}
+
+.tech-stack-inner {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding-top: var(--sp-7);
+  border-top: 1px solid var(--line-night);
 }
 
 .tech-stack-heading {
-  max-width: 62rem;
-  margin: 0 auto;
-  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-tight);
   letter-spacing: -0.02em;
-  text-align: center;
 }
 
 .tech-stack-sub {
-  max-width: 62rem;
-  margin: 0.4rem auto 2.4rem;
-  text-align: center;
-  color: #9aa0b8;
-  font-size: 0.92rem;
+  margin: var(--sp-2) 0 var(--sp-6);
+  font-size: var(--fs-base);
+  color: var(--ink-night-500);
 }
 
 .tech-grid {
-  max-width: 62rem;
-  margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-  gap: 1.6rem 2rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-6);
 }
 
 .tech-group-label {
   font-family: var(--font-body);
-  font-size: 0.68rem;
-  font-weight: 800;
+  font-size: var(--fs-xs);
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: var(--accent);
-  margin-bottom: 0.6rem;
+  letter-spacing: 0.12em;
+  color: var(--ink-night-500);
+  margin-bottom: var(--sp-3);
 }
+
+.tech-group-featured .tech-group-label { color: var(--accent-night); }
 
 .tech-items {
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.34rem;
+  gap: 6px;
 }
 
 .tech-chip {
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 7px;
-  padding: 0.26rem 0.6rem;
-  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-night);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: var(--fs-sm);
+  line-height: 1.25;
   color: #e3e6f0;
   white-space: nowrap;
 }
 
-@media (max-width: 640px) {
-  /* The contact buttons wrap to two rows here, so the landing pad needs a
-     little more room for him to stand clear of both them and the seam. */
-  .outro { padding-bottom: 15rem; }
-  .outro-static { padding-bottom: 3rem; }
-  .tech-stack { padding: 0.5rem 1.2rem 3.5rem; }
-  .tech-grid { gap: 1.3rem; }
-  .tech-chip { font-size: 0.78rem; }
+.tech-chip svg { flex: none; opacity: 0.9; }
+
+.tech-spoken {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--ink-night-500);
 }
+
+.tech-spoken span { font-weight: 600; color: var(--ink-night); }
+
+@media (max-width: 960px) {
+  .tech-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .tech-grid { grid-template-columns: minmax(0, 1fr); gap: var(--sp-5); }
+  .tech-stack-heading { font-size: 1.875rem; }
+  .tech-chip { white-space: normal; }
+}
+
+/* ===== Footer ===== */
+.site-footer {
+  padding: var(--sp-5) clamp(1.25rem, 5vw, 4rem);
+  background: var(--night-900);
+  color: var(--ink-night-500);
+  font-size: var(--fs-sm);
+}
+
+.site-footer-inner {
+  max-width: 68rem;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2) var(--sp-6);
+}
+
+.site-footer-name strong {
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--ink-night);
+}
+
+.site-footer-replay {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-weight: 600;
+  color: var(--ink-night);
+  text-decoration: none;
+}
+
+.site-footer-replay:hover { color: var(--accent-night); }
 
 /* ===== Static timeline (reduced motion) ===== */
 .static-timeline {
-  max-width: 46rem;
+  max-width: 44rem;
   margin: 0 auto;
-  padding: 3rem 1.5rem;
+  padding: var(--sp-7) 1.25rem var(--sp-8);
 }
 
-.static-chapter { margin-bottom: 3rem; }
+.static-chapter { --era: var(--accent-500); margin-bottom: var(--sp-7); }
+.static-chapter.theme-sunrise  { --era: #ff7a59; }
+.static-chapter.theme-bank     { --era: #2f7dd1; }
+.static-chapter.theme-ascent   { --era: #8b5cf6; }
+.static-chapter.theme-platform { --era: #2c9c72; }
+.static-chapter.theme-frontier { --era: #4b5190; }
+.static-chapter.theme-side     { --era: #6a6f85; }
+
+.static-chapter-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+
+.static-chapter-num {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-500);
+}
+
+.static-chapter-num::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--era);
+}
 
 .static-chapter-label {
-  font-size: 1.6rem;
-  margin-bottom: 1.2rem;
-  border-bottom: 3px solid var(--accent);
-  display: inline-block;
-  padding-bottom: 0.2rem;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.02em;
 }
 
-.static-chapter ol { list-style: none; }
+.static-chapter-company {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink-500);
+}
+
+/* The era rail: a soft line in the chapter colour with a dot per milestone. */
+.static-list {
+  list-style: none;
+  position: relative;
+  padding-left: 1.75rem;
+}
+
+.static-list::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: var(--sp-2);
+  bottom: var(--sp-2);
+  width: 3px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--era) 35%, transparent);
+}
 
 .static-milestone {
-  border-left: 3px solid rgba(31, 35, 51, 0.15);
-  padding: 0 0 1.6rem 1.2rem;
   position: relative;
+  padding-bottom: var(--sp-5);
 }
 
 .static-milestone::before {
   content: '';
   position: absolute;
-  left: -8px;
-  top: 4px;
-  width: 13px;
-  height: 13px;
+  left: -26.5px;
+  top: 1.4rem;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--era);
+  box-shadow: 0 0 0 3px var(--paper);
 }
 
-.static-date {
-  font-size: 0.78rem;
-  color: #8a8fa3;
+.static-skills {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--sp-3);
 }
 
-.static-milestone h3 { margin: 0.15rem 0 0.2rem; }
+.static-skills .tech-chip {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink-700);
+  box-shadow: var(--shadow-1);
+}
 
-.static-milestone p { color: #3c4157; line-height: 1.5; }
+.static-skills .tech-chip svg { color: var(--ink-500); }
 
-.static-skills { margin-top: 0.4rem; font-size: 0.88rem; }
+/* Laptop-height windows: trim the tall posts a little so the side-quest band
+   keeps clear air above the active card. */
+@media (max-height: 960px) {
+  .milestone .milestone-post { height: calc(var(--post-h, 3.2rem) * 0.75 + 4px); }
+  .milestone.active .milestone-post { height: calc(var(--post-h, 3.2rem) * 0.75 + 10px); }
+}
 
 /* ===== Short windows =====
-   Between the year labels (~88px) and the milestone cards there is only about
-   230px of free height on a 760px-tall window, and the wordmark alone eats 134
-   of it. Shrink the decoration and tuck the card up so both still fit. */
+   Between the progress block (~7.5rem) and the tallest milestone cards there
+   is little free sky on a 720px-tall window: tighten the chip and lift the
+   side-quest band. */
 @media (max-height: 820px) {
-  .chapter-label {
-    top: 8vh;
-    font-size: clamp(2.4rem, 6vw, 4rem);
+  .progress { top: 0.75rem; gap: 0.4rem; }
+  .chapter-chip { padding: 0.35rem 1.1rem 0.4rem; }
+  .side-quest { top: 7.9rem; }
+  .chapter-title-card { top: 20vh; }
+  /* Shorter posts and a headline-only side quest (title + metric) so the
+     band clears the tallest active card. */
+  .milestone .milestone-post { height: calc(var(--post-h, 3.2rem) * 0.55 + 4px); }
+  .milestone.active .milestone-post { height: calc(var(--post-h, 3.2rem) * 0.55 + 10px); }
+  .side-quest-card > p:not(.milestone-metric) { display: none; }
+  .side-quest-card .milestone-metric { margin-bottom: 0; }
+}
+
+/* ===== Small screens =====
+   Cards leave the world: the active milestone is read in a fixed panel at
+   the top (below the bar, the HUD pill and the chapter chip), the in-world
+   milestones shrink to marker posts, and nothing covers the character. */
+@media (max-width: 640px) {
+  .progress { top: 0.75rem; width: calc(100% - 2rem); }
+  .progress-bar { padding: 0.5rem 0.8rem 0; }
+
+  /* The chip shares the row under the bar with the HUD pill (top-left). */
+  .chapter-chip {
+    position: absolute;
+    top: calc(4.2rem - 0.75rem);
+    right: 0;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    max-width: calc(100% - 10rem);
+    height: 36px;
+    padding: 0 0.9rem;
+    border-radius: 999px;
+  }
+  .chapter-chip-inner { min-width: 0; max-width: 100%; }
+  .chapter-chip-eyebrow,
+  .chapter-chip-company { display: none; }
+  .chapter-chip-title {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: var(--fs-sm, 0.875rem);
   }
 
-  .side-quest {
-    top: calc(8vh + 6rem);
+  .chapter-title-card,
+  .side-quest { display: none; }
+
+  .milestone { width: auto; }
+  .milestone .milestone-card { display: none; }
+  .milestone::before {
+    content: '';
+    width: 14px;
+    height: 14px;
+    margin-bottom: -3px;
+    border-radius: 50%;
+    background: var(--kind-color);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85);
+    transition: scale var(--dur-2, 0.35s) var(--ease-out, ease);
+  }
+  .milestone.active::before { scale: 1.4; }
+
+  .reading-panel {
+    position: absolute;
+    top: calc(4.2rem + 36px + 0.6rem);
+    left: 1rem;
+    right: 1rem;
+    z-index: 9;
+  }
+  .reading-panel-item { animation: panel-in 0.45s var(--ease-out, ease) both; }
+  .reading-panel-item.is-leaving {
+    position: absolute;
+    inset: 0 0 auto 0;
+    pointer-events: none;
+    animation: panel-out 0.25s ease both;
   }
 }
 
-/* ===== Small screens ===== */
-@media (max-width: 640px) {
-  .milestone { width: 16rem; }
-  .milestone.is-celebrate { width: 17.5rem; }
-  .chapter-label { top: 8vh; font-size: 2.6rem; -webkit-text-stroke-width: 1.2px; }
-  .skill-hud { max-width: 74vw; padding: 0.45rem 0.55rem 0.5rem; }
-  .skill-hud-name { display: none; }
-  .side-quest { display: none; }
-  /* Year markers collide at this width — keep every other one. */
-  .progress-year:nth-child(odd) { display: none; }
-  .company-badge { font-size: 0.72rem; }
+/* Short phones: clamp the panel story so the card never reaches down to the
+   character (the full text is a tap away in the static list / resume). */
+@media (max-width: 640px) and (max-height: 740px) {
+  .reading-panel .milestone-story {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+}
+
+@keyframes panel-in {
+  from { opacity: 0; translate: 0 8px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes panel-out {
+  to { opacity: 0; translate: 0 -8px; }
 }

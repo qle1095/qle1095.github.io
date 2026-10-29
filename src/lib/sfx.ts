@@ -62,6 +62,15 @@ export function sfxPickup(): void {
   tone(1318.5, 0.03, 0.2, 'sine', 0.06);
 }
 
+/** Journey finale: the celebrate arpeggio, then a held major chord on top. */
+export function sfxFinale(): void {
+  if (!enabled) return;
+  [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) =>
+    tone(f, i * 0.07, 0.3, 'triangle', 0.07),
+  );
+  [523.25, 659.25, 783.99].forEach((f) => tone(f * 2, 0.4, 1.1, 'sine', 0.045));
+}
+
 /** Celebrate milestone: a small rising chime arpeggio. */
 export function sfxCelebrate(): void {
   if (!enabled) return;

@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { ArrowRight, Check, Copy, FileDown, Mail } from 'lucide-react';
 import { profile } from '../data/journey';
 
 /** The three interactive decks, published from the ai-inference-101 repo into public/inference/. */
@@ -7,73 +9,130 @@ const COURSE = [
   { level: '301', title: '25 production scenarios', href: '/inference/advanced.html' },
 ];
 
+function CopyEmail() {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className="btn btn-icon btn-copy"
+      aria-label={copied ? 'Email address copied' : `Copy ${profile.email}`}
+      title={copied ? 'Copied' : `Copy ${profile.email}`}
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(profile.email);
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 2000);
+        } catch {
+          // Clipboard blocked (insecure context / permissions): the mailto link still works.
+        }
+      }}
+    >
+      {copied ? <Check size={18} strokeWidth={2.2} aria-hidden="true" /> : <Copy size={18} strokeWidth={2} aria-hidden="true" />}
+    </button>
+  );
+}
+
+/**
+ * The finale: contact first, then the bonus material. The empty platform
+ * beside the title ([data-character-landing]) is where the character lands
+ * when he drops out of the stage; keep text out of it.
+ */
 export default function Outro({ staticMode = false }: { staticMode?: boolean }) {
   return (
-    <footer className={staticMode ? 'outro outro-static' : 'outro'}>
-      <h2 className="outro-title">…and the journey continues.</h2>
-      <p className="outro-text">
-        Today I lead AI/LLM integration on fully self-hosted models and the
-        platforms security teams rely on.
-      </p>
-      <section className="course-promo" aria-labelledby="course-promo-title">
-        <span className="course-kicker">AI Inference Engineering</span>
-        <h3 className="course-headline" id="course-promo-title">
-          Learn to serve AI models on Kubernetes, with me
-        </h3>
-        <p className="course-pitch">
-          I turned what I&apos;ve learned running self-hosted LLMs into a free,
-          hands-on course. Press play, drag the sliders, and watch tokens, GPUs
-          and pods do their thing.
-        </p>
-        <ol className="course-tracks">
-          {COURSE.map((c) => (
-            <li key={c.level}>
-              <a className="course-track" href={c.href}>
-                <span className="course-level">{c.level}</span>
-                <span>{c.title}</span>
+    <section
+      id="contact"
+      className={staticMode ? 'outro outro-static' : 'outro'}
+      aria-labelledby="outro-title"
+    >
+      <div className="outro-head">
+        <div className="outro-intro">
+          <h2 className="outro-title" id="outro-title">
+            …and the journey continues.
+          </h2>
+          <p className="outro-text">
+            Today I lead self-hosted AI/LLM integration and own the
+            vulnerability-assessment platform security analysts use to review
+            every release.
+          </p>
+          <p className="outro-ask">Want the one-page resume, or to talk?</p>
+          <div className="outro-actions">
+            <a className="btn btn-primary" href={profile.resumePdf} download>
+              <FileDown size={18} strokeWidth={2} aria-hidden="true" />
+              Resume (PDF)
+            </a>
+            <span className="btn-group">
+              <a className="btn" href={`mailto:${profile.email}`} title={profile.email}>
+                <Mail size={18} strokeWidth={2} aria-hidden="true" />
+                Email me
               </a>
-            </li>
-          ))}
-        </ol>
-        <a className="course-cta" href={COURSE[0].href}>
-          Start the course
-        </a>
-      </section>
-      {/* Static library of experiments in public/playground/. Must not use
-          .outro-actions: the character lands under the first one of those. */}
-      <a className="playground-promo" href="/playground/">
-        <img
-          className="playground-thumb"
-          src="/playground/procedural-cat/assets/ornith-dflash.png"
-          alt=""
-          width={88}
-          height={88}
-          loading="lazy"
-        />
-        <span className="playground-copy">
-          <span className="course-kicker">AI Inference Playground</span>
-          <span className="playground-headline">
-            I spend a lot of time benchmarking, breaking and tuning models
-          </span>
-          <span className="playground-pitch">
-            Real GPUs, real numbers, honest failures. Curious? Start with four
-            open LLMs drawing a cat on one RTX 5090.
-          </span>
-          <span className="playground-cta">Visit the Playground</span>
-        </span>
-      </a>
-      <p className="outro-ask">Want the classic one-pager, or to talk?</p>
-      <div className="outro-actions">
-        <a className="btn btn-primary" href={profile.resumePdf} download>
-          Download resume (PDF)
-        </a>
-        <a className="btn" href={`mailto:${profile.email}`}>
-          {profile.email}
-        </a>
-        <a className="btn" href={profile.linkedin} target="_blank" rel="noreferrer">
-          LinkedIn
-        </a>
+              <CopyEmail />
+            </span>
+            <a className="btn" href={profile.linkedin} target="_blank" rel="noreferrer">
+              <span className="btn-in" aria-hidden="true">in</span>
+              LinkedIn
+            </a>
+          </div>
+        </div>
+        {!staticMode && (
+          <div className="outro-landing" data-character-landing aria-hidden="true" />
+        )}
       </div>
-    </footer>
+
+      <section className="outro-extras" aria-labelledby="outro-extras-title">
+        <h3 className="outro-extras-title" id="outro-extras-title">
+          Things I teach &amp; tinker with
+        </h3>
+        <div className="promo-grid">
+          <article className="promo-card course-promo" aria-labelledby="course-promo-title">
+            <span className="promo-kicker">AI Inference Engineering · free course</span>
+            <h4 className="promo-headline" id="course-promo-title">
+              Learn to serve AI models on Kubernetes
+            </h4>
+            <p className="promo-pitch">
+              I turned what I’ve learned running self-hosted LLMs into a free,
+              hands-on course. Press play, drag the sliders, and watch tokens,
+              GPUs, and pods do their thing.
+            </p>
+            <ol className="course-tracks">
+              {COURSE.map((c) => (
+                <li key={c.level}>
+                  <a className="course-track" href={c.href}>
+                    <span className="course-level">{c.level}</span>
+                    <span>{c.title}</span>
+                  </a>
+                </li>
+              ))}
+            </ol>
+            <a className="promo-cta" href={COURSE[0].href}>
+              Start the course
+              <ArrowRight size={16} strokeWidth={2.2} aria-hidden="true" />
+            </a>
+          </article>
+
+          <a className="promo-card playground-promo" href="/playground/">
+            <span className="promo-kicker">AI Inference Playground</span>
+            <span className="promo-headline">I benchmark, break, and tune models on real GPUs</span>
+            <span className="playground-row">
+              <img
+                className="playground-thumb"
+                src="/playground/procedural-cat/assets/ornith-dflash.png"
+                alt=""
+                width={72}
+                height={72}
+                loading="lazy"
+              />
+              <span className="promo-pitch">
+                Real numbers, honest failures. Start with four open LLMs drawing
+                a cat on one RTX 5090.
+              </span>
+            </span>
+            <span className="promo-cta">
+              Visit the Playground
+              <ArrowRight size={16} strokeWidth={2.2} aria-hidden="true" />
+            </span>
+          </a>
+        </div>
+      </section>
+    </section>
   );
 }

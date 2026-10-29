@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lumi — preview</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #d4d7da;
+        min-height: 100vh;
+        font: 12px/1.4 system-ui, sans-serif;
+      }
+      #row {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        justify-content: center;
+        flex-wrap: wrap;
+        padding: 8px;
+      }
+      canvas {
+        display: block;
+      }
+      .ref {
+        max-height: 600px;
+        max-width: 600px;
+      }
+      #info {
+        position: fixed;
+        left: 6px;
+        bottom: 4px;
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="row"></div>
+    <div id="info"></div>
+    <script type="module">
+      import { mountLumiPreview } from '/src/character/previewLumi.ts';
+      mountLumiPreview(document.getElementById('row'), new URLSearchParams(location.search));
+    </script>
+  </body>
+</html>

@@ -2,15 +2,23 @@
 // The single source of truth for the journey. Updating the resume = editing
 // this file. Horizontal positions are computed from dates in lib/layout.ts —
 // nothing here is hand-placed.
+//
+// Copy conventions: title = the role or the thing built; subtitle =
+// "Company · context"; stories ≤ 35 words in resume voice with ONE **bold**
+// highlight; numbers a recruiter should skim go in `metric`.
 // ---------------------------------------------------------------------------
 
 export type Skill = {
   id: string;
   label: string;
-  icon: string; // emoji for now; swapped for real logos in the polish phase
+  /** Key into the icon registry in components/SkillIcon.tsx (brand logo or UI glyph). */
+  icon: string;
 };
 
 export type MilestoneKind = 'job' | 'education' | 'achievement' | 'launch';
+
+/** A headline number pulled out of the story so it can be read at a glance. */
+export type Metric = { value: string; label: string };
 
 export type Milestone = {
   id: string;
@@ -21,6 +29,7 @@ export type Milestone = {
   title: string;
   subtitle?: string;
   story: string;
+  metric?: Metric;
   kind: MilestoneKind;
   celebrate?: boolean; // character celebrates on arrival
   skills?: Skill[]; // pickups placed on the path just before this milestone
@@ -40,64 +49,73 @@ export type SideQuest = {
   date: string;
   title: string;
   story: string;
+  metric?: Metric;
 };
 
 export const profile = {
   name: 'Levi Q Le',
-  tagline: 'Staff Software Engineer',
+  tagline: 'Staff Software Engineer & Tech Lead',
   location: 'Tampa, FL',
+  clearance: 'Active TS/SCI',
   email: 'qle1095@gmail.com',
   linkedin: 'https://linkedin.com/in/levi-q-le',
   resumePdf: '/resume.pdf',
   intro:
-    'Six years from intern to Staff Engineer, and the data platform behind a $450M acquisition. Scroll to walk the journey.',
+    '6+ years building cloud-native platforms, data systems, and self-hosted AI for government and financial-services customers. I led **Data Fabric**, the data platform central to Raft’s $450M acquisition by Leonardo DRS.',
+  /** The hero proof strip: four facts a recruiter should leave with. */
+  stats: [
+    { value: '$450M', label: 'acquisition, Data Fabric at its center' },
+    { value: '12', label: 'engineers led as tech lead' },
+    { value: '1 yr', label: 'Associate → Staff, skipping Senior' },
+    { value: 'TS/SCI', label: 'active U.S. clearance' },
+  ] satisfies Metric[],
 };
 
 export const chapters: Chapter[] = [
   {
     id: 'foundations',
     label: 'Foundations',
-    company: 'Florida International University',
+    company: 'FIU · JPMorgan Chase intern',
     theme: 'sunrise',
     milestones: [
       {
         id: 'intern-2018',
         date: '2018-06',
         display: 'Jun 2018',
-        title: 'First Internship',
-        subtitle: 'JPMorgan Chase — Tampa, FL',
+        title: 'Software Engineering Intern',
+        subtitle: 'JPMorgan Chase · Tampa, FL',
         story:
-          'First internship, first shipped software: a web app collecting the **human-labeled training data** an **OCR model** trained on.',
+          'First shipped software: a web app collecting **human-labeled training data** for an OCR model.',
         kind: 'job',
         skills: [
-          { id: 'javascript', label: 'JavaScript', icon: '🟨' },
-          { id: 'git', label: 'Git', icon: '🌿' },
+          { id: 'javascript', label: 'JavaScript', icon: 'javascript' },
+          { id: 'git', label: 'Git', icon: 'git' },
         ],
       },
       {
         id: 'intern-2019',
         date: '2019-06',
-        display: '2019',
-        title: 'Second Internship',
-        subtitle: 'JPMorgan Chase — Integrated Receivables',
+        display: 'Summer 2019',
+        title: 'Return Internship',
+        subtitle: 'JPMorgan Chase · Integrated Receivables',
         story:
-          'Back for a second summer — a **full-stack web app** that **onboards new clients** to the bank’s Integrated Receivables program and **version-tracks every configuration file**.',
+          'Back for a second summer: built a full-stack web app that onboards new clients to Integrated Receivables and **version-tracks every configuration file**.',
         kind: 'job',
         skills: [
-          { id: 'java', label: 'Java', icon: '☕' },
-          { id: 'react', label: 'React', icon: '⚛️' },
+          { id: 'java', label: 'Java', icon: 'java' },
+          { id: 'react', label: 'React', icon: 'react' },
         ],
       },
       {
         id: 'fiu-grad',
         date: '2019-12',
         display: 'Dec 2019',
-        title: 'B.S. — IT Software Development',
-        subtitle: 'Florida International University · magna cum laude',
-        story: 'Graduated **magna cum laude** from FIU in Miami, already with **two internships** in the bag.',
+        title: 'B.S., IT Software Development',
+        subtitle: 'Florida International University · Miami, FL',
+        story: 'Graduated **magna cum laude** with two JPMorgan Chase internships already done.',
         kind: 'education',
         celebrate: true,
-        skills: [{ id: 'sql', label: 'SQL', icon: '🗄️' }],
+        skills: [{ id: 'sql', label: 'SQL', icon: 'sql' }],
       },
     ],
   },
@@ -112,26 +130,26 @@ export const chapters: Chapter[] = [
         date: '2020-02',
         display: 'Feb 2020',
         title: 'Software Engineer',
-        subtitle: 'JPMorgan Chase — Software Engineer Program',
+        subtitle: 'JPMorgan Chase · Software Engineer Program',
         story:
-          'Joined the bank full-time on the **Billing & Pricing platform** — **backend REST services** processing client charges, load-tested with **JMeter and BlazeMeter** before they reached production.',
+          'Went full-time on the Billing & Pricing platform: built and maintained **backend REST services for client charge processing**, load-tested with JMeter and BlazeMeter.',
         kind: 'job',
         skills: [
-          { id: 'spring', label: 'Spring Boot', icon: '🍃' },
-          { id: 'rest', label: 'REST APIs', icon: '🔌' },
+          { id: 'spring', label: 'Spring Boot', icon: 'springboot' },
+          { id: 'rest', label: 'REST APIs', icon: 'rest' },
         ],
       },
       {
         id: 'service-container',
         date: '2020-11',
         title: 'Service Container Platform',
-        subtitle: 'Payments infrastructure',
+        subtitle: 'JPMorgan Chase · Payments infrastructure',
         story:
-          'Built the **shared library that lets payment teams adopt new tools without from-scratch integrations** — messaging toolkit, failure handler, retry, validation suite — and **containerized legacy Java apps** for the bank’s cloud migration.',
+          'Built four utilities for a shared payments library, so teams **adopt new tools without from-scratch integrations**: messaging toolkit, failure handler, retry, and validation suite. Also containerized legacy Java apps for the cloud migration.',
         kind: 'launch',
         skills: [
-          { id: 'docker', label: 'Docker', icon: '🐳' },
-          { id: 'jmeter', label: 'JMeter', icon: '📈' },
+          { id: 'docker', label: 'Docker', icon: 'docker' },
+          { id: 'jmeter', label: 'JMeter', icon: 'jmeter' },
         ],
       },
       {
@@ -139,9 +157,10 @@ export const chapters: Chapter[] = [
         date: '2021-08',
         display: '18 months in',
         title: 'Fast-Tracked',
-        subtitle: 'SEP graduated in 18 months',
+        subtitle: 'JPMorgan Chase · Software Engineer Program',
         story:
-          'Finished the bank’s two-year program **six months early** — and **mentored four junior engineers** along the way.',
+          'Graduated the bank’s two-year program in 18 months, **six months early**, while mentoring four junior engineers.',
+        metric: { value: '18 mo', label: 'to finish a two-year program' },
         kind: 'achievement',
         celebrate: true,
       },
@@ -157,47 +176,49 @@ export const chapters: Chapter[] = [
         id: 'joined-raft',
         date: '2022-04',
         display: 'Apr 2022',
-        title: 'Joined Raft',
-        subtitle: 'Employee #47 · Associate Software Engineer',
+        title: 'Associate Software Engineer',
+        subtitle: 'Raft · Remote · Employee #47',
         story:
-          'Joined as **employee #47** — now **350+** — trading big-bank guardrails for **startup speed**, building **cloud-native systems** for government customers.',
+          'Traded big-bank guardrails for startup speed as employee #47 (now 350+), building **cloud-native systems for government customers**.',
+        metric: { value: '#47', label: 'employee number; Raft is now 350+' },
         kind: 'job',
         skills: [
-          { id: 'go', label: 'Go', icon: '🐹' },
-          { id: 'kubernetes', label: 'Kubernetes', icon: '☸️' },
+          { id: 'go', label: 'Go', icon: 'go' },
+          { id: 'kubernetes', label: 'Kubernetes', icon: 'kubernetes' },
         ],
       },
       {
         id: 'live-demo',
         date: '2022-09',
         title: 'The Live Demo',
-        subtitle: 'Multi-million-dollar contract win',
+        subtitle: 'Raft · Multi-million-dollar contract win',
         story:
-          'Built a customer-requested feature **live during an executive demo** — helping **win the multi-million-dollar contract** on the spot.',
+          'Helped **win a multi-million-dollar contract** by building a customer-requested feature live, during the executive demo.',
         kind: 'achievement',
         celebrate: true,
         skills: [
-          { id: 'helm', label: 'Helm', icon: '⎈' },
-          { id: 'gitlab', label: 'GitLab CI/CD', icon: '🦊' },
+          { id: 'helm', label: 'Helm', icon: 'helm' },
+          { id: 'gitlab', label: 'GitLab CI/CD', icon: 'gitlab' },
         ],
       },
       {
         id: 'air-gap',
         date: '2022-12',
         title: 'Air-Gap Specialist',
-        subtitle: 'High-security delivery',
+        subtitle: 'High-security delivery · Active TS/SCI',
         story:
-          'The **go-to engineer for air-gapped networks** — **rescued several deployments ahead of executive demos**, debugging production on-site in restricted facilities with **no internet and no standard tooling**. Holds an active **TS/SCI clearance**.',
-        kind: 'job',
+          'Go-to engineer for **air-gapped customer networks**: lead deployments, rescuing several ahead of scheduled demos, and debug production on-site in restricted facilities with no internet or standard tooling.',
+        kind: 'achievement',
       },
       {
         id: 'staff-promo',
         date: '2023-04',
         display: 'Apr 2023',
         title: 'Associate → Staff',
-        subtitle: 'Skipped Senior entirely',
+        subtitle: 'Raft · Skipped Senior',
         story:
-          'Promoted from Associate **directly to Staff** in one year — **skipping the Senior level entirely**, with multiple spot bonuses. Now **mentor every engineer joining the team** and **interview for every role**.',
+          'Promoted **directly from Associate to Staff in one year**, skipping Senior, with multiple spot bonuses. Now mentor every engineer who joins the team and interview candidates for every role.',
+        metric: { value: '1 yr', label: 'from Associate to Staff' },
         kind: 'achievement',
         celebrate: true,
       },
@@ -214,37 +235,39 @@ export const chapters: Chapter[] = [
         date: '2023-07',
         display: '2023',
         title: 'Data Fabric',
-        subtitle: 'Cross-functional platform team of 12',
+        subtitle: 'Raft · Tech lead, 12-engineer cross-functional team',
         story:
-          '**“Google over your data”**: search thousands of datasets across **200+ sources**, serving **hundreds of users** with **row- and column-level access control**. **Drove it end to end** — data engineering, software, and DevSecOps — onboarding **~10 data vendors**.',
+          '“Google over your data”: **hundreds of users** search thousands of datasets across 200+ sources, seeing only the rows and columns their access allows. Led it end to end, from data engineering to DevSecOps, onboarding ~10 data vendors.',
+        metric: { value: '200+', label: 'data sources, one search' },
         kind: 'launch',
         skills: [
-          { id: 'kafka', label: 'Kafka', icon: '🌀' },
-          { id: 'trino', label: 'Trino', icon: '🐰' },
-          { id: 'delta', label: 'Delta Lake', icon: '🔺' },
+          { id: 'kafka', label: 'Kafka', icon: 'kafka' },
+          { id: 'trino', label: 'Trino', icon: 'trino' },
+          { id: 'delta', label: 'Delta Lake', icon: 'deltalake' },
         ],
       },
       {
         id: 'cbc2',
         date: '2024-03',
-        title: 'CBC2 — 10,000 msg/s',
-        subtitle: 'Real-time mission pipeline',
+        title: 'CBC2: 10,000 msg/s',
+        subtitle: 'Raft · Real-time mission pipeline',
         story:
-          'Born from a **hackathon win**. Designed Raft’s initial architecture, streamed live data over **WebSockets**, and hit the contract’s **10,000 messages-per-second** requirement with **Kafka Streams**.',
+          'Met the contract’s 10,000 messages/sec requirement. Designed Raft’s initial architecture at kickoff and built the Kafka Streams pipeline in Scala, live over WebSockets, **while still leading Data Fabric**.',
         kind: 'launch',
-        skills: [{ id: 'scala', label: 'Scala', icon: '🌶️' }],
+        skills: [{ id: 'scala', label: 'Scala', icon: 'scala' }],
       },
       {
         id: 'backstage',
         date: '2024-10',
         title: 'Platform Multiplier',
-        subtitle: '~30 teams onboarded',
+        subtitle: 'Raft · CI/CD for 30+ applications',
         story:
-          'Deployed **Backstage with custom plugins** and automated manual steps out of the **org-wide CI/CD flow** — giving **~30 teams** one view of project status, security posture, and compliance readiness.',
+          'Onboarded ~30 teams to the org-wide CI/CD flow with **Backstage and custom plugins**, giving each one view of status, security posture, and compliance. Also automated previously manual deployment steps.',
+        metric: { value: '~30', label: 'teams onboarded to one CI/CD flow' },
         kind: 'launch',
         skills: [
-          { id: 'backstage', label: 'Backstage', icon: '🎭' },
-          { id: 'opa', label: 'OPA / Rego', icon: '🛡️' },
+          { id: 'backstage', label: 'Backstage', icon: 'backstage' },
+          { id: 'opa', label: 'OPA / Rego', icon: 'opa' },
         ],
       },
       {
@@ -252,9 +275,9 @@ export const chapters: Chapter[] = [
         date: '2025-03',
         display: '2025',
         title: 'CKAD Certified',
-        subtitle: '+ CompTIA Security+ (SY0-701)',
+        subtitle: 'Kubernetes · Security+ (SY0-701)',
         story:
-          '**Certified Kubernetes Application Developer**, stacked on **CompTIA Security+ (SY0-701)** — the credentials underwriting the platform and security work.',
+          'Earned the **Certified Kubernetes Application Developer** credential, alongside CompTIA Security+ (SY0-701), backing the platform and security work with certifications.',
         kind: 'achievement',
         celebrate: true,
       },
@@ -271,26 +294,27 @@ export const chapters: Chapter[] = [
         date: '2025-07',
         display: 'Current',
         title: 'Vulnerability Assessment Platform',
-        subtitle: 'Full-stack owner',
+        subtitle: 'Raft · Full-stack owner',
         story:
-          'The platform security analysts use to clear releases carrying **tens of thousands of CVE findings** — automated aggregation, **risk scoring**, and auditable decisions letting **five analysts** clear a release.',
+          'Replaced hand-compiled scanner reports: five analysts review releases carrying **tens of thousands of CVE findings**. Own it full-stack: Go/MongoDB aggregation, React dashboards, automated risk scoring, and an auditable accept/reject record.',
+        metric: { value: '5', label: 'analysts review each release' },
         kind: 'launch',
         skills: [
-          { id: 'typescript', label: 'TypeScript', icon: '🟦' },
-          { id: 'mongodb', label: 'MongoDB', icon: '🍃' },
+          { id: 'typescript', label: 'TypeScript', icon: 'typescript' },
+          { id: 'mongodb', label: 'MongoDB', icon: 'mongodb' },
         ],
       },
       {
         id: 'ai-agents',
         date: '2026-01',
         title: 'Self-Hosted AI Agents',
-        subtitle: 'Privacy-preserving LLM workflows',
+        subtitle: 'Raft · AI integration lead',
         story:
-          'Cut a **~5-minute-per-CVE** research burden: **multi-agent workflows** on **fully self-hosted models** (Ollama, Gemma) draft justifications from analyst-approved precedent, every one human-approved. **No customer data ever leaves the environment.**',
+          'Cutting the ~5-minute-per-CVE research burden with multi-agent workflows on **fully self-hosted models** (Ollama, Gemma): one drafts justifications from analyst-approved precedent, another curates a knowledge base. No customer data leaves.',
         kind: 'launch',
         skills: [
-          { id: 'ollama', label: 'Ollama', icon: '🦙' },
-          { id: 'agents', label: 'Multi-Agent AI', icon: '🤖' },
+          { id: 'ollama', label: 'Ollama', icon: 'ollama' },
+          { id: 'agents', label: 'Multi-Agent AI', icon: 'agents' },
         ],
       },
       {
@@ -298,19 +322,20 @@ export const chapters: Chapter[] = [
         date: '2026-05',
         display: 'In progress',
         title: 'CompTIA SecurityX',
-        subtitle: 'CAS-005 — in progress',
+        subtitle: 'CAS-005',
         story:
-          'Levelling up the security credentials that back the vulnerability work: **CompTIA SecurityX (CAS-005)**, currently in progress.',
+          'Working toward CompTIA SecurityX (CAS-005) to deepen the security side of the vulnerability-assessment work.',
         kind: 'education',
       },
       {
         id: 'acquisition',
         date: '2026-07',
         display: 'Jul 2026',
-        title: 'The $450M Exit',
-        subtitle: 'Leonardo DRS acquires Raft',
+        title: 'The $450M Acquisition',
+        subtitle: 'Leonardo DRS · Announced July 2026',
         story:
-          '**Data Fabric anchors** the multi-domain data-fusion capability cited in Leonardo DRS’s **$450M acquisition** of Raft.',
+          'The payoff: **Data Fabric** anchors the multi-domain data-fusion capability cited in Leonardo DRS’s $450M acquisition of Raft.',
+        metric: { value: '$450M', label: 'acquisition of Raft' },
         kind: 'achievement',
         celebrate: true,
       },
@@ -324,23 +349,29 @@ export const sideQuests: SideQuest[] = [
     date: '2024-06',
     title: 'Side Quest: Tea Shop Automation',
     story:
-      'Full-stack ops platform for a local tea shop — **in production at up to 100 orders/day**. Links **Square POS** to standardized recipes, with a self-service kiosk and live prep queue; **new-hire ramp-up cut from a month to days**.',
+      'Full-stack ops platform for a local tea shop, in production at up to 100 orders/day: Square POS linked to standardized recipes, a self-service kiosk, and a live prep queue. **New-hire ramp-up: a month → a few days.**',
+    metric: { value: '100/day', label: 'orders in production' },
   },
   {
     id: 'health-coach',
     date: '2025-11',
     title: 'Side Quest: AI Health Coach',
     story:
-      'Multi-agent Fitbit assistant built on the **Google Agent Development Kit** — **nutrition, exercise, and sleep agents** collaborate on your data for personalized coaching.',
+      'Multi-agent Fitbit assistant on the Google Agent Development Kit and OpenAI API: **nutrition, exercise, and sleep agents** collaborate on Fitbit data, and users chat with each to log meals and workouts.',
   },
 ];
 
 /** The full technology list, grouped exactly as the resume groups it. The
  *  skill pickups during the journey are a game mechanic; this is the
- *  scannable inventory a recruiter actually reads. */
+ *  scannable inventory a recruiter actually reads. Clearance first: it is
+ *  the first thing a cleared-role recruiter filters on. */
 export type TechGroup = { label: string; items: string[] };
 
 export const techStack: TechGroup[] = [
+  {
+    label: 'Clearance & Certifications',
+    items: ['Active TS/SCI clearance', 'CKAD (2025)', 'CompTIA Security+ (SY0-701)', 'CompTIA SecurityX (in progress)'],
+  },
   {
     label: 'Languages',
     items: ['Go', 'Java', 'Python', 'Scala', 'TypeScript', 'JavaScript', 'SQL', 'Bash'],
@@ -373,15 +404,10 @@ export const techStack: TechGroup[] = [
     label: 'Testing & CI/CD',
     items: ['JUnit', 'Mockito', 'Hamcrest', 'Cypress', 'JMeter', 'GitLab CI/CD', 'Backstage', 'Git'],
   },
-  {
-    label: 'Certifications & Clearance',
-    items: ['CKAD', 'CompTIA Security+ (SY0-701)', 'CompTIA SecurityX (in progress)', 'Active TS/SCI'],
-  },
-  {
-    label: 'Spoken',
-    items: ['English (bilingual)', 'Vietnamese (native)'],
-  },
 ];
+
+/** Rendered as a single line under the toolkit rather than a chip group. */
+export const spokenLanguages = ['English (bilingual proficiency)', 'Vietnamese (native)'];
 
 export const allMilestones: Milestone[] = chapters.flatMap((c) => c.milestones);
 export const allSkills: Skill[] = allMilestones.flatMap((m) => m.skills ?? []);

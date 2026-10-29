@@ -14,10 +14,15 @@ import {
 const PX_PER_MONTH = 55;
 const MIN_GAP = 520;
 const START_PAD = 900; // walk-in space after the intro
-const END_PAD = 1400; // room for the outro hand-off
+// Room after the last milestone. The stage stops scrolling once the last card
+// is read (see FINALE_LEAD in JourneyStage), so this is scenery still in view
+// past it, not dead scroll distance.
+const END_PAD = 700;
 
-const SKILL_SPACING = 150; // gap between skill pickups leading into a milestone
-const SKILL_LEAD = 260; // distance before the milestone where pickups start
+// Pickups sit on the walking path inside the gap before their milestone, so
+// he collects them while that milestone's card is the one being read.
+const SKILL_SPACING = 110; // gap between skill pickups leading into a milestone
+const SKILL_LEAD = 220; // distance before the milestone where pickups start
 
 export type PlacedMilestone = Milestone & { x: number; chapterId: string };
 export type PlacedSkill = Skill & { x: number; milestoneId: string };
@@ -26,6 +31,7 @@ export type PlacedChapter = {
   startX: number;
   endX: number;
   startYear: number;
+  endYear: number;
 };
 export type PlacedSideQuest = SideQuest & { x: number };
 
@@ -79,11 +85,13 @@ export function buildLayout(): JourneyLayout {
     // before the next chapter's first milestone.
     const startX = ci === 0 ? 0 : first.x - MIN_GAP / 2;
     const endX = nextFirst ? nextFirst.x - MIN_GAP / 2 : worldWidth;
+    const own = milestones.filter((m) => m.chapterId === chapter.id);
     return {
       chapter,
       startX,
       endX,
       startYear: Number(first.date.slice(0, 4)),
+      endYear: Number(own[own.length - 1].date.slice(0, 4)),
     };
   });
 

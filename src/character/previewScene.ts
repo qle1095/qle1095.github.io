@@ -13,16 +13,89 @@
  *   ?pose=walk|wave                       rotates the named pivots to verify the
  *                                         animation contract (interaction pass)
  *   ?outfit=dev|suit|tactical|cyber       apply an era outfit (site costumes)
+ *   ?site=1                               production-scale check (see below)
  */
 import * as THREE from 'three';
 import { createLeviChibiModel, type LeviChibiStage } from './createLeviChibiModel.ts';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { applyOutfit, type Outfit } from './outfits.ts';
 import { applyLumiOutfit, createLumiModel, type LumiOutfit } from './lumi.ts';
+import { CHARACTER_TONE, addCharacterLights } from './lighting.ts';
 
 const BACKGROUND = 0xd4d7da; // light neutral: distinct from skin, shirt, and blacks
 
+/**
+ * ?site=1 — production-scale check: the site's exact canvas size (340x260),
+ * camera, facing and lighting rig, composited over the site's light dawn,
+ * pale sky and dark frontier backgrounds side by side. ?zoom=N enlarges the
+ * real pixels (pixelated) so the ~190px read can be judged honestly;
+ * ?dpr=2 renders as on a retina screen; ?panel=0|1|2 shows one background.
+ * Honors ?outfit and ?pose=walk|wave.
+ */
+function mountSitePreview(container: HTMLElement, params: URLSearchParams): void {
+  const W = 340;
+  const H = 260;
+  const dpr = Number(params.get('dpr') ?? '1');
+  const zoom = Number(params.get('zoom') ?? '2');
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(dpr);
+  renderer.toneMapping = CHARACTER_TONE.toneMapping;
+  renderer.toneMappingExposure = CHARACTER_TONE.exposure;
+  const scene = new THREE.Scene();
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04);
+  scene.environment = envRT.texture;
+  scene.environmentIntensity = CHARACTER_TONE.envIntensity;
+  pmrem.dispose();
+  addCharacterLights(scene);
+  const camera = new THREE.PerspectiveCamera(30, W / H, 0.1, 10);
+  camera.position.set(0, 0.6, 2.9);
+  camera.lookAt(0, 0.47, 0);
+
+  const model = createLeviChibiModel();
+  const outfit = params.get('outfit');
+  if (outfit) applyOutfit(model, outfit as Outfit);
+  const pose = params.get('pose');
+  const n = (model.userData.sculptRuntime as { nodes: Record<string, THREE.Object3D> }).nodes;
+  model.rotation.y = Math.PI * 0.27;
+  if (pose === 'walk') {
+    n['pivot-hip-l'].rotation.x = 0.55;
+    n['pivot-hip-r'].rotation.x = -0.55;
+    n['pivot-shoulder-l'].rotation.x = -0.45;
+    n['pivot-shoulder-r'].rotation.x = 0.45;
+  } else if (pose === 'wave') {
+    n['pivot-shoulder-r'].rotation.z = -1.95;
+    model.rotation.y = 0.12;
+  }
+  scene.add(model);
+  renderer.render(scene, camera);
+
+  container.style.display = 'flex';
+  container.style.gap = '6px';
+  const bgs = ['#fbe9d6', '#e2edf7', '#151a31'];
+  const only = params.get('panel');
+  for (const bg of only ? [bgs[Number(only)]] : bgs) {
+    const c = document.createElement('canvas');
+    c.width = W * dpr;
+    c.height = H * dpr;
+    const g = c.getContext('2d') as CanvasRenderingContext2D;
+    g.fillStyle = bg;
+    g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(renderer.domElement, 0, 0);
+    c.style.width = `${W * zoom}px`;
+    c.style.imageRendering = 'pixelated';
+    container.appendChild(c);
+  }
+  (window as unknown as { __chibiInfo: () => unknown }).__chibiInfo = () => ({ ...renderer.info.render, ...renderer.info.memory });
+  (window as unknown as { __previewReady: boolean }).__previewReady = true;
+}
+
 export function mountPreview(container: HTMLElement, params: URLSearchParams): void {
+  if (params.get('site') === '1') {
+    mountSitePreview(container, params);
+    return;
+  }
   const view = params.get('view') ?? 'front';
   const stage = (params.get('stage') ?? 'full') as LeviChibiStage;
   const clay = params.get('clay') === '1';
@@ -119,6 +192,7 @@ export function mountPreview(container: HTMLElement, params: URLSearchParams): v
   const outfit = params.get('outfit');
   if (outfit && !clay) applyOutfit(model, outfit as Outfit);
   scene.add(model);
+  (window as unknown as { __chibiInfo: () => unknown }).__chibiInfo = () => ({ ...renderer.info.render, ...renderer.info.memory });
 
   if (shadow) {
     const ground = new THREE.Mesh(
@@ -143,8 +217,9 @@ export function mountPreview(container: HTMLElement, params: URLSearchParams): v
       n['pivot-hip-r'].rotation.x = 0.55;
       n['pivot-neck'].rotation.x = 0.08;
     } else if (pose === 'wave') {
-      n['pivot-shoulder-l'].rotation.z = -2.4;
-      n['pivot-shoulder-r'].rotation.x = 0.25;
+      // Same raised-arm wave the site's render loop uses (Character.tsx).
+      n['pivot-shoulder-r'].rotation.z = -1.95;
+      n['pivot-shoulder-l'].rotation.x = 0.1;
       n['pivot-neck'].rotation.z = 0.15;
       n['pivot-hip-l'].rotation.x = -0.15;
       n['pivot-hip-r'].rotation.x = 0.15;

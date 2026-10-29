@@ -1,15 +1,27 @@
-import type { ReactElement } from 'react';
+import { memo, type CSSProperties, type ReactElement } from 'react';
 import type { JourneyLayout } from '../lib/layout';
 
-// Storybook-pastel parallax scenery, themed to the work of each era:
-//   foundations — Miami palms + campus (education)
-//   the-bank    — finance: skyline, bank, coin stacks, drifting bills, stock chart
-//   startup-ascent — defense contractor: mountains, radar towers, jets, flags
-//   platform-era   — warfare data: radomes, satellites, server racks, antenna masts
-//   ai-frontier    — AI security: neon towers, shields, neural nets, dishes
-// Placement is seeded — same layout, same world, every load.
+// Flat-illustration parallax scenery. Each era is built from three silhouette
+// depths in its own tones (far ridge → mid skyline → near props), plus one or
+// two landmarks that say where we are:
+//   sunrise   — campus clock tower, halls, palms (FIU)
+//   bank      — glass towers and a spire (generic, no logos)
+//   ascent    — mountains, a radar dome on the ridge, pines
+//   platform  — a data-centre campus with radomes and masts
+//   frontier  — a night city with a holographic shield
+// Colours come from CSS variables set per era (`.era-<theme>` in styles.css),
+// so an era keeps its own palette while it cross-fades out. Placement is
+// seeded: same world every load.
 
-type Band = 'far' | 'mid';
+export type Band = 'far' | 'mid' | 'near';
+
+// Each era is drawn over the whole range of layer-x that can be on screen
+// while its chapter is active, so the cross-fade never reveals a gap. That
+// range depends on where the character stands and on the viewport width, so
+// it is padded for anything from a phone up to a 2600px-wide window.
+const C_REF = 504; // character x on a 1440px window
+const PAD_BEFORE = 420;
+const VW_MAX = 2600;
 
 function mulberry32(seed: number) {
   let a = seed >>> 0;
@@ -22,403 +34,475 @@ function mulberry32(seed: number) {
   };
 }
 
-/* ---------- shared pieces ---------- */
+type Rand = () => number;
 
-const Hill = (w: number, h: number, fill: string) => (
-  <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-    <ellipse cx={w / 2} cy={h * 1.15} rx={w / 2} ry={h} fill={fill} />
-  </svg>
-);
+// Fills and strokes resolve against the era's palette variables.
+const fill = (v: string, opacity?: number): CSSProperties => ({ fill: `var(--${v})`, opacity });
+const stroke = (v: string, width: number, opacity?: number): CSSProperties => ({
+  fill: 'none',
+  stroke: `var(--${v})`,
+  strokeWidth: width,
+  opacity,
+});
 
-const Sun = (r: number, fill: string) => (
-  <svg width={r * 2.6} height={r * 2.6} viewBox={`0 0 ${r * 2.6} ${r * 2.6}`}>
-    <circle cx={r * 1.3} cy={r * 1.3} r={r * 1.25} fill={fill} opacity={0.35} />
-    <circle cx={r * 1.3} cy={r * 1.3} r={r * 0.85} fill={fill} />
+/* ---------- sky ---------- */
+
+const Sun = (r: number) => (
+  <svg width={r * 4} height={r * 4} viewBox="-2 -2 4 4">
+    <circle r="1.9" style={fill('sun', 0.18)} />
+    <circle r="1.35" style={fill('sun', 0.3)} />
+    <circle r="0.95" style={fill('sun')} />
   </svg>
 );
 
 const Moon = (r: number) => (
-  <svg width={r * 2.2} height={r * 2.2} viewBox={`0 0 ${r * 2.2} ${r * 2.2}`}>
-    <circle cx={r} cy={r} r={r * 0.9} fill="#eceafc" />
-    <circle cx={r * 1.4} cy={r * 0.8} r={r * 0.75} fill="#4b3f72" />
+  <svg width={r * 4} height={r * 4} viewBox="-2 -2 4 4">
+    <circle r="1.8" fill="#dfe3ff" opacity="0.08" />
+    <circle r="1.25" fill="#dfe3ff" opacity="0.12" />
+    <circle r="0.9" fill="#eef0ff" />
+    <circle cx="-0.28" cy="-0.2" r="0.16" fill="#d6d9f2" />
+    <circle cx="0.3" cy="0.25" r="0.11" fill="#d6d9f2" />
   </svg>
 );
 
-const Cloud = (w: number, fill: string) => (
-  <svg width={w} height={w * 0.4} viewBox={`0 0 ${w} ${w * 0.4}`}>
-    <ellipse cx={w * 0.3} cy={w * 0.28} rx={w * 0.28} ry={w * 0.13} fill={fill} />
-    <ellipse cx={w * 0.55} cy={w * 0.2} rx={w * 0.24} ry={w * 0.15} fill={fill} />
-    <ellipse cx={w * 0.75} cy={w * 0.28} rx={w * 0.22} ry={w * 0.11} fill={fill} />
+const Cloud = (w: number, r: Rand) => {
+  const a = 0.35 + r() * 0.2;
+  return (
+    <svg width={w} height={w * 0.34} viewBox="0 0 100 34">
+      <path
+        d={`M8 30 Q2 30 4 24 Q6 18 16 20 Q${18 + a * 10} 6 36 10 Q46 0 60 8 Q74 4 78 16 Q94 14 96 24 Q98 30 90 30 Z`}
+        style={fill('cloud')}
+      />
+    </svg>
+  );
+};
+
+const StarField = (w: number, h: number, n: number, r: Rand) => (
+  <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+    {Array.from({ length: n }, (_, i) => (
+      <circle
+        key={i}
+        cx={r() * w}
+        cy={r() * h}
+        r={0.7 + r() * 1.3}
+        fill="#fff"
+        opacity={0.35 + r() * 0.55}
+      />
+    ))}
   </svg>
 );
 
-const Star = (r: number) => (
-  <svg width={r * 2} height={r * 2} viewBox="0 0 10 10">
-    <circle cx="5" cy="5" r="4" fill="#fff" opacity="0.9" />
+/* ---------- far ridges (one continuous silhouette per era) ---------- */
+
+type RidgeShape = 'roll' | 'peaks' | 'blocks' | 'city';
+
+function Ridge(w: number, h: number, shape: RidgeShape, r: Rand) {
+  const extras: ReactElement[] = [];
+  let d = `M0 ${h}`;
+  if (shape === 'roll') {
+    const step = 260;
+    let prev = [0, h * (0.35 + r() * 0.3)];
+    d += ` L0 ${prev[1]}`;
+    for (let x = step; x <= w + step; x += step) {
+      const y = h * (0.2 + r() * 0.5);
+      d += ` Q${prev[0] + step / 2} ${(prev[1] + y) / 2 - h * 0.12} ${x} ${y}`;
+      prev = [x, y];
+    }
+  } else if (shape === 'peaks') {
+    let x = 0;
+    d += ` L0 ${h * 0.6}`;
+    while (x < w + 200) {
+      const half = 110 + r() * 120;
+      const peakY = h * (0.05 + r() * 0.4);
+      const px = x + half;
+      d += ` L${px} ${peakY} L${px + half} ${h * (0.5 + r() * 0.25)}`;
+      // Snow cap: a notched triangle hugging the summit.
+      const cw = half * 0.32;
+      const ch = cw * ((h * 0.6 - peakY) / half) * 1.2;
+      extras.push(
+        <path
+          key={px}
+          d={`M${px} ${peakY} L${px + cw} ${peakY + ch} L${px + cw * 0.4} ${peakY + ch * 0.75} L${px - cw * 0.15} ${peakY + ch * 1.05} L${px - cw * 0.6} ${peakY + ch * 0.7} Z`}
+          style={fill('lite', 0.75)}
+        />,
+      );
+      x = px + half;
+    }
+  } else {
+    // Skyline: flat-topped blocks, the odd stepped crown or antenna.
+    let x = 0;
+    while (x < w) {
+      const bw = 36 + r() * 80;
+      const bh = h * (0.25 + r() * 0.7);
+      const top = h - bh;
+      d += ` L${x} ${top}`;
+      if (r() > 0.75) {
+        d += ` L${x + bw * 0.3} ${top} L${x + bw * 0.3} ${top - 14} L${x + bw * 0.7} ${top - 14} L${x + bw * 0.7} ${top}`;
+      }
+      if (r() > 0.85) {
+        d += ` L${x + bw * 0.48} ${top} L${x + bw * 0.5} ${top - 34} L${x + bw * 0.52} ${top}`;
+      }
+      d += ` L${x + bw} ${top}`;
+      if (shape === 'city') {
+        for (let wy = top + 10; wy < h - 10; wy += 16)
+          for (let wx = x + 8; wx < x + bw - 10; wx += 14)
+            if (r() > 0.86)
+              extras.push(
+                <rect key={`${wx}-${wy}`} x={wx} y={wy} width="5" height="6" rx="1" style={fill('era-accent', 0.35)} />,
+              );
+      }
+      x += bw;
+    }
+  }
+  d += ` L${w} ${h} Z`;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+      <path d={d} style={fill('far')} />
+      {extras}
+    </svg>
+  );
+}
+
+/* ---------- mid & near props ---------- */
+
+const Hill = (w: number, h: number, tone: string) => (
+  <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+    <ellipse cx={w / 2} cy={h * 1.1} rx={w / 2} ry={h * 1.05} style={fill(tone)} />
   </svg>
 );
 
-const Tower = (w: number, h: number, body: string, win: string, r: () => number) => {
-  const rows = Math.max(3, Math.floor(h / 26));
-  const wins: ReactElement[] = [];
-  for (let ry = 0; ry < rows; ry++)
-    for (let rx = 0; rx < 3; rx++)
-      if (r() > 0.35)
-        wins.push(
-          <rect
-            key={`${rx}-${ry}`}
-            x={w * 0.16 + rx * w * 0.26}
-            y={12 + ry * (h - 22) / rows}
-            width={w * 0.16}
-            height={(h - 22) / rows * 0.45}
-            rx={1.5}
-            fill={win}
-          />,
-        );
+// Sunrise / campus
+const ClockTower = (h: number) => (
+  <svg width={h * 0.36} height={h} viewBox="0 0 36 100">
+    <path d="M18 0 L28 18 L8 18 Z" style={fill('mid')} />
+    <rect x="9" y="18" width="18" height="82" style={fill('mid')} />
+    <rect x="6" y="30" width="24" height="5" style={fill('mid')} />
+    <circle cx="18" cy="26" r="4.2" style={fill('lite', 0.85)} />
+    {[44, 58, 72].map((y) => (
+      <rect key={y} x="15" y={y} width="6" height="8" rx="3" style={fill('lite', 0.5)} />
+    ))}
+  </svg>
+);
+
+const Hall = (w: number, r: Rand) => {
+  const pitched = r() > 0.5;
+  const cols = 4 + Math.floor(r() * 3);
+  return (
+    <svg width={w} height={w * 0.46} viewBox="0 0 100 46">
+      {pitched ? (
+        <path d="M4 16 L50 4 L96 16 Z" style={fill('mid')} />
+      ) : (
+        <rect x="30" y="6" width="40" height="10" style={fill('mid')} />
+      )}
+      <rect x="6" y="16" width="88" height="30" style={fill('mid')} />
+      {Array.from({ length: cols }, (_, i) => (
+        <rect
+          key={i}
+          x={12 + (i * 76) / cols}
+          y="22"
+          width={42 / cols}
+          height="14"
+          rx="1.5"
+          style={fill('lite', 0.45)}
+        />
+      ))}
+    </svg>
+  );
+};
+
+const Palm = (h: number, tone: string, r: Rand) => {
+  const lean = (r() - 0.5) * 22;
+  const tx = 50 + lean;
+  const ty = 24;
+  return (
+    <svg width={h * 0.8} height={h} viewBox="0 0 100 125" overflow="visible">
+      <path d={`M50 125 Q${50 + lean * 0.15} 70 ${tx} ${ty}`} style={stroke(tone, 5.5)} strokeLinecap="round" />
+      {[-158, -122, -84, -48, -12, 22].map((a) => (
+        <path
+          key={a}
+          d="M0 0 Q18 -12 42 -3 Q30 0 22 2 Q12 3 0 0 Z"
+          style={fill(tone)}
+          transform={`translate(${tx} ${ty}) rotate(${a + (r() - 0.5) * 12})`}
+        />
+      ))}
+    </svg>
+  );
+};
+
+// Bank / glass towers
+const GlassTower = (w: number, h: number, r: Rand) => {
+  const crown = r();
+  const floors = Math.floor(h / 14);
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-      <rect x="0" y="4" width={w} height={h - 4} rx="4" fill={body} />
-      {wins}
-    </svg>
-  );
-};
-
-/* ---------- foundations (education) ---------- */
-
-const Palm = (h: number) => (
-  <svg width={h * 0.9} height={h} viewBox="0 0 90 100" preserveAspectRatio="none">
-    <path d="M45 100 Q42 60 46 38" stroke="#b0795a" strokeWidth="7" fill="none" strokeLinecap="round" />
-    {[-70, -35, 0, 35, 70].map((a) => (
-      <path
-        key={a}
-        d="M46 38 q0 -22 4 -30"
-        stroke="#7fb069"
-        strokeWidth="8"
-        strokeLinecap="round"
-        fill="none"
-        transform={`rotate(${a} 46 38)`}
-      />
-    ))}
-  </svg>
-);
-
-const Campus = (w: number) => (
-  <svg width={w} height={w * 0.55} viewBox="0 0 100 55">
-    <rect x="8" y="22" width="84" height="33" rx="3" fill="#e8c9a0" />
-    <polygon points="50,4 94,24 6,24" fill="#d8a87c" />
-    <rect x="44" y="36" width="12" height="19" rx="2" fill="#a97c50" />
-    {[16, 30, 62, 76].map((x) => (
-      <rect key={x} x={x} y="30" width="9" height="10" rx="1.5" fill="#fff4dd" />
-    ))}
-  </svg>
-);
-
-/* ---------- the bank (finance) ---------- */
-
-const Bank = (w: number) => (
-  <svg width={w} height={w * 0.62} viewBox="0 0 100 62">
-    <polygon points="50,2 96,18 4,18" fill="#b7cde4" />
-    <rect x="6" y="18" width="88" height="6" fill="#a9c2dd" />
-    {[14, 30, 46, 62, 78].map((x) => (
-      <rect key={x} x={x} y="24" width="8" height="30" rx="2" fill="#cfe0f0" />
-    ))}
-    <rect x="4" y="54" width="92" height="8" rx="2" fill="#a9c2dd" />
-    <text x="50" y="14" textAnchor="middle" fontSize="9" fontWeight="700" fill="#eef5fc">$</text>
-  </svg>
-);
-
-const CoinStack = (h: number, r: () => number) => {
-  const coins = 3 + Math.floor(r() * 3);
-  return (
-    <svg width={h * 0.9} height={h} viewBox={`0 0 90 ${coins * 16 + 22}`} preserveAspectRatio="xMidYMax meet">
-      {Array.from({ length: coins }, (_, i) => (
-        <g key={i} transform={`translate(${(r() - 0.5) * 8} 0)`}>
-          <ellipse cx="45" cy={coins * 16 + 12 - i * 14} rx="26" ry="9" fill="#f0b429" />
-          <ellipse cx="45" cy={coins * 16 + 9 - i * 14} rx="26" ry="9" fill="#ffd166" stroke="#e8a815" strokeWidth="1.5" />
-        </g>
+      <rect x="0" y={crown > 0.6 ? 12 : 0} width={w} height={h} style={fill('mid')} />
+      {crown > 0.6 && <rect x={w * 0.2} y="0" width={w * 0.6} height="13" style={fill('mid')} />}
+      {/* Lit facet: the sun catches one face of the glass. */}
+      <rect x={w * 0.62} y={crown > 0.6 ? 12 : 0} width={w * 0.38} height={h} style={fill('lite', 0.28)} />
+      {Array.from({ length: floors }, (_, i) => (
+        <rect key={i} x="0" y={20 + i * 14} width={w} height="1.2" style={fill('lite', 0.22)} />
       ))}
-      <text x="45" y={coins * 16 + 13 - (coins - 1) * 14} textAnchor="middle" fontSize="11" fontWeight="800" fill="#b07d00">$</text>
     </svg>
   );
 };
 
-const DollarBill = (w: number) => (
-  <svg width={w} height={w * 0.46} viewBox="0 0 100 46">
-    <rect x="2" y="2" width="96" height="42" rx="5" fill="#9fd4a8" stroke="#6fae79" strokeWidth="2" transform="rotate(-6 50 23)" />
-    <circle cx="50" cy="23" r="12" fill="#c6ecca" transform="rotate(-6 50 23)" />
-    <text x="50" y="28" textAnchor="middle" fontSize="15" fontWeight="800" fill="#4c8757" transform="rotate(-6 50 23)">$</text>
-  </svg>
-);
-
-const StockChart = (w: number) => (
-  <svg width={w} height={w * 0.52} viewBox="0 0 100 52">
-    <polyline points="4,46 22,38 34,42 52,26 66,30 82,12 96,16" fill="none" stroke="#7fae5f" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity="0.75" />
-    <polygon points="82,12 96,16 90,3" fill="#7fae5f" opacity="0.75" />
-  </svg>
-);
-
-const Vault = (w: number) => (
-  <svg width={w} height={w * 0.9} viewBox="0 0 100 90">
-    <rect x="8" y="6" width="84" height="84" rx="10" fill="#9fb4cf" />
-    <circle cx="50" cy="48" r="24" fill="#b9cbe2" stroke="#7d94b4" strokeWidth="5" />
-    <circle cx="50" cy="48" r="9" fill="#7d94b4" />
-    {[0, 60, 120, 180, 240, 300].map((a) => (
-      <rect key={a} x="48" y="20" width="4" height="12" rx="2" fill="#7d94b4" transform={`rotate(${a} 50 48)`} />
+const SpireTower = (h: number) => (
+  <svg width={h * 0.3} height={h} viewBox="0 0 30 100">
+    <rect x="14.2" y="0" width="1.6" height="14" style={fill('mid')} />
+    <path d="M9 14 L21 14 L23 24 L7 24 Z" style={fill('mid')} />
+    <rect x="5" y="24" width="20" height="14" style={fill('mid')} />
+    <rect x="2" y="38" width="26" height="62" style={fill('mid')} />
+    <rect x="18" y="24" width="7" height="76" style={fill('lite', 0.28)} />
+    {Array.from({ length: 12 }, (_, i) => (
+      <rect key={i} x="2" y={42 + i * 4.8} width="26" height="0.8" style={fill('lite', 0.25)} />
     ))}
   </svg>
 );
 
-/* ---------- startup ascent (defense) ---------- */
-
-const Mountain = (w: number, body: string, cap: string) => (
-  <svg width={w} height={w * 0.62} viewBox="0 0 100 62">
-    <polygon points="50,2 100,62 0,62" fill={body} />
-    <polygon points="50,2 63,18 55,16 50,24 44,15 38,18" fill={cap} />
+// A clipped street tree: a short trunk under a cluster of three canopies.
+const RoundTree = (h: number, tone: string) => (
+  <svg width={h * 0.7} height={h} viewBox="0 0 70 100">
+    <rect x="33" y="62" width="4.5" height="38" rx="2" style={fill(tone)} />
+    <circle cx="23" cy="56" r="16" style={fill(tone)} />
+    <circle cx="47" cy="54" r="17" style={fill(tone)} />
+    <circle cx="35" cy="38" r="20" style={fill(tone)} />
   </svg>
 );
 
-const Jet = (w: number) => (
-  <svg width={w} height={w * 0.42} viewBox="0 0 100 42">
-    <polygon points="4,22 62,16 96,22 62,28" fill="#7d8aa0" />
-    <polygon points="40,20 58,4 66,18" fill="#93a0b4" />
-    <polygon points="40,24 58,40 66,26" fill="#93a0b4" />
-    <polygon points="8,16 20,6 26,20" fill="#93a0b4" />
-    <circle cx="78" cy="21" r="4" fill="#cfe0f0" />
+const Lamp = (h: number, tone: string) => (
+  <svg width={h * 0.3} height={h} viewBox="0 0 30 100">
+    <rect x="13.5" y="10" width="3" height="90" style={fill(tone)} />
+    <path d="M15 10 Q15 4 24 4 L24 8 Q19 8 19 12 Z" style={fill(tone)} />
+    <circle cx="23" cy="10" r="3.2" style={fill('lite', 0.9)} />
   </svg>
 );
 
-const RadarTower = (h: number) => (
-  <svg width={h * 0.7} height={h} viewBox="0 0 70 100" preserveAspectRatio="none">
-    <polygon points="30,30 40,30 46,100 24,100" fill="#8a9b7c" />
-    <line x1="27" y1="52" x2="43" y2="52" stroke="#748468" strokeWidth="3" />
-    <line x1="26" y1="74" x2="45" y2="74" stroke="#748468" strokeWidth="3" />
-    <path d="M14 28 A22 22 0 0 1 56 24 L35 32 Z" fill="#aebfa0" transform="rotate(-14 35 30)" />
-    <circle cx="35" cy="30" r="4" fill="#5d6b52" />
-    <path d="M50 12 A26 26 0 0 1 62 26" fill="none" stroke="#aebfa0" strokeWidth="3" strokeLinecap="round" opacity="0.7" />
-    <path d="M56 4 A36 36 0 0 1 72 24" fill="none" stroke="#aebfa0" strokeWidth="3" strokeLinecap="round" opacity="0.45" />
+// Ascent / defense ridge
+const RadarDome = (h: number) => (
+  <svg width={h * 0.6} height={h} viewBox="0 0 60 100">
+    <path d="M22 100 L26 46 L34 46 L38 100 Z" style={fill('mid')} />
+    <path d="M24 70 L36 70 M23 86 L37 86" style={stroke('lite', 1.5, 0.35)} />
+    <circle cx="30" cy="28" r="22" style={fill('mid')} />
+    <path
+      d="M8 28 H52 M11 17 H49 M11 39 H49 M30 6 V50 M19 9 Q14 28 19 47 M41 9 Q46 28 41 47"
+      style={stroke('lite', 1.2, 0.4)}
+    />
   </svg>
 );
 
-const WatchTower = (h: number) => (
-  <svg width={h * 0.6} height={h} viewBox="0 0 60 100" preserveAspectRatio="none">
-    <polygon points="16,34 44,34 50,100 10,100" fill="#a09274" />
-    <rect x="10" y="16" width="40" height="20" rx="4" fill="#b8ab8c" />
-    <rect x="18" y="22" width="10" height="9" rx="2" fill="#efe6cf" />
-    <rect x="34" y="22" width="10" height="9" rx="2" fill="#efe6cf" />
-    <rect x="6" y="12" width="48" height="6" rx="3" fill="#8f8264" />
+const Pylon = (h: number, tone: string) => (
+  <svg width={h * 0.4} height={h} viewBox="0 0 40 100">
+    <path d="M20 4 L32 100 M20 4 L8 100" style={stroke(tone, 3)} />
+    <path d="M12 70 L28 70 M14 46 L26 46 M16 26 L24 26 M12 70 L26 46 M28 70 L14 46" style={stroke(tone, 1.6)} />
+    <circle cx="20" cy="4" r="3" style={fill('era-accent')} />
   </svg>
 );
 
-const Flag = (h: number) => (
-  <svg width={h * 0.6} height={h} viewBox="0 0 60 100" preserveAspectRatio="none">
-    <rect x="8" y="4" width="4" height="96" rx="2" fill="#8a8fa3" />
-    <path d="M12 8 L52 16 L12 28 Z" fill="#ff7a59" />
+const Pine = (h: number, tone: string) => (
+  <svg width={h * 0.5} height={h} viewBox="0 0 50 100">
+    <rect x="23" y="82" width="4" height="18" style={fill(tone)} />
+    <path d="M25 0 L44 40 L34 40 L48 66 L36 66 L50 86 L0 86 L14 66 L2 66 L16 40 L6 40 Z" style={fill(tone)} />
   </svg>
 );
 
-/* ---------- platform era (warfare data) ---------- */
+// Platform / data-centre campus
+const DataCenter = (w: number, r: Rand) => {
+  const units = 3 + Math.floor(r() * 3);
+  return (
+    <svg width={w} height={w * 0.34} viewBox="0 0 100 34">
+      {Array.from({ length: units }, (_, i) => (
+        <rect key={i} x={10 + (i * 80) / units} y="4" width={50 / units} height="6" rx="1" style={fill('mid')} />
+      ))}
+      <rect x="2" y="10" width="96" height="24" style={fill('mid')} />
+      {[15, 20, 25].map((y) => (
+        <rect key={y} x="8" y={y} width="84" height="1.4" style={fill('lite', 0.35)} />
+      ))}
+      <rect x="80" y="26" width="10" height="8" style={fill('lite', 0.4)} />
+    </svg>
+  );
+};
 
 const Radome = (w: number) => (
-  <svg width={w} height={w * 0.82} viewBox="0 0 100 82">
-    <path d="M18 62 A32 32 0 1 1 82 62 Z" fill="#dcefe4" stroke="#a8cdb8" strokeWidth="2.5" />
-    <path d="M30 40 L70 40 M24 52 L76 52 M40 24 L60 24" stroke="#a8cdb8" strokeWidth="2" opacity="0.8" />
-    <rect x="30" y="62" width="40" height="14" rx="4" fill="#9fbfae" />
+  <svg width={w} height={w * 0.92} viewBox="0 0 100 92">
+    <rect x="28" y="70" width="44" height="22" style={fill('mid')} />
+    <path d="M14 72 A36 36 0 1 1 86 72 Z" style={fill('mid')} />
+    <path
+      d="M20 52 H80 M28 32 H72 M50 12 V72 M34 18 Q26 44 30 72 M66 18 Q74 44 70 72"
+      style={stroke('lite', 1.4, 0.35)}
+    />
   </svg>
 );
 
-const Satellite = (w: number) => (
-  <svg width={w} height={w * 0.6} viewBox="0 0 100 60">
-    <rect x="2" y="22" width="26" height="16" rx="3" fill="#8f9bff" />
-    <rect x="72" y="22" width="26" height="16" rx="3" fill="#8f9bff" />
-    <line x1="28" y1="30" x2="40" y2="30" stroke="#6a76d8" strokeWidth="4" />
-    <line x1="60" y1="30" x2="72" y2="30" stroke="#6a76d8" strokeWidth="4" />
-    <rect x="40" y="18" width="20" height="24" rx="5" fill="#c4c9f4" />
-    <path d="M44 18 A12 12 0 0 1 56 8" fill="none" stroke="#c4c9f4" strokeWidth="3" />
-    <circle cx="57" cy="7" r="3" fill="#7df9ff" />
+const Mast = (h: number, tone: string) => (
+  <svg width={h * 0.36} height={h} viewBox="0 0 36 100">
+    <path d="M18 6 L24 100 L12 100 Z" style={fill(tone)} />
+    <path d="M8 30 H28 M6 54 H30" style={stroke(tone, 2.4)} />
+    <circle cx="18" cy="5" r="3.4" style={fill('era-accent')} />
   </svg>
 );
 
-const ServerRack = (h: number, r: () => number) => (
-  <svg width={h * 0.62} height={h} viewBox="0 0 62 100" preserveAspectRatio="none">
-    <rect x="4" y="4" width="54" height="94" rx="6" fill="#9fd4bd" />
-    {[0, 1, 2, 3].map((i) => (
-      <g key={i}>
-        <rect x="10" y={12 + i * 22} width="42" height="14" rx="3" fill="#7cbfa4" />
-        <circle cx="18" cy={19 + i * 22} r="2.6" fill={r() > 0.5 ? '#2c9c72' : '#e4f6ee'} />
-        <circle cx="27" cy={19 + i * 22} r="2.6" fill={r() > 0.5 ? '#2c9c72' : '#e4f6ee'} />
-        <rect x="34" y={16.5 + i * 22} width="14" height="5" rx="2" fill="#e4f6ee" />
-      </g>
-    ))}
-  </svg>
-);
-
-const AntennaMast = (h: number) => (
-  <svg width={h * 0.42} height={h} viewBox="0 0 42 100" preserveAspectRatio="none">
-    <polygon points="19,6 23,6 27,100 15,100" fill="#7f9c8d" />
-    <line x1="10" y1="30" x2="32" y2="30" stroke="#6b8a79" strokeWidth="3" />
-    <line x1="8" y1="55" x2="34" y2="55" stroke="#6b8a79" strokeWidth="3" />
-    <line x1="6" y1="80" x2="36" y2="80" stroke="#6b8a79" strokeWidth="3" />
-    <circle cx="21" cy="5" r="4" fill="#ff8f73" />
-  </svg>
-);
-
-const DataStream = (w: number, r: () => number) => (
-  <svg width={w} height={16} viewBox={`0 0 ${w} 16`}>
-    {Array.from({ length: Math.floor(w / 18) }, (_, i) => (
-      <rect
-        key={i}
-        x={i * 18}
-        y={4 + Math.sin(i * 1.2) * 3}
-        width="9"
-        height="9"
-        rx="2.5"
-        fill="#2c9c72"
-        opacity={0.25 + r() * 0.5}
-      />
-    ))}
-  </svg>
-);
-
-/* ---------- AI frontier (AI security) ---------- */
-
-const NeonTower = (w: number, h: number, r: () => number) => (
+// Frontier / AI security
+const NeonTower = (w: number, h: number, r: Rand) => (
   <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-    <rect x={w * 0.1} y={h * 0.12} width={w * 0.8} height={h * 0.88} rx="5" fill="#3a3f66" />
-    <rect x={w * 0.46} y={0} width={w * 0.08} height={h * 0.14} fill="#7df9ff" />
-    {Array.from({ length: Math.floor(h / 22) }, (_, i) => (
+    <path d={`M0 ${h} L0 18 L${w * 0.7} 0 L${w} 10 L${w} ${h} Z`} style={fill('mid')} />
+    <path d={`M${w - 1.5} ${h} L${w - 1.5} 11`} style={stroke('era-accent', 2, 0.85)} />
+    <path d={`M1 18 L${w * 0.7} 1.5 L${w - 1} 10.5`} style={stroke('era-accent', 1.5, 0.6)} />
+    {Array.from({ length: Math.floor((h - 40) / 18) }, (_, i) => (
       <rect
         key={i}
-        x={w * (0.2 + (r() > 0.5 ? 0.3 : 0))}
-        y={h * 0.18 + i * 20}
-        width={w * 0.28}
-        height={7}
-        rx={2}
-        fill={r() > 0.4 ? '#8f9bff' : '#5a5f8f'}
+        x={w * (r() > 0.5 ? 0.2 : 0.5)}
+        y={32 + i * 18}
+        width={w * 0.24}
+        height="4"
+        rx="1"
+        style={fill('era-accent', r() > 0.45 ? 0.55 : 0.18)}
       />
     ))}
   </svg>
 );
 
-const ShieldLock = (h: number) => (
-  <svg width={h * 0.82} height={h} viewBox="0 0 82 100">
-    <path d="M41 4 L74 16 L74 50 Q74 78 41 96 Q8 78 8 50 L8 16 Z" fill="#4b5087" stroke="#7df9ff" strokeWidth="3" />
-    <rect x="29" y="44" width="24" height="20" rx="4" fill="#7df9ff" />
-    <path d="M33 44 v-6 a8 8 0 0 1 16 0 v6" fill="none" stroke="#7df9ff" strokeWidth="5" />
-    <circle cx="41" cy="53" r="3.5" fill="#2b2e4a" />
+const Shield = (h: number) => (
+  <svg width={h * 0.84} height={h} viewBox="0 0 84 100">
+    <path d="M42 3 L78 15 L78 48 Q78 78 42 97 Q6 78 6 48 L6 15 Z" style={{ ...fill('era-accent', 0.07) }} />
+    <path d="M42 3 L78 15 L78 48 Q78 78 42 97 Q6 78 6 48 L6 15 Z" style={stroke('era-accent', 2, 0.75)} />
+    <path d="M42 14 L68 23 L68 48 Q68 70 42 85 Q16 70 16 48 L16 23 Z" style={stroke('era-accent', 1, 0.3)} />
+    <rect x="31" y="46" width="22" height="18" rx="3" style={fill('era-accent', 0.75)} />
+    <path d="M35 46 V40 A7 7 0 0 1 49 40 V46" style={stroke('era-accent', 3.5, 0.75)} />
   </svg>
 );
 
-const NeuralNet = (w: number) => {
-  const layers = [[20, 50, 80], [10, 38, 64, 90], [28, 62]];
-  const xs = [12, 50, 88];
-  const edges: ReactElement[] = [];
-  const nodes: ReactElement[] = [];
-  layers.forEach((ys, li) => {
-    ys.forEach((y, ni) => {
-      nodes.push(<circle key={`${li}-${ni}`} cx={xs[li]} cy={y} r="5.5" fill={li === 2 ? '#7df9ff' : '#8f9bff'} />);
-      if (li < layers.length - 1)
-        layers[li + 1].forEach((y2, mi) => {
-          edges.push(
-            <line key={`${li}-${ni}-${mi}`} x1={xs[li]} y1={y} x2={xs[li + 1]} y2={y2} stroke="#5d63a0" strokeWidth="1.4" opacity="0.75" />,
-          );
-        });
-    });
-  });
-  return (
-    <svg width={w} height={w} viewBox="0 0 100 100">
-      {edges}
-      {nodes}
-    </svg>
-  );
+const NightBlock = (w: number, h: number, r: Rand) => (
+  <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+    <rect x="0" y="0" width={w} height={h} style={fill('near')} />
+    <rect x="0" y="0" width={w} height="2" style={fill('era-accent', 0.5)} />
+    {Array.from({ length: Math.floor(w / 16) * Math.floor((h - 12) / 16) }, (_, i) => {
+      const cols = Math.floor(w / 16);
+      return r() > 0.7 ? (
+        <rect
+          key={i}
+          x={6 + (i % cols) * 16}
+          y={10 + Math.floor(i / cols) * 16}
+          width="6"
+          height="6"
+          rx="1"
+          style={fill('era-accent', 0.45)}
+        />
+      ) : null;
+    })}
+  </svg>
+);
+
+/* ---------- per-era recipes ---------- */
+
+type Placed = {
+  x: number;
+  el: ReactElement;
+  /** Sky items hang at a fixed height instead of standing on the horizon. */
+  sky?: string;
+  /** Left-anchored (ridges) instead of centred on x. */
+  span?: boolean;
 };
 
-const Dish = (h: number) => (
-  <svg width={h} height={h} viewBox="0 0 100 100" preserveAspectRatio="none">
-    <rect x="46" y="55" width="8" height="45" rx="3" fill="#4b5087" />
-    <path d="M18 55 A36 36 0 0 1 82 55 Z" fill="#5d63a0" transform="rotate(-22 50 55)" />
-    <circle cx="38" cy="30" r="5" fill="#7df9ff" />
-  </svg>
-);
-
-/* ---------- per-era layer recipes ---------- */
-
-type Placed = { x: number; y?: string; el: ReactElement; cls?: string };
-
-function scatter(
-  r: () => number,
+/** Evenly spaced slots with seeded jitter, skipping anything too close to a landmark. */
+function row(
+  r: Rand,
   from: number,
   to: number,
-  count: number,
+  step: number,
   make: (i: number) => ReactElement,
+  avoid: number[] = [],
+  clear = 0,
 ): Placed[] {
   const out: Placed[] = [];
-  const span = to - from;
-  for (let i = 0; i < count; i++) {
-    out.push({ x: from + span * ((i + 0.15 + r() * 0.7) / count), el: make(i) });
+  let i = 0;
+  for (let x = from + step * r(); x < to; x += step * (0.7 + r() * 0.6), i++) {
+    if (avoid.some((a) => Math.abs(a - x) < clear)) continue;
+    out.push({ x, el: make(i) });
   }
   return out;
 }
 
-function eraItems(theme: string, band: Band, from: number, to: number, seed: number): Placed[] {
-  const r = mulberry32(seed);
+function eraItems(
+  theme: string,
+  band: Band,
+  from: number,
+  to: number,
+  entry: number,
+  span: number,
+  r: Rand,
+): Placed[] {
+  // Landmarks: one where the chapter opens (right of the character) and, for
+  // long chapters, a second further in.
+  const marks = [entry + 980];
+  if (span > 1400) marks.push(entry + 980 + span * 0.55);
   const items: Placed[] = [];
-  const hillFills: Record<string, string> = {
-    sunrise: '#f7c99b', bank: '#c3d8ec', ascent: '#d9c2ee',
-    platform: '#bfe4d2', frontier: '#3f4470',
-  };
+  const w = to - from;
 
   if (band === 'far') {
-    items.push(...scatter(r, from, to, 3, () => Hill(420 + r() * 260, 120 + r() * 70, hillFills[theme])));
+    const shape: Record<string, RidgeShape> = {
+      sunrise: 'roll', bank: 'blocks', ascent: 'peaks', platform: 'roll', frontier: 'city',
+    };
+    const h = { sunrise: 150, bank: 200, ascent: 250, platform: 130, frontier: 220 }[theme] ?? 160;
+    items.push({ x: from, el: Ridge(w, h, shape[theme], r), span: true });
 
-    if (theme === 'sunrise') {
-      items.push({ x: from + (to - from) * 0.25, y: '52vh', el: Sun(46, '#ffd166'), cls: 'sc-sky' });
-      items.push(...scatter(r, from, to, 2, () => Campus(150 + r() * 60)));
-    }
-    if (theme === 'bank') {
-      items.push(...scatter(r, from, to, 5, () => Tower(52 + r() * 30, 180 + r() * 120, '#a8c4e0', '#e8f2fb', r)));
-      items.push(...scatter(r, from, to, 2, () => StockChart(150 + r() * 80)).map((p) => ({ ...p, y: `${44 + r() * 16}vh`, cls: 'sc-sky' })));
-    }
-    if (theme === 'ascent') {
-      items.push(...scatter(r, from, to, 3, () => Mountain(220 + r() * 140, '#c9a9e0', '#f6e7ff')));
-      items.push(...scatter(r, from, to, 3, () => Jet(90 + r() * 60)).map((p) => ({ ...p, y: `${48 + r() * 26}vh`, cls: 'sc-sky sc-drift' })));
-      items.push(...scatter(r, from, to, 5, () => Star(2 + r() * 2)).map((p) => ({ ...p, y: `${58 + r() * 22}vh`, cls: 'sc-sky' })));
-    }
-    if (theme === 'platform') {
-      items.push(...scatter(r, from, to, 3, () => Radome(120 + r() * 70)));
-      items.push(...scatter(r, from, to, 2, () => Satellite(110 + r() * 50)).map((p) => ({ ...p, y: `${52 + r() * 22}vh`, cls: 'sc-sky sc-drift' })));
-      items.push(...scatter(r, from, to, 2, () => DataStream(220 + r() * 120, r)).map((p) => ({ ...p, y: `${36 + r() * 12}vh`, cls: 'sc-sky' })));
-    }
+    if (theme === 'sunrise') items.push({ x: entry + 760, sky: '46vh', el: Sun(44) });
     if (theme === 'frontier') {
-      items.push(...scatter(r, from, to, 5, () => NeonTower(46 + r() * 26, 170 + r() * 130, r)));
-      items.push({ x: from + (to - from) * 0.3, y: '58vh', el: Moon(34), cls: 'sc-sky' });
-      items.push(...scatter(r, from, to, 9, () => Star(1.5 + r() * 2.2)).map((p) => ({ ...p, y: `${40 + r() * 38}vh`, cls: 'sc-sky' })));
+      items.push({ x: entry + 1150, sky: '58vh', el: Moon(30) });
+      for (let x = from; x < to; x += 900)
+        items.push({ x, sky: '34vh', el: StarField(900, 330, 22, r), span: true });
+    } else {
+      items.push(
+        ...row(r, from, to, 760, () => Cloud(120 + r() * 90, r)).map((p) => ({
+          ...p,
+          sky: `${50 + r() * 22}vh`,
+        })),
+      );
     }
-    if (theme === 'sunrise' || theme === 'bank')
-      items.push(...scatter(r, from, to, 2, () => Cloud(110 + r() * 80, 'rgba(255,255,255,0.75)')).map((p) => ({ ...p, y: `${58 + r() * 22}vh`, cls: 'sc-sky sc-drift' })));
   }
 
   if (band === 'mid') {
-    if (theme === 'sunrise') items.push(...scatter(r, from, to, 5, () => Palm(120 + r() * 60)));
+    if (theme === 'sunrise') {
+      items.push(...marks.map((x) => ({ x, el: ClockTower(250) })));
+      items.push(...row(r, from, to, 420, () => Hall(150 + r() * 70, r), marks, 160));
+      items.push(...row(r, from + 200, to, 520, () => Palm(130 + r() * 40, 'mid', r), marks, 80));
+    }
     if (theme === 'bank') {
-      items.push(...scatter(r, from, to, 2, () => Bank(170 + r() * 50)));
-      items.push(...scatter(r, from, to, 3, () => CoinStack(80 + r() * 40, r)));
-      items.push({ x: from + (to - from) * 0.62, el: Vault(90 + r() * 30) });
-      items.push(...scatter(r, from, to, 3, () => DollarBill(64 + r() * 26)).map((p) => ({ ...p, y: `${34 + r() * 26}vh`, cls: 'sc-sky sc-drift' })));
+      items.push(...marks.map((x) => ({ x, el: SpireTower(330) })));
+      items.push(
+        ...row(r, from, to, 150, () => GlassTower(56 + r() * 40, 130 + r() * 150, r), marks, 90),
+      );
     }
     if (theme === 'ascent') {
-      items.push(...scatter(r, from, to, 2, () => RadarTower(120 + r() * 50)));
-      items.push({ x: from + (to - from) * 0.55, el: WatchTower(100 + r() * 30) });
-      items.push(...scatter(r, from, to, 2, () => Flag(80 + r() * 24)));
+      items.push(...row(r, from, to, 520, () => Hill(520 + r() * 300, 110 + r() * 50, 'mid')));
+      items.push(...marks.map((x) => ({ x, el: RadarDome(200) })));
+      items.push(...row(r, from + 300, to, 900, () => Pylon(150 + r() * 40, 'mid'), marks, 200));
     }
     if (theme === 'platform') {
-      items.push(...scatter(r, from, to, 3, () => ServerRack(110 + r() * 46, r)));
-      items.push(...scatter(r, from, to, 2, () => AntennaMast(110 + r() * 40)));
-      items.push(...scatter(r, from, to, 2, () => DataStream(160 + r() * 80, r)).map((p) => ({ ...p, y: `${28 + r() * 10}vh`, cls: 'sc-sky' })));
+      items.push(...marks.map((x) => ({ x, el: Radome(150) })));
+      items.push(...marks.map((x) => ({ x: x + 130, el: Radome(96) })));
+      items.push(...row(r, from, to, 330, () => DataCenter(190 + r() * 90, r), marks, 230));
     }
     if (theme === 'frontier') {
-      items.push(...scatter(r, from, to, 2, () => ShieldLock(78 + r() * 26)));
-      items.push(...scatter(r, from, to, 2, () => NeuralNet(84 + r() * 30)).map((p, i) => (i % 2 ? { ...p, y: `${30 + r() * 14}vh`, cls: 'sc-sky' } : p)));
-      items.push(...scatter(r, from, to, 2, () => Dish(70 + r() * 40)));
+      items.push(...marks.map((x) => ({ x, sky: '44vh', el: Shield(150) })));
+      items.push(...row(r, from, to, 140, () => NeonTower(50 + r() * 34, 140 + r() * 170, r)));
+    }
+  }
+
+  if (band === 'near') {
+    if (theme === 'sunrise') {
+      items.push(...row(r, from, to, 380, () => Palm(170 + r() * 60, 'near', r)));
+    }
+    if (theme === 'bank') {
+      items.push(...row(r, from, to, 300, (i) => (i % 3 === 1 ? Lamp(120, 'near') : RoundTree(100 + r() * 40, 'near'))));
+    }
+    if (theme === 'ascent') {
+      items.push(...row(r, from, to, 170, () => Pine(90 + r() * 90, 'near')));
+    }
+    if (theme === 'platform') {
+      items.push(...row(r, from, to, 420, (i) => (i % 2 ? Mast(150 + r() * 40, 'near') : Pine(80 + r() * 50, 'near'))));
+    }
+    if (theme === 'frontier') {
+      items.push(...row(r, from, to, 260, (i) => (i % 3 === 2 ? Lamp(120, 'near') : NightBlock(90 + Math.floor(r() * 60), 50 + Math.floor(r() * 50), r))));
     }
   }
 
@@ -427,7 +511,7 @@ function eraItems(theme: string, band: Band, from: number, to: number, seed: num
 
 /* ---------- the layer component ---------- */
 
-export default function ParallaxLayer({
+function ParallaxLayer({
   layout,
   speed,
   band,
@@ -436,10 +520,8 @@ export default function ParallaxLayer({
   speed: number;
   band: Band;
 }) {
-  const width = layout.worldWidth * speed + 1200;
-  const items = layout.chapters.flatMap(({ chapter, startX, endX }, ci) =>
-    eraItems(chapter.theme, band, startX * speed, endX * speed, ci * 101 + (band === 'far' ? 7 : 31)),
-  );
+  const width = layout.worldWidth * speed + VW_MAX + PAD_BEFORE;
+  const seedBase = { far: 7, mid: 31, near: 59 }[band];
   return (
     <div
       className={`parallax parallax-${band}`}
@@ -447,15 +529,35 @@ export default function ParallaxLayer({
       style={{ width }}
       aria-hidden="true"
     >
-      {items.map((it, i) => (
-        <div
-          key={i}
-          className={`sc-item ${it.cls ?? ''}`}
-          style={{ left: it.x, ...(it.y ? { bottom: it.y } : {}) }}
-        >
-          {it.el}
-        </div>
-      ))}
+      {layout.chapters.map(({ chapter, startX, endX }, ci) => {
+        const entry = (startX - C_REF) * speed;
+        const from = Math.max(0, entry - PAD_BEFORE);
+        const to = (endX - C_REF) * speed + VW_MAX;
+        const items = eraItems(
+          chapter.theme,
+          band,
+          from,
+          to,
+          entry,
+          (endX - startX) * speed,
+          mulberry32(ci * 101 + seedBase),
+        );
+        return (
+          <div key={chapter.id} className={`era era-${chapter.theme}`}>
+            {items.map((it, i) => (
+              <div
+                key={i}
+                className={`sc-item${it.sky ? ' sc-sky' : ''}${it.span ? ' sc-span' : ''}`}
+                style={{ left: it.x, ...(it.sky ? { bottom: it.sky } : {}) }}
+              >
+                {it.el}
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
+
+export default memo(ParallaxLayer);

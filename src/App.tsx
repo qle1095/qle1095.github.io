@@ -8,6 +8,7 @@ import JourneyStage from './components/JourneyStage';
 import Outro from './components/Outro';
 import StaticTimeline from './components/StaticTimeline';
 import TechStack from './components/TechStack';
+import { setScroller } from './lib/scroll';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -32,11 +33,13 @@ export default function App() {
     if (reducedMotion) return;
     const lenis = new Lenis();
     lenis.on('scroll', ScrollTrigger.update);
+    setScroller(lenis);
     const raf = (time: number) => lenis.raf(time * 1000);
     gsap.ticker.add(raf);
     gsap.ticker.lagSmoothing(0);
     return () => {
       gsap.ticker.remove(raf);
+      setScroller(null);
       lenis.destroy();
     };
   }, [reducedMotion]);

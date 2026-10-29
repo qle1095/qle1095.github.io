@@ -8,8 +8,9 @@ import {
 import gsap from 'gsap';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { createLeviChibiModel } from '../character/createLeviChibiModel';
-import { applyLumiOutfit, createLumiModel } from '../character/lumi';
+import { createLeviChibiModel, disposeLeviChibiModel } from '../character/createLeviChibiModel';
+import { CHARACTER_TONE, addCharacterLights } from '../character/lighting';
+import { animateLumi, applyLumiOutfit, createLumiModel, disposeLumiModel } from '../character/lumi';
 import { applyOutfit, type Outfit } from '../character/outfits';
 
 // The character contract used by JourneyStage. The 3D chibi (img2threejs
@@ -36,11 +37,8 @@ type Rig = {
   hipR: THREE.Object3D | null;
   shoulderL: THREE.Object3D | null;
   shoulderR: THREE.Object3D | null;
+  // Lumi's named nodes live in her runtime; animateLumi drives them.
   lumi: THREE.Group;
-  lumiLegs: (THREE.Object3D | null)[];
-  lumiTail: THREE.Object3D | null;
-  lumiHead: THREE.Object3D | null;
-  lumiCore: THREE.Object3D | null;
 };
 
 const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
@@ -71,8 +69,8 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
     }
     renderer.setSize(CANVAS_W, CANVAS_H);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.35;
+    renderer.toneMapping = CHARACTER_TONE.toneMapping;
+    renderer.toneMappingExposure = CHARACTER_TONE.exposure;
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
@@ -81,23 +79,15 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
     const pmrem = new THREE.PMREMGenerator(renderer);
     const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04);
     scene.environment = envRT.texture;
-    scene.environmentIntensity = 0.55;
+    scene.environmentIntensity = CHARACTER_TONE.envIntensity;
     pmrem.dispose();
 
     const camera = new THREE.PerspectiveCamera(30, CANVAS_W / CANVAS_H, 0.1, 10);
     camera.position.set(0, 0.6, 2.9);
     camera.lookAt(0, 0.47, 0);
 
-    scene.add(new THREE.HemisphereLight(0xfff4e5, 0x9aa0b8, 1.15));
-    const key = new THREE.DirectionalLight(0xfff1dd, 2.1);
-    key.position.set(1.5, 2.5, 2);
-    scene.add(key);
-    const fill = new THREE.DirectionalLight(0xffffff, 0.65);
-    fill.position.set(0, 1, 3);
-    scene.add(fill);
-    const rim = new THREE.DirectionalLight(0xbdd7ff, 0.8);
-    rim.position.set(-2, 1.5, -1.5);
-    scene.add(rim);
+    // Key / fill / rim rig shared with the review harness (lighting.ts).
+    addCharacterLights(scene);
 
     const model = createLeviChibiModel();
     model.rotation.y = FACING;
@@ -118,22 +108,17 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
       shoulderL: model.getObjectByName('pivot-shoulder-l') ?? null,
       shoulderR: model.getObjectByName('pivot-shoulder-r') ?? null,
       lumi,
-      lumiLegs: [
-        lumi.getObjectByName('lumi-leg-fl') ?? null,
-        lumi.getObjectByName('lumi-leg-fr') ?? null,
-        lumi.getObjectByName('lumi-leg-bl') ?? null,
-        lumi.getObjectByName('lumi-leg-br') ?? null,
-      ],
-      lumiTail: lumi.getObjectByName('lumi-tail') ?? null,
-      lumiHead: lumi.getObjectByName('lumi-head') ?? null,
-      lumiCore: lumi.getObjectByName('lumi-core') ?? null,
     };
 
-    const clock = new THREE.Clock();
+    // Timer (not the deprecated Clock); connect() pauses it while the tab is
+    // hidden so he doesn't take one giant step on return.
+    const timer = new THREE.Timer();
+    timer.connect(document);
     let raf = 0;
-    const tick = () => {
-      const dt = Math.min(clock.getDelta(), 0.05);
-      const t = clock.elapsedTime;
+    const tick = (time?: number) => {
+      timer.update(time);
+      const dt = Math.min(timer.getDelta(), 0.05);
+      const t = timer.getElapsed();
       const s = stateRef.current;
       const rig = rigRef.current!;
 
@@ -175,38 +160,9 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
       const targetY = walkTarget * (1 - s.waveAmp) + 0.12 * s.waveAmp;
       rig.model.rotation.y += (targetY - rig.model.rotation.y) * Math.min(1, dt * 9);
 
-      /* ---- Lumi: trot, tail sway, idle look-around, maneki-neko wave ---- */
-      const catPhase = s.phase * 1.55;
-      const w = s.waveAmp;
-      const trot = Math.sin(catPhase) * s.amp * (1 - w);
-      // Waving: she keeps all-but-one paw planted and lifts the near front paw.
-      // (A full maneki-neko sit needs a supporting-contact solve — pitching the
-      // core just tipped her onto her back and off the ground.)
-      if (rig.lumiCore) rig.lumiCore.rotation.x = -0.1 * w;
-      // -1.45 left the leg nearly horizontal (a reach, not a wave); -2.1 lifts
-      // it, and the outward z-swing keeps the paw clear of her own head.
-      const wavePaw = -2.1 + Math.sin(t * 7.5) * 0.3;
-      // Diagonal pairs: front-left with back-right, front-right with back-left.
-      if (rig.lumiLegs[0]) {
-        rig.lumiLegs[0].rotation.x = trot * 0.7 * (1 - w) + wavePaw * w;
-        rig.lumiLegs[0].rotation.z = 0.45 * w;
-      }
-      if (rig.lumiLegs[1]) rig.lumiLegs[1].rotation.x = -trot * 0.7 + 0.1 * w;
-      if (rig.lumiLegs[2]) rig.lumiLegs[2].rotation.x = -trot * 0.7;
-      if (rig.lumiLegs[3]) rig.lumiLegs[3].rotation.x = trot * 0.7;
-      rig.lumi.position.y = s.amp * (1 - w) * Math.abs(Math.sin(catPhase)) * 0.016;
-      if (rig.lumiTail) {
-        // Sways with the trot, flicks lazily when she's sitting still.
-        rig.lumiTail.rotation.z = Math.sin(catPhase * 0.5) * 0.22 * s.amp + Math.sin(t * 1.4) * 0.12;
-        rig.lumiTail.rotation.x = Math.sin(t * 0.9) * 0.06;
-      }
-      if (rig.lumiHead) {
-        // Looks up at him now and then while idle, and up at the viewer while
-        // she waves.
-        const idle = 1 - s.amp;
-        rig.lumiHead.rotation.y = Math.sin(t * 0.6) * 0.28 * idle * (1 - w);
-        rig.lumiHead.rotation.x = -0.12 * idle + Math.sin(t * 2.3) * 0.02 + 0.22 * w;
-      }
+      /* ---- Lumi: trot, tail, look-around, ear flicks, blinks, wave ---- */
+      // Shared with the review harness (preview-lumi.html) so both agree.
+      animateLumi(rig.lumi, { amp: s.amp, waveAmp: s.waveAmp, phase: s.phase, t });
       rig.lumi.rotation.y += (targetY - rig.lumi.rotation.y) * Math.min(1, dt * 7);
       // Trail on the far side when he turns around, so she stays behind him.
       const lumiX = s.dir === 1 ? -0.46 : 0.46;
@@ -219,6 +175,9 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
 
     return () => {
       cancelAnimationFrame(raf);
+      timer.dispose();
+      disposeLumiModel(lumi);
+      disposeLeviChibiModel(model);
       envRT.dispose();
       renderer.dispose();
       if (renderer.domElement.parentElement === mount) {
