@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from 'react';
 import { Briefcase, ChevronDown, GraduationCap, Rocket, Star, Trophy, type LucideIcon } from 'lucide-react';
 import type { Milestone, MilestoneKind } from '../data/journey';
 import type { PlacedMilestone } from '../lib/layout';
+import { iconSize } from '../lib/uiScale';
 import Rich from './Rich';
 
 export const KIND_META: Record<MilestoneKind, { tag: string; Icon: LucideIcon }> = {
@@ -18,13 +19,13 @@ function CardContent({ milestone }: { milestone: Milestone }) {
     <>
       {milestone.celebrate && (
         <span className="milestone-star" aria-hidden="true">
-          <Star size={15} strokeWidth={2.2} fill="currentColor" />
+          <Star {...iconSize(15)} strokeWidth={2.2} fill="currentColor" />
         </span>
       )}
       <header className="milestone-head">
         <span className="milestone-tag">
           <span className="milestone-kind-icon" aria-hidden="true">
-            <Icon size={14} strokeWidth={2.2} />
+            <Icon {...iconSize(14)} strokeWidth={2.2} />
           </span>
           {tag}
         </span>
@@ -108,7 +109,7 @@ export default function MilestoneCard({
       >
         <CardContent milestone={milestone} />
         <span className="milestone-more" aria-hidden="true">
-          <ChevronDown size={16} strokeWidth={2.2} />
+          <ChevronDown {...iconSize(16)} strokeWidth={2.2} />
         </span>
       </article>
       <div className="milestone-post" />

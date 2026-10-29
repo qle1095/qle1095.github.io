@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowRight, Check, Copy, FileDown, Mail } from 'lucide-react';
 import { profile } from '../data/journey';
+import { iconSize } from '../lib/uiScale';
 
 /** The three interactive decks, published from the ai-inference-101 repo into public/inference/. */
 const COURSE = [
@@ -27,7 +28,7 @@ function CopyEmail() {
         }
       }}
     >
-      {copied ? <Check size={18} strokeWidth={2.2} aria-hidden="true" /> : <Copy size={18} strokeWidth={2} aria-hidden="true" />}
+      {copied ? <Check {...iconSize(18)} strokeWidth={2.2} aria-hidden="true" /> : <Copy {...iconSize(18)} strokeWidth={2} aria-hidden="true" />}
     </button>
   );
 }
@@ -50,19 +51,19 @@ export default function Outro({ staticMode = false }: { staticMode?: boolean }) 
             …and the journey continues.
           </h2>
           <p className="outro-text">
-            Today I lead self-hosted AI/LLM integration and own the
-            vulnerability-assessment platform security analysts use to review
-            every release.
+            Today I lead our self-hosted AI inference platform and the
+            organization’s AI use cases, and own the vulnerability-assessment
+            platform security analysts use to review every release.
           </p>
           <p className="outro-ask">Want the one-page resume, or to talk?</p>
           <div className="outro-actions">
             <a className="btn btn-primary" href={profile.resumePdf} download>
-              <FileDown size={18} strokeWidth={2} aria-hidden="true" />
+              <FileDown {...iconSize(18)} strokeWidth={2} aria-hidden="true" />
               Resume (PDF)
             </a>
             <span className="btn-group">
               <a className="btn" href={`mailto:${profile.email}`} title={profile.email}>
-                <Mail size={18} strokeWidth={2} aria-hidden="true" />
+                <Mail {...iconSize(18)} strokeWidth={2} aria-hidden="true" />
                 Email me
               </a>
               <CopyEmail />
@@ -105,7 +106,7 @@ export default function Outro({ staticMode = false }: { staticMode?: boolean }) 
             </ol>
             <a className="promo-cta" href={COURSE[0].href}>
               Start the course
-              <ArrowRight size={16} strokeWidth={2.2} aria-hidden="true" />
+              <ArrowRight {...iconSize(16)} strokeWidth={2.2} aria-hidden="true" />
             </a>
           </article>
 
@@ -128,7 +129,7 @@ export default function Outro({ staticMode = false }: { staticMode?: boolean }) 
             </span>
             <span className="promo-cta">
               Visit the Playground
-              <ArrowRight size={16} strokeWidth={2.2} aria-hidden="true" />
+              <ArrowRight {...iconSize(16)} strokeWidth={2.2} aria-hidden="true" />
             </span>
           </a>
         </div>

@@ -1,4 +1,4 @@
-import { memo, type CSSProperties, type ReactElement } from 'react';
+import { cloneElement, memo, type CSSProperties, type ReactElement } from 'react';
 import type { JourneyLayout } from '../lib/layout';
 
 // Flat-illustration parallax scenery. Each era is built from three silhouette
@@ -19,6 +19,10 @@ export type Band = 'far' | 'mid' | 'near';
 // while its chapter is active, so the cross-fade never reveals a gap. That
 // range depends on where the character stands and on the viewport width, so
 // it is padded for anything from a phone up to a 2600px-wide window.
+// The scenery is composed in UI-scale-1 px (these constants, every prop size
+// below) and the layer then scales positions and SVG sizes by layout.scale,
+// so the seeded world is identical at every scale, just larger. The SVGs
+// keep their viewBox, so they stay vector-sharp.
 const C_REF = 504; // character x on a 1440px window
 const PAD_BEFORE = 420;
 const VW_MAX = 2600;
@@ -511,6 +515,16 @@ function eraItems(
 
 /* ---------- the layer component ---------- */
 
+/** Scale a scenery SVG's rendered size; its viewBox keeps the drawing intact. */
+function scaled(el: ReactElement, S: number): ReactElement {
+  if (S === 1) return el;
+  const { width, height } = el.props as { width?: number; height?: number };
+  return cloneElement(el as ReactElement<{ width?: number; height?: number }>, {
+    width: typeof width === 'number' ? width * S : width,
+    height: typeof height === 'number' ? height * S : height,
+  });
+}
+
 function ParallaxLayer({
   layout,
   speed,
@@ -520,7 +534,8 @@ function ParallaxLayer({
   speed: number;
   band: Band;
 }) {
-  const width = layout.worldWidth * speed + VW_MAX + PAD_BEFORE;
+  const S = layout.scale;
+  const width = ((layout.worldWidth / S) * speed + VW_MAX + PAD_BEFORE) * S;
   const seedBase = { far: 7, mid: 31, near: 59 }[band];
   return (
     <div
@@ -529,7 +544,10 @@ function ParallaxLayer({
       style={{ width }}
       aria-hidden="true"
     >
-      {layout.chapters.map(({ chapter, startX, endX }, ci) => {
+      {layout.chapters.map(({ chapter, startX: sx, endX: ex }, ci) => {
+        // Back to scale-1 world units for composing.
+        const startX = sx / S;
+        const endX = ex / S;
         const entry = (startX - C_REF) * speed;
         const from = Math.max(0, entry - PAD_BEFORE);
         const to = (endX - C_REF) * speed + VW_MAX;
@@ -548,9 +566,9 @@ function ParallaxLayer({
               <div
                 key={i}
                 className={`sc-item${it.sky ? ' sc-sky' : ''}${it.span ? ' sc-span' : ''}`}
-                style={{ left: it.x, ...(it.sky ? { bottom: it.sky } : {}) }}
+                style={{ left: it.x * S, ...(it.sky ? { bottom: it.sky } : {}) }}
               >
-                {it.el}
+                {scaled(it.el, S)}
               </div>
             ))}
           </div>

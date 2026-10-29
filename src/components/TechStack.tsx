@@ -1,5 +1,6 @@
 import { ArrowUp } from 'lucide-react';
 import { profile, spokenLanguages, techStack } from '../data/journey';
+import { iconSize } from '../lib/uiScale';
 import SkillIcon from './SkillIcon';
 
 /** Chip label → icon registry key. Only items with a real mark get one. */
@@ -104,7 +105,7 @@ export default function TechStack() {
             }}
           >
             Replay the journey
-            <ArrowUp size={16} strokeWidth={2.2} aria-hidden="true" />
+            <ArrowUp {...iconSize(16)} strokeWidth={2.2} aria-hidden="true" />
           </a>
         </div>
       </footer>

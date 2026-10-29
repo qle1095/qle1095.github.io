@@ -14,3 +14,9 @@ export function smoothScrollTo(top: number): void {
   if (lenis) lenis.scrollTo(top, { duration: 1.1 });
   else window.scrollTo({ top, behavior: 'smooth' });
 }
+
+/** Instant scroll (no easing) that keeps Lenis' own position in sync. */
+export function jumpScroll(top: number): void {
+  if (lenis) lenis.scrollTo(top, { immediate: true, force: true });
+  else window.scrollTo(0, top);
+}

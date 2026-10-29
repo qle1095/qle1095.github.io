@@ -25,6 +25,9 @@ export type CharacterHandle = {
 // The canvas is wider than the character's own 210px box so Lumi has room to
 // trot alongside him. Extra width is symmetric and the camera FOV is vertical,
 // so the character's on-screen size and position are unchanged.
+// Both are CSS px at UI scale 1. At scale S the canvas is laid out at S times
+// that size and its drawing buffer is S times larger too (setSize below), so
+// he is rendered bigger rather than stretched: never CSS-scale the canvas.
 const CANVAS_W = 340;
 const CANVAS_H = 260;
 // Angled toward the walk direction but turned enough that the face stays lit
@@ -41,7 +44,10 @@ type Rig = {
   lumi: THREE.Group;
 };
 
-const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
+const Character = forwardRef<CharacterHandle, { scale?: number }>(function Character(
+  { scale = 1 },
+  ref,
+) {
   const rootRef = useRef<HTMLDivElement>(null);
   const mountRef = useRef<HTMLDivElement>(null);
   const rigRef = useRef<Rig | null>(null);
@@ -67,8 +73,10 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
       setWebglFailed(true);
       return;
     }
-    renderer.setSize(CANVAS_W, CANVAS_H);
+    // setSize also writes the canvas' CSS size; with the pixel ratio the
+    // buffer is cssSize x dpr. These match the rem-sized .chibi-3d box.
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(Math.round(CANVAS_W * scale), Math.round(CANVAS_H * scale));
     renderer.toneMapping = CHARACTER_TONE.toneMapping;
     renderer.toneMappingExposure = CHARACTER_TONE.exposure;
     mount.appendChild(renderer.domElement);
@@ -180,10 +188,14 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
       disposeLeviChibiModel(model);
       envRT.dispose();
       renderer.dispose();
+      // Release the GL context now rather than at GC: a scale change
+      // remounts this component, and browsers cap live contexts.
+      renderer.forceContextLoss();
       if (renderer.domElement.parentElement === mount) {
         mount.removeChild(renderer.domElement);
       }
     };
+    // `scale` is fixed for this instance: App keys the component on it.
   }, []);
 
   useImperativeHandle(ref, () => ({
@@ -236,7 +248,7 @@ const Character = forwardRef<CharacterHandle>(function Character(_, ref) {
           el,
           { y: 0 },
           {
-            y: -46,
+            y: -46 * scale,
             duration: 0.28,
             ease: 'power2.out',
             yoyo: true,

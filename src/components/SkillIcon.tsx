@@ -20,6 +20,7 @@ import {
   siMinio,
   siMongodb,
   siMui,
+  siNvidia,
   siOllama,
   siPostgresql,
   siPython,
@@ -38,10 +39,13 @@ import {
   Database,
   Gauge,
   Layers,
+  MessagesSquare,
   Plug,
+  Route,
   ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
+import { iconSize, rem } from '../lib/uiScale';
 
 // One registry for every technology mark on the site: monochrome Simple Icons
 // brand paths where a logo exists, Lucide glyphs where it doesn't (Java was
@@ -86,6 +90,9 @@ export const ICONS: Record<string, IconDef> = {
   postgresql: brand(siPostgresql),
   mongodb: brand(siMongodb),
   ollama: brand(siOllama),
+  litellm: glyph('LiteLLM', '#0f766e', Route), // no brand mark; it's a model router
+  openwebui: glyph('Open WebUI', '#3c4157', MessagesSquare),
+  gpu: brand(siNvidia),
   backstage: brand(siBackstage),
   keycloak: brand(siKeycloak),
   junit: brand(siJunit5),
@@ -96,7 +103,8 @@ export const ICONS: Record<string, IconDef> = {
 /**
  * A technology mark. `icon` is a registry key (journey.ts `Skill.icon`).
  * With `tile`, it sits in a rounded square tinted with the brand colour,
- * sized via `--tile` (defaults to 1.75× the glyph).
+ * sized via `--tile` (defaults to 1.75× the glyph). `size` is px at UI scale
+ * 1; glyph and tile are sized in rem so they scale with the page.
  * Unknown keys render nothing rather than leaking the raw slug as text.
  */
 export default function SkillIcon({
@@ -112,12 +120,14 @@ export default function SkillIcon({
 }) {
   const def = ICONS[icon];
   if (!def) return null;
+  const sized = iconSize(size);
   const mark = def.Glyph ? (
-    <def.Glyph size={size} strokeWidth={2} aria-hidden="true" focusable="false" />
+    <def.Glyph {...sized} strokeWidth={2} aria-hidden="true" focusable="false" />
   ) : (
     <svg
       width={size}
       height={size}
+      style={sized.style}
       viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden="true"
@@ -130,7 +140,7 @@ export default function SkillIcon({
   return (
     <span
       className={['skill-tile', className].filter(Boolean).join(' ')}
-      style={{ '--brand': def.hex, '--tile': `${Math.round(size * 1.75)}px` } as CSSProperties}
+      style={{ '--brand': def.hex, '--tile': rem(Math.round(size * 1.75)) } as CSSProperties}
     >
       {mark}
     </span>

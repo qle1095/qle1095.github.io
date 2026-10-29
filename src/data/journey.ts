@@ -61,7 +61,7 @@ export const profile = {
   linkedin: 'https://linkedin.com/in/levi-q-le',
   resumePdf: '/resume.pdf',
   intro:
-    '6+ years building cloud-native platforms, data systems, and self-hosted AI for government and financial-services customers. I led **Data Fabric**, the data platform central to Raft’s $450M acquisition by Leonardo DRS.',
+    '6+ years building cloud-native platforms, data systems, and self-hosted AI inference for government and financial-services customers. I led **Data Fabric**, the data platform central to Raft’s $450M acquisition by Leonardo DRS.',
   /** The hero proof strip: four facts a recruiter should leave with. */
   stats: [
     { value: '$450M', label: 'acquisition, Data Fabric at its center' },
@@ -177,10 +177,10 @@ export const chapters: Chapter[] = [
         date: '2022-04',
         display: 'Apr 2022',
         title: 'Associate Software Engineer',
-        subtitle: 'Raft · Remote · Employee #47',
+        subtitle: 'Raft · Remote · Employee #56',
         story:
-          'Traded big-bank guardrails for startup speed as employee #47 (now 350+), building **cloud-native systems for government customers**.',
-        metric: { value: '#47', label: 'employee number; Raft is now 350+' },
+          'Traded big-bank guardrails for startup speed as employee #56 (now 350+), building **cloud-native systems for government customers**.',
+        metric: { value: '#56', label: 'employee number; Raft is now 350+' },
         kind: 'job',
         skills: [
           { id: 'go', label: 'Go', icon: 'go' },
@@ -305,16 +305,31 @@ export const chapters: Chapter[] = [
         ],
       },
       {
-        id: 'ai-agents',
+        id: 'ai-inference',
         date: '2026-01',
-        title: 'Self-Hosted AI Agents',
-        subtitle: 'Raft · AI integration lead',
+        title: 'AI Inference Platform',
+        subtitle: 'Raft · Platform lead · Kubernetes',
         story:
-          'Cutting the ~5-minute-per-CVE research burden with multi-agent workflows on **fully self-hosted models** (Ollama, Gemma): one drafts justifications from analyst-approved precedent, another curates a knowledge base. No customer data leaves.',
+          'Lead the self-hosted platform serving LLMs on Kubernetes with Ollama, LiteLLM, and Open WebUI. **4-bit 30B-class models, an FP8 KV cache, and speculative decoding** serve three concurrent users at 22 tok/s on one small L4 GPU node.',
         kind: 'launch',
+        metric: { value: '3 users', label: 'per L4 GPU node at 22 tok/s' },
         skills: [
           { id: 'ollama', label: 'Ollama', icon: 'ollama' },
+          { id: 'litellm', label: 'LiteLLM', icon: 'litellm' },
+          { id: 'gpu', label: 'GPU inference', icon: 'gpu' },
+        ],
+      },
+      {
+        id: 'ai-use-cases',
+        date: '2026-03',
+        title: 'AI Use-Case Lead',
+        subtitle: 'Raft · AI across the organization',
+        story:
+          'Lead the org’s AI use cases: multi-agent workflows draft CVE justifications from analyst-approved precedent, attacking a ~5-minute-per-CVE research burden, while **AI automates tooling across the entire organization**. No customer data leaves.',
+        kind: 'launch',
+        skills: [
           { id: 'agents', label: 'Multi-Agent AI', icon: 'agents' },
+          { id: 'openwebui', label: 'Open WebUI', icon: 'openwebui' },
         ],
       },
       {
@@ -378,7 +393,19 @@ export const techStack: TechGroup[] = [
   },
   {
     label: 'AI',
-    items: ['LLM integration & tool calling', 'Multi-agent workflows', 'Ollama', 'Gemma', 'OpenAI API'],
+    items: [
+      'LLM inference on Kubernetes',
+      'Ollama',
+      'LiteLLM',
+      'Open WebUI',
+      '4-bit quantization',
+      'FP8 KV cache',
+      'Speculative decoding',
+      'LLM integration & tool calling',
+      'Multi-agent workflows',
+      'Gemma',
+      'OpenAI API',
+    ],
   },
   {
     label: 'Platform & Cloud',

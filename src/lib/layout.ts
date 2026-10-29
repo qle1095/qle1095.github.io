@@ -9,7 +9,9 @@ import {
 
 // Converts the chronological journey data into horizontal world coordinates.
 // Positions are proportional to time, with a minimum gap so clustered
-// milestones never overlap.
+// milestones never overlap. The constants below are px at UI scale 1;
+// buildLayout(scale) multiplies them by the current UI scale (lib/uiScale.ts)
+// so the world grows with the rem-sized cards that stand in it.
 
 const PX_PER_MONTH = 55;
 const MIN_GAP = 520;
@@ -36,6 +38,8 @@ export type PlacedChapter = {
 export type PlacedSideQuest = SideQuest & { x: number };
 
 export type JourneyLayout = {
+  /** The UI scale the layout was built for; every x below already includes it. */
+  scale: number;
   worldWidth: number;
   milestones: PlacedMilestone[];
   skills: PlacedSkill[];
@@ -49,7 +53,14 @@ function monthIndex(date: string): number {
   return y * 12 + (m - 1);
 }
 
-export function buildLayout(): JourneyLayout {
+export function buildLayout(scale = 1): JourneyLayout {
+  const pxPerMonth = PX_PER_MONTH * scale;
+  const minGap = MIN_GAP * scale;
+  const startPad = START_PAD * scale;
+  const endPad = END_PAD * scale;
+  const skillSpacing = SKILL_SPACING * scale;
+  const skillLead = SKILL_LEAD * scale;
+
   const all = chapters.flatMap((c) =>
     c.milestones.map((m) => ({ ...m, chapterId: c.id })),
   );
@@ -59,8 +70,8 @@ export function buildLayout(): JourneyLayout {
   const milestones: PlacedMilestone[] = [];
   let prevX = -Infinity;
   for (const m of all) {
-    let x = START_PAD + (monthIndex(m.date) - originMonth) * PX_PER_MONTH;
-    if (x < prevX + MIN_GAP) x = prevX + MIN_GAP;
+    let x = startPad + (monthIndex(m.date) - originMonth) * pxPerMonth;
+    if (x < prevX + minGap) x = prevX + minGap;
     prevX = x;
     milestones.push({ ...m, x });
   }
@@ -69,11 +80,11 @@ export function buildLayout(): JourneyLayout {
     (m.skills ?? []).map((s, i, arr) => ({
       ...s,
       milestoneId: m.id,
-      x: m.x - SKILL_LEAD - (arr.length - 1 - i) * SKILL_SPACING,
+      x: m.x - skillLead - (arr.length - 1 - i) * skillSpacing,
     })),
   );
 
-  const worldWidth = prevX + END_PAD;
+  const worldWidth = prevX + endPad;
 
   const placedChapters: PlacedChapter[] = chapters.map((chapter, ci) => {
     const first = milestones.find((m) => m.chapterId === chapter.id)!;
@@ -83,8 +94,8 @@ export function buildLayout(): JourneyLayout {
       : null;
     // A chapter's territory runs from just before its first milestone to just
     // before the next chapter's first milestone.
-    const startX = ci === 0 ? 0 : first.x - MIN_GAP / 2;
-    const endX = nextFirst ? nextFirst.x - MIN_GAP / 2 : worldWidth;
+    const startX = ci === 0 ? 0 : first.x - minGap / 2;
+    const endX = nextFirst ? nextFirst.x - minGap / 2 : worldWidth;
     const own = milestones.filter((m) => m.chapterId === chapter.id);
     return {
       chapter,
@@ -99,7 +110,7 @@ export function buildLayout(): JourneyLayout {
     // Interpolate between surrounding milestones so gap-compression is respected.
     const before = [...milestones].reverse().find((m) => monthIndex(m.date) <= mi);
     const after = milestones.find((m) => monthIndex(m.date) >= mi);
-    if (!before) return START_PAD;
+    if (!before) return startPad;
     if (!after || before === after) return before.x;
     const t =
       (mi - monthIndex(before.date)) /
@@ -120,6 +131,7 @@ export function buildLayout(): JourneyLayout {
   }
 
   return {
+    scale,
     worldWidth,
     milestones,
     skills,

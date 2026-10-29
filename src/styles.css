@@ -74,15 +74,15 @@
   --launch: #2c9c72;      --launch-text: #1f7a57;
 
   /* Radii */
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 16px;
+  --r-sm: 0.5rem;
+  --r-md: 0.75rem;
+  --r-lg: 1rem;
   --r-pill: 999px;
 
   /* Elevation */
-  --shadow-1: 0 1px 2px rgba(28, 32, 48, 0.06), 0 2px 6px -2px rgba(28, 32, 48, 0.08);
-  --shadow-2: 0 2px 4px rgba(28, 32, 48, 0.05), 0 10px 28px -8px rgba(28, 32, 48, 0.18);
-  --shadow-3: 0 4px 10px rgba(28, 32, 48, 0.06), 0 24px 56px -14px rgba(28, 32, 48, 0.3);
+  --shadow-1: 0 1px 2px rgba(28, 32, 48, 0.06), 0 2px 0.375rem -2px rgba(28, 32, 48, 0.08);
+  --shadow-2: 0 2px 0.25rem rgba(28, 32, 48, 0.05), 0 0.625rem 1.75rem -0.5rem rgba(28, 32, 48, 0.18);
+  --shadow-3: 0 0.25rem 0.625rem rgba(28, 32, 48, 0.06), 0 1.5rem 3.5rem -0.875rem rgba(28, 32, 48, 0.3);
 
   /* Type scale (16px base, 12px floor) */
   --fs-xs: 0.75rem;     /* 12: eyebrows (600, .12em, uppercase), meta */
@@ -99,8 +99,8 @@
   --lh-body: 1.55;
 
   /* Spacing (4px grid) */
-  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
-  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 72px;
+  --sp-1: 0.25rem; --sp-2: 0.5rem; --sp-3: 0.75rem; --sp-4: 1rem;
+  --sp-5: 1.5rem; --sp-6: 2rem; --sp-7: 3rem; --sp-8: 4.5rem;
 
   /* Motion */
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -134,7 +134,17 @@ h1, h2, h3, h4 {
   color: var(--ink-900);
 }
 
+/* Global UI scale. Every length on the site is in rem, so the root font-size
+   is the zoom factor: S = clamp(1, min(vw/1280, vh/720), 1.5) — 1 at
+   1280x720 and below (phones included), 1.5 at 1920x1080 and up. It is
+   snapped to 0.025 steps (0.4px) so the JS side (src/lib/uiScale.ts reads the
+   computed value back) rebuilds the world only when it really changes; the
+   first declaration is the unsnapped fallback for engines without round().
+   Media queries can't see this (rem there is always 16px): the height
+   breakpoints below are written in scaled units, see "effective height". */
 html {
+  font-size: clamp(16px, min(1.25vw, 2.2222vh), 24px);
+  font-size: clamp(16px, round(nearest, min(1.25vw, 2.2222vh), 0.4px), 24px);
   scroll-behavior: auto;
 }
 
@@ -150,7 +160,7 @@ button { font-family: inherit; }
 /* One focus ring for everything interactive; lighter on night surfaces. */
 :where(a, button, [role='button']):focus-visible {
   outline: 2px solid var(--focus);
-  outline-offset: 3px;
+  outline-offset: 0.1875rem;
 }
 
 :where(.outro, .tech-stack, .site-footer, .stage[data-theme='frontier']) :where(a, button, [role='button']):focus-visible {
@@ -163,7 +173,7 @@ button { font-family: inherit; }
   align-items: center;
   justify-content: center;
   gap: var(--sp-2);
-  min-height: 44px;
+  min-height: 2.75rem;
   padding: 0 1.25rem;
   border-radius: var(--r-pill);
   border: 1px solid rgba(28, 32, 48, 0.14);
@@ -192,17 +202,17 @@ button { font-family: inherit; }
   background: var(--accent-700);
   border-color: var(--accent-700);
   color: #fff;
-  box-shadow: 0 1px 2px rgba(194, 65, 12, 0.25), 0 8px 22px -8px rgba(194, 65, 12, 0.6);
+  box-shadow: 0 1px 2px rgba(194, 65, 12, 0.25), 0 0.5rem 1.375rem -0.5rem rgba(194, 65, 12, 0.6);
 }
 
 .btn-primary:hover {
   background: #a9380a;
   border-color: #a9380a;
-  box-shadow: 0 2px 4px rgba(194, 65, 12, 0.25), 0 14px 30px -10px rgba(194, 65, 12, 0.7);
+  box-shadow: 0 2px 0.25rem rgba(194, 65, 12, 0.25), 0 0.875rem 1.875rem -0.625rem rgba(194, 65, 12, 0.7);
 }
 
 .btn-icon {
-  width: 44px;
+  width: 2.75rem;
   padding: 0;
 }
 
@@ -264,7 +274,7 @@ button { font-family: inherit; }
 .hero-scroll-hint { animation-delay: 0.9s; }
 
 @keyframes hero-rise {
-  from { opacity: 0; transform: translateY(24px); }
+  from { opacity: 0; transform: translateY(1.5rem); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -391,15 +401,15 @@ button { font-family: inherit; }
   aspect-ratio: 1;
   border-radius: 50%;
   background: linear-gradient(#ffd3a3, #ffb486);
-  box-shadow: 0 0 120px 40px rgba(255, 196, 140, 0.35);
+  box-shadow: 0 0 7.5rem 2.5rem rgba(255, 196, 140, 0.35);
   opacity: 0.6;
   pointer-events: none;
 }
 
 .hero-character-slot {
   position: relative;
-  width: 220px;
-  height: 240px;
+  width: 13.75rem;
+  height: 15rem;
 }
 
 /* First strip of the sunrise world, full-bleed along the bottom. */
@@ -412,9 +422,9 @@ button { font-family: inherit; }
   pointer-events: none;
   border-top: 1px solid rgba(28, 32, 48, 0.08);
   background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.75) 0 44px, transparent 44px 128px)
-      top 22px left / 100% 4px no-repeat,
-    linear-gradient(rgba(255, 255, 255, 0.35) 0 46px, transparent 46px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.75) 0 2.75rem, transparent 2.75rem 8rem)
+      top 1.375rem left / 100% 0.25rem no-repeat,
+    linear-gradient(rgba(255, 255, 255, 0.35) 0 2.875rem, transparent 2.875rem),
     linear-gradient(#f9d9b6, #f4c9a0);
 }
 
@@ -438,17 +448,17 @@ button { font-family: inherit; }
 .hero-scroll-hint::before {
   content: '';
   flex: none;
-  width: 16px;
-  height: 24px;
+  width: 1rem;
+  height: 1.5rem;
   border: 1.5px solid currentColor;
-  border-radius: 9px;
-  background: radial-gradient(circle at 50% 7px, currentColor 1.6px, transparent 2.2px) no-repeat;
+  border-radius: 0.5625rem;
+  background: radial-gradient(circle at 50% 0.4375rem, currentColor 0.1rem, transparent 0.1375rem) no-repeat;
   animation: scroll-wheel 1.8s var(--ease-out) infinite;
 }
 
 @keyframes scroll-wheel {
   0% { background-position: 0 0; }
-  60% { background-position: 0 7px; }
+  60% { background-position: 0 0.4375rem; }
   100% { background-position: 0 0; }
 }
 
@@ -464,7 +474,13 @@ button { font-family: inherit; }
   .hero-stage { align-self: end; }
 }
 
-@media (max-height: 760px) and (min-width: 960px) {
+/* Effective height = innerHeight / S (see html). On a scaled window
+   (S > 1) that is max(1280·h/w, 720, h/1.5), so "effective height <= X"
+   is "(max-height: X), (min-aspect-ratio: 1280/X) and (max-height: 1.5X)".
+   At S = 1 the second branch never adds a match. Width breakpoints need no
+   such care: whenever S > 1 the effective width is still >= 1280. */
+@media (max-height: 760px) and (min-width: 960px),
+  (min-aspect-ratio: 32/19) and (max-height: 1140px) and (min-width: 960px) {
   .hero-copy { gap: var(--sp-4); }
   .hero-stats { padding-top: var(--sp-4); }
 }
@@ -478,7 +494,7 @@ button { font-family: inherit; }
   .hero-stats strong { font-size: 1.5rem; }
   .hero-actions .btn-primary { flex: 1 1 100%; }
   .hero-actions .btn-secondary { flex: 1 1 auto; }
-  .hero-character-slot { height: 220px; }
+  .hero-character-slot { height: 13.75rem; }
 }
 
 /* Reduced motion: no stage, no character, a single centred column. */
@@ -678,10 +694,10 @@ button { font-family: inherit; }
   height: var(--ground-h);
   background:
     /* dashed walking path */
-    repeating-linear-gradient(90deg, var(--path-dash) 0 44px, transparent 44px 128px)
-      top 22px left / 100% 4px no-repeat,
+    repeating-linear-gradient(90deg, var(--path-dash) 0 2.75rem, transparent 2.75rem 8rem)
+      top 1.375rem left / 100% 0.25rem no-repeat,
     /* path band */
-    linear-gradient(var(--path) 0 46px, transparent 46px),
+    linear-gradient(var(--path) 0 2.875rem, transparent 2.875rem),
     linear-gradient(var(--ground), color-mix(in srgb, var(--ground) 86%, #1c2030));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
@@ -690,9 +706,9 @@ button { font-family: inherit; }
    the stage → outro hand-off has no seam. */
 .stage[data-theme='frontier'] .ground {
   background:
-    repeating-linear-gradient(90deg, var(--path-dash) 0 44px, transparent 44px 128px)
-      top 22px left / 100% 4px no-repeat,
-    linear-gradient(var(--path) 0 46px, transparent 46px),
+    repeating-linear-gradient(90deg, var(--path-dash) 0 2.75rem, transparent 2.75rem 8rem)
+      top 1.375rem left / 100% 0.25rem no-repeat,
+    linear-gradient(var(--path) 0 2.875rem, transparent 2.875rem),
     linear-gradient(var(--ground), #1f1d36);
   box-shadow: inset 0 1px 0 rgba(125, 249, 255, 0.12);
 }
@@ -703,7 +719,7 @@ button { font-family: inherit; }
    card lifts 6px by growing its post, so the post stays planted. */
 .milestone {
   position: absolute;
-  bottom: calc(var(--ground-h) - 4px);
+  bottom: calc(var(--ground-h) - 0.25rem);
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
@@ -715,11 +731,11 @@ button { font-family: inherit; }
 .milestone.is-celebrate { width: 23rem; }
 
 .milestone .milestone-post {
-  height: calc(var(--post-h, 3.2rem) + 4px);
+  height: calc(var(--post-h, 3.2rem) + 0.25rem);
   transition: height var(--dur-2, 0.35s) var(--ease-out, ease);
 }
 
-.milestone.active .milestone-post { height: calc(var(--post-h, 3.2rem) + 10px); }
+.milestone.active .milestone-post { height: calc(var(--post-h, 3.2rem) + 0.625rem); }
 
 /* Kind palette: --kind-color decorates (accent edge, highlight band),
    --kind-text is the text-safe value for tags and icons, --kind-soft tints chips. */
@@ -736,7 +752,7 @@ button { font-family: inherit; }
   padding: 1.1rem 1.25rem 1.2rem;
   border: 1px solid var(--line);
   /* A 3px inset top accent keeps the radius clean (a top border would square it). */
-  box-shadow: inset 0 3px 0 var(--kind-color), var(--shadow-2);
+  box-shadow: inset 0 0.1875rem 0 var(--kind-color), var(--shadow-2);
   text-align: left;
   cursor: pointer;
   transform-origin: 50% 100%;
@@ -753,14 +769,14 @@ button { font-family: inherit; }
 .milestone:not(.active):not(.open) .milestone-card {
   transform: scale(0.94);
   filter: saturate(0.7);
-  box-shadow: inset 0 3px 0 var(--kind-color), var(--shadow-1);
+  box-shadow: inset 0 0.1875rem 0 var(--kind-color), var(--shadow-1);
 }
 
 .milestone:not(.active):not(.open) .milestone-card > * { opacity: 0.9; }
 
 .milestone.active .milestone-card {
   box-shadow:
-    inset 0 3px 0 var(--kind-color),
+    inset 0 0.1875rem 0 var(--kind-color),
     0 0 0 2px color-mix(in srgb, var(--kind-color) 45%, transparent),
     var(--shadow-3);
 }
@@ -787,8 +803,8 @@ button { font-family: inherit; }
 .milestone-kind-icon {
   display: inline-grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 1.5rem;
+  height: 1.5rem;
   border-radius: var(--r-sm);
   background: var(--kind-soft);
   color: var(--kind-text);
@@ -904,14 +920,14 @@ button { font-family: inherit; }
 
 .milestone-flat .milestone-card {
   cursor: default;
-  box-shadow: inset 0 3px 0 var(--kind-color), var(--shadow-1);
+  box-shadow: inset 0 0.1875rem 0 var(--kind-color), var(--shadow-1);
 }
 
 .milestone-post {
-  width: 5px;
+  width: 0.3125rem;
   height: var(--post-h, 3.2rem);
   background: rgba(31, 35, 51, 0.35);
-  border-radius: 3px;
+  border-radius: 0.1875rem;
 }
 
 /* Celebrate moments: gold cards with a star seal and a one-time sheen. */
@@ -922,9 +938,9 @@ button { font-family: inherit; }
 
 .milestone.is-celebrate.active .milestone-card {
   box-shadow:
-    inset 0 3px 0 var(--kind-color),
+    inset 0 0.1875rem 0 var(--kind-color),
     0 0 0 2px #f3d27a,
-    0 24px 56px -14px rgba(143, 94, 0, 0.38);
+    0 1.5rem 3.5rem -0.875rem rgba(143, 94, 0, 0.38);
 }
 
 .is-celebrate .milestone-card::after {
@@ -950,16 +966,16 @@ button { font-family: inherit; }
 
 .milestone-star {
   position: absolute;
-  top: -12px;
-  right: -10px;
+  top: -0.75rem;
+  right: -0.625rem;
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 1.75rem;
+  height: 1.75rem;
   border-radius: 50%;
   background: linear-gradient(#ffe08a, #ffc933);
   color: var(--achievement-text);
-  box-shadow: 0 0 0 2px var(--surface), 0 4px 10px rgba(143, 94, 0, 0.35);
+  box-shadow: 0 0 0 2px var(--surface), 0 0.25rem 0.625rem rgba(143, 94, 0, 0.35);
 }
 
 /* ===== Skill pickups ===== */
@@ -979,14 +995,14 @@ button { font-family: inherit; }
 
 .skill-pickup-icon {
   display: grid;
-  border-radius: var(--r-sm, 8px);
-  box-shadow: 0 6px 10px -4px rgba(28, 32, 48, 0.35);
+  border-radius: var(--r-sm, 0.5rem);
+  box-shadow: 0 0.375rem 0.625rem -0.25rem rgba(28, 32, 48, 0.35);
   animation: pickup-float 2.4s ease-in-out infinite;
 }
 
 @keyframes pickup-float {
   0%, 100% { translate: 0 0; }
-  50% { translate: 0 -6px; }
+  50% { translate: 0 -0.375rem; }
 }
 
 .skill-pickup-label {
@@ -998,9 +1014,9 @@ button { font-family: inherit; }
   border-radius: 999px;
   padding: 0.3rem 0.6rem;
   white-space: nowrap;
-  box-shadow: var(--shadow-1, 0 1px 3px rgba(28, 32, 48, 0.12));
+  box-shadow: var(--shadow-1, 0 1px 0.1875rem rgba(28, 32, 48, 0.12));
   opacity: 0;
-  translate: 0 -4px;
+  translate: 0 -0.25rem;
   transition: opacity 0.25s ease, translate 0.25s ease;
 }
 
@@ -1067,8 +1083,8 @@ button { font-family: inherit; }
   display: inline-grid;
   place-items: center;
   flex: none;
-  width: var(--tile, 32px);
-  height: var(--tile, 32px);
+  width: var(--tile, 2rem);
+  height: var(--tile, 2rem);
   border-radius: var(--r-sm);
   color: color-mix(in srgb, var(--brand, #6a6f85) 50%, var(--ink-900));
   background: color-mix(in srgb, var(--brand, #6a6f85) 12%, #fff);
@@ -1092,17 +1108,17 @@ button { font-family: inherit; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 210px;
+  width: 13.125rem;
 }
 
 .chibi-3d {
   /* Wider than .character (210px) so Lumi fits beside him; the overflow is
      symmetric, so his on-screen position is unchanged. */
-  width: 340px;
-  height: 260px;
+  width: 21.25rem;
+  height: 16.25rem;
   /* The camera framing leaves empty canvas below the feet — pull the canvas
      down so the feet sit on the ground line. */
-  margin-bottom: -62px;
+  margin-bottom: -3.875rem;
   line-height: 0;
 }
 
@@ -1110,15 +1126,15 @@ button { font-family: inherit; }
 
 .chibi {
   position: relative;
-  width: 74px;
+  width: 4.625rem;
   transform: scaleX(var(--facing, 1));
   transform-origin: center;
 }
 
 .chibi-head {
   position: relative;
-  width: 60px;
-  height: 56px;
+  width: 3.75rem;
+  height: 3.5rem;
   margin: 0 auto;
   background: #ffd9b8;
   border-radius: 50% 50% 46% 46%;
@@ -1127,27 +1143,27 @@ button { font-family: inherit; }
 
 .chibi-hair {
   position: absolute;
-  top: -7px;
-  left: -3px;
-  right: -3px;
-  height: 30px;
+  top: -0.4375rem;
+  left: -0.1875rem;
+  right: -0.1875rem;
+  height: 1.875rem;
   background: #2d2a2e;
   border-radius: 50% 50% 40% 40%;
 }
 
 .chibi-face {
   position: absolute;
-  bottom: 10px;
+  bottom: 0.625rem;
   left: 0;
   right: 0;
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .chibi-eye {
-  width: 6px;
-  height: 8px;
+  width: 0.375rem;
+  height: 0.5rem;
   background: #2d2a2e;
   border-radius: 50%;
   animation: blink 4.2s infinite;
@@ -1160,48 +1176,48 @@ button { font-family: inherit; }
 
 .chibi-mouth {
   position: absolute;
-  bottom: -7px;
-  width: 10px;
-  height: 5px;
+  bottom: -0.4375rem;
+  width: 0.625rem;
+  height: 0.3125rem;
   border-bottom: 2px solid #2d2a2e;
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 0.5rem 0.5rem;
 }
 
 .chibi-body {
   position: relative;
-  width: 44px;
-  height: 34px;
-  margin: -6px auto 0;
+  width: 2.75rem;
+  height: 2.125rem;
+  margin: -0.375rem auto 0;
   background: #3f6ee0;
-  border-radius: 12px 12px 8px 8px;
+  border-radius: 0.75rem 0.75rem 0.5rem 0.5rem;
   z-index: 1;
 }
 
 .chibi-arm {
   position: absolute;
-  top: 4px;
-  width: 9px;
-  height: 24px;
+  top: 0.25rem;
+  width: 0.5625rem;
+  height: 1.5rem;
   background: #3f6ee0;
-  border-radius: 6px;
+  border-radius: 0.375rem;
   transform-origin: top center;
 }
 
-.arm-l { left: -7px; }
-.arm-r { right: -7px; }
+.arm-l { left: -0.4375rem; }
+.arm-r { right: -0.4375rem; }
 
 .chibi-legs {
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 0.5rem;
   margin-top: -2px;
 }
 
 .chibi-leg {
-  width: 10px;
-  height: 20px;
+  width: 0.625rem;
+  height: 1.25rem;
   background: #2d2a2e;
-  border-radius: 0 0 6px 6px;
+  border-radius: 0 0 0.375rem 0.375rem;
   transform-origin: top center;
 }
 
@@ -1221,9 +1237,9 @@ button { font-family: inherit; }
 }
 
 .chibi-shadow {
-  width: 54px;
-  height: 9px;
-  margin: 3px auto 0;
+  width: 3.375rem;
+  height: 0.5625rem;
+  margin: 0.1875rem auto 0;
   background: rgba(31, 35, 51, 0.22);
   border-radius: 50%;
 }
@@ -1246,17 +1262,17 @@ button { font-family: inherit; }
 .chapter-chip,
 .progress-bar {
   background: var(--chip-bg);
-  -webkit-backdrop-filter: blur(10px) saturate(1.3);
-  backdrop-filter: blur(10px) saturate(1.3);
+  -webkit-backdrop-filter: blur(0.625rem) saturate(1.3);
+  backdrop-filter: blur(0.625rem) saturate(1.3);
   border: 1px solid var(--chip-line);
-  box-shadow: var(--shadow-1, 0 1px 3px rgba(28, 32, 48, 0.1));
+  box-shadow: var(--shadow-1, 0 1px 0.1875rem rgba(28, 32, 48, 0.1));
 }
 
 /* Chapter chip: `CHAPTER 03 · 2022–2023` over `Startup Ascent · Raft`. */
 .chapter-chip {
   min-width: 15rem;
   padding: 0.45rem 1.2rem 0.5rem;
-  border-radius: 14px;
+  border-radius: 0.875rem;
   text-align: center;
   overflow: hidden;
 }
@@ -1293,20 +1309,20 @@ button { font-family: inherit; }
 .chapter-chip-company { font-weight: 600; color: var(--on-sky-muted); }
 
 @keyframes chip-in {
-  from { opacity: 0; translate: 0 8px; }
+  from { opacity: 0; translate: 0 0.5rem; }
   to { opacity: 1; translate: 0 0; }
 }
 
 .progress-bar {
   width: 100%;
   padding: 0.6rem 1.1rem 0;
-  border-radius: 14px;
+  border-radius: 0.875rem;
 }
 
 .progress-track {
   position: relative;
-  height: 4px;
-  margin-bottom: 30px; /* the year row */
+  height: 0.25rem;
+  margin-bottom: 1.875rem; /* the year row */
   border-radius: 999px;
   background: color-mix(in srgb, var(--on-sky) 10%, transparent);
 }
@@ -1316,7 +1332,7 @@ button { font-family: inherit; }
   position: absolute;
   top: 0;
   bottom: 0;
-  border-left: 3px solid transparent;
+  border-left: 0.1875rem solid transparent;
   background: color-mix(in srgb, var(--era-accent) 40%, transparent) padding-box;
   border-radius: 999px;
 }
@@ -1334,11 +1350,11 @@ button { font-family: inherit; }
   position: absolute;
   top: 2px;
   translate: -50% 0;
-  min-width: 36px;
-  min-height: 32px;
+  min-width: 2.25rem;
+  min-height: 2rem;
   padding: 0.6rem 0.35rem 0.3rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 0.375rem;
   background: none;
   font-size: var(--fs-xs, 0.75rem);
   font-weight: 600;
@@ -1356,7 +1372,7 @@ button { font-family: inherit; }
   top: -2px;
   left: 50%;
   width: 1px;
-  height: 6px;
+  height: 0.375rem;
   background: currentColor;
   opacity: 0.45;
 }
@@ -1398,7 +1414,7 @@ button { font-family: inherit; }
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.025em;
-  text-shadow: 0 2px 28px var(--sky-bottom);
+  text-shadow: 0 2px 1.75rem var(--sky-bottom);
 }
 
 /* The title card owns the sky band while it shows; a side quest that happens
@@ -1407,10 +1423,10 @@ button { font-family: inherit; }
 .stage:has(.chapter-title-card) .side-quest { opacity: 0; }
 
 @keyframes title-card {
-  0% { opacity: 0; translate: 0 12px; }
+  0% { opacity: 0; translate: 0 0.75rem; }
   22% { opacity: 1; translate: 0 0; }
   70% { opacity: 1; translate: 0 0; }
-  100% { opacity: 0; translate: 0 -6px; }
+  100% { opacity: 0; translate: 0 -0.375rem; }
 }
 
 /* Finale confetti (pieces are animated by GSAP: transform/opacity only). */
@@ -1424,9 +1440,9 @@ button { font-family: inherit; }
 
 .confetti i {
   position: absolute;
-  width: 8px;
-  height: 12px;
-  margin: -6px 0 0 -4px;
+  width: 0.5rem;
+  height: 0.75rem;
+  margin: -0.375rem 0 0 -0.25rem;
   border-radius: 2px;
   will-change: transform;
 }
@@ -1447,12 +1463,12 @@ button { font-family: inherit; }
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  height: 44px;
-  padding: 0 6px 0 var(--sp-4);
+  height: 2.75rem;
+  padding: 0 0.375rem 0 var(--sp-4);
   border-radius: var(--r-md);
   border: 1px solid var(--line);
   background: rgba(255, 253, 248, 0.92);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(0.625rem);
   box-shadow: var(--shadow-2);
   color: var(--ink-900);
   cursor: pointer;
@@ -1496,9 +1512,9 @@ button { font-family: inherit; }
 .skill-hud-more {
   display: grid;
   place-items: center;
-  min-width: 32px;
-  height: 32px;
-  padding: 0 6px;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.375rem;
   border-radius: var(--r-sm);
   background: rgba(28, 32, 48, 0.06);
   font-size: var(--fs-xs);
@@ -1521,8 +1537,8 @@ button { font-family: inherit; }
   bottom: calc(100% + var(--sp-2));
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
   border-radius: var(--r-pill);
   background: var(--ink-900);
   color: #fff;
@@ -1537,10 +1553,10 @@ button { font-family: inherit; }
 .skill-hud:has(.skill-hud-popover) .skill-hud-toast { display: none; }
 
 @keyframes hud-toast {
-  0% { opacity: 0; transform: translateY(6px); }
+  0% { opacity: 0; transform: translateY(0.375rem); }
   14% { opacity: 1; transform: none; }
   80% { opacity: 1; transform: none; }
-  100% { opacity: 0; transform: translateY(-4px); }
+  100% { opacity: 0; transform: translateY(-0.25rem); }
 }
 
 .skill-hud-popover {
@@ -1562,7 +1578,7 @@ button { font-family: inherit; }
 }
 
 @keyframes hud-pop {
-  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  from { opacity: 0; transform: translateY(0.375rem) scale(0.97); }
   to { opacity: 1; transform: none; }
 }
 
@@ -1605,12 +1621,12 @@ button { font-family: inherit; }
 @media (max-width: 640px) {
   .skill-hud { top: 4.2rem; bottom: auto; left: 1rem; }
   .skill-hud-tray {
-    height: 36px;
+    height: 2.25rem;
     gap: var(--sp-2);
-    padding: 0 4px 0 var(--sp-3);
+    padding: 0 0.25rem 0 var(--sp-3);
     border-radius: var(--r-pill);
   }
-  .skill-hud-label { flex-direction: row; align-items: baseline; gap: 6px; }
+  .skill-hud-label { flex-direction: row; align-items: baseline; gap: 0.375rem; }
   .skill-hud-label-long,
   .skill-hud-items { display: none; }
   .skill-hud-latest { display: inline-flex; }
@@ -1628,12 +1644,12 @@ button { font-family: inherit; }
   z-index: 10;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 50%;
   border: 1px solid var(--line);
   background: rgba(255, 253, 248, 0.92);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(0.625rem);
   color: var(--ink-900);
   cursor: pointer;
   box-shadow: var(--shadow-2);
@@ -1729,7 +1745,7 @@ button { font-family: inherit; }
 /* The "today" platform the character lands on. Empty on purpose. */
 .outro-landing {
   position: relative;
-  height: 210px;
+  height: 13.125rem;
 }
 
 .outro-landing::before {
@@ -1738,8 +1754,8 @@ button { font-family: inherit; }
   left: 50%;
   bottom: 0;
   translate: -50% 50%;
-  width: 240px;
-  height: 22px;
+  width: 15rem;
+  height: 1.375rem;
   border-radius: 50%;
   background: radial-gradient(closest-side, rgba(125, 249, 255, 0.2), transparent);
 }
@@ -1750,13 +1766,13 @@ button { font-family: inherit; }
   left: 50%;
   bottom: 0;
   translate: -50% 0;
-  width: min(100%, 280px);
+  width: min(100%, 17.5rem);
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
 }
 
 @media (min-width: 900px) {
-  .outro-head { grid-template-columns: minmax(0, 1fr) 280px; }
+  .outro-head { grid-template-columns: minmax(0, 1fr) 17.5rem; }
 }
 
 .outro-static .outro-head { grid-template-columns: minmax(0, 1fr); }
@@ -1792,7 +1808,7 @@ button { font-family: inherit; }
   border-radius: var(--r-lg);
   border: 1px solid var(--line-night);
   background: rgba(42, 45, 77, 0.55);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18), 0 18px 40px -18px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 2px 0.25rem rgba(0, 0, 0, 0.18), 0 1.125rem 2.5rem -1.125rem rgba(0, 0, 0, 0.6);
   color: inherit;
   text-align: left;
   text-decoration: none;
@@ -1841,8 +1857,8 @@ a.promo-card:hover {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
-  min-height: 36px;
-  padding: 0 var(--sp-3) 0 6px;
+  min-height: 2.25rem;
+  padding: 0 var(--sp-3) 0 0.375rem;
   border-radius: var(--r-pill);
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.04);
@@ -1861,8 +1877,8 @@ a.promo-card:hover {
   display: inline-grid;
   place-items: center;
   min-width: 2.25rem;
-  height: 24px;
-  padding: 0 6px;
+  height: 1.5rem;
+  padding: 0 0.375rem;
   border-radius: var(--r-pill);
   background: rgba(255, 122, 89, 0.18);
   color: var(--accent-night);
@@ -1877,8 +1893,8 @@ a.promo-card:hover {
   padding-top: var(--sp-2);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 32px;
+  gap: 0.375rem;
+  min-height: 2rem;
   font-size: var(--fs-md);
   font-weight: 600;
   color: var(--accent-night);
@@ -1887,7 +1903,7 @@ a.promo-card:hover {
 
 .promo-cta svg { transition: transform var(--dur-1) var(--ease-out); }
 .promo-cta:hover svg,
-a.promo-card:hover .promo-cta svg { transform: translateX(3px); }
+a.promo-card:hover .promo-cta svg { transform: translateX(0.1875rem); }
 
 .playground-row {
   display: flex;
@@ -1897,8 +1913,8 @@ a.promo-card:hover .promo-cta svg { transform: translateX(3px); }
 
 .playground-thumb {
   flex: none;
-  width: 72px;
-  height: 72px;
+  width: 4.5rem;
+  height: 4.5rem;
   border-radius: var(--r-md);
   background: #fff;
   object-fit: cover;
@@ -1955,14 +1971,14 @@ a.promo-card:hover .promo-cta svg { transform: translateX(3px); }
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .tech-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
+  gap: 0.375rem;
+  padding: 0.3125rem 0.625rem;
   border-radius: var(--r-sm);
   border: 1px solid var(--line-night);
   background: rgba(255, 255, 255, 0.06);
@@ -2020,8 +2036,8 @@ a.promo-card:hover .promo-cta svg { transform: translateX(3px); }
 .site-footer-replay {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 44px;
+  gap: 0.375rem;
+  min-height: 2.75rem;
   font-weight: 600;
   color: var(--ink-night);
   text-decoration: none;
@@ -2066,9 +2082,9 @@ a.promo-card:hover .promo-cta svg { transform: translateX(3px); }
 
 .static-chapter-num::before {
   content: '';
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 0.1875rem;
   background: var(--era);
 }
 
@@ -2094,11 +2110,11 @@ a.promo-card:hover .promo-cta svg { transform: translateX(3px); }
 .static-list::before {
   content: '';
   position: absolute;
-  left: 6px;
+  left: 0.375rem;
   top: var(--sp-2);
   bottom: var(--sp-2);
-  width: 3px;
-  border-radius: 3px;
+  width: 0.1875rem;
+  border-radius: 0.1875rem;
   background: color-mix(in srgb, var(--era) 35%, transparent);
 }
 
@@ -2110,20 +2126,20 @@ a.promo-card:hover .promo-cta svg { transform: translateX(3px); }
 .static-milestone::before {
   content: '';
   position: absolute;
-  left: -26.5px;
+  left: -1.65625rem;
   top: 1.4rem;
-  width: 12px;
-  height: 12px;
+  width: 0.75rem;
+  height: 0.75rem;
   border-radius: 50%;
   background: var(--era);
-  box-shadow: 0 0 0 3px var(--paper);
+  box-shadow: 0 0 0 0.1875rem var(--paper);
 }
 
 .static-skills {
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 0.375rem;
   margin-top: var(--sp-3);
 }
 
@@ -2138,24 +2154,24 @@ a.promo-card:hover .promo-cta svg { transform: translateX(3px); }
 
 /* Laptop-height windows: trim the tall posts a little so the side-quest band
    keeps clear air above the active card. */
-@media (max-height: 960px) {
-  .milestone .milestone-post { height: calc(var(--post-h, 3.2rem) * 0.75 + 4px); }
-  .milestone.active .milestone-post { height: calc(var(--post-h, 3.2rem) * 0.75 + 10px); }
+@media (max-height: 960px), (min-aspect-ratio: 4/3) and (max-height: 1440px) {
+  .milestone .milestone-post { height: calc(var(--post-h, 3.2rem) * 0.75 + 0.25rem); }
+  .milestone.active .milestone-post { height: calc(var(--post-h, 3.2rem) * 0.75 + 0.625rem); }
 }
 
 /* ===== Short windows =====
    Between the progress block (~7.5rem) and the tallest milestone cards there
    is little free sky on a 720px-tall window: tighten the chip and lift the
    side-quest band. */
-@media (max-height: 820px) {
+@media (max-height: 820px), (min-aspect-ratio: 64/41) and (max-height: 1230px) {
   .progress { top: 0.75rem; gap: 0.4rem; }
   .chapter-chip { padding: 0.35rem 1.1rem 0.4rem; }
   .side-quest { top: 7.9rem; }
   .chapter-title-card { top: 20vh; }
   /* Shorter posts and a headline-only side quest (title + metric) so the
      band clears the tallest active card. */
-  .milestone .milestone-post { height: calc(var(--post-h, 3.2rem) * 0.55 + 4px); }
-  .milestone.active .milestone-post { height: calc(var(--post-h, 3.2rem) * 0.55 + 10px); }
+  .milestone .milestone-post { height: calc(var(--post-h, 3.2rem) * 0.55 + 0.25rem); }
+  .milestone.active .milestone-post { height: calc(var(--post-h, 3.2rem) * 0.55 + 0.625rem); }
   .side-quest-card > p:not(.milestone-metric) { display: none; }
   .side-quest-card .milestone-metric { margin-bottom: 0; }
 }
@@ -2177,7 +2193,7 @@ a.promo-card:hover .promo-cta svg { transform: translateX(3px); }
     align-items: center;
     min-width: 0;
     max-width: calc(100% - 10rem);
-    height: 36px;
+    height: 2.25rem;
     padding: 0 0.9rem;
     border-radius: 999px;
   }
@@ -2198,19 +2214,19 @@ a.promo-card:hover .promo-cta svg { transform: translateX(3px); }
   .milestone .milestone-card { display: none; }
   .milestone::before {
     content: '';
-    width: 14px;
-    height: 14px;
-    margin-bottom: -3px;
+    width: 0.875rem;
+    height: 0.875rem;
+    margin-bottom: -0.1875rem;
     border-radius: 50%;
     background: var(--kind-color);
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 0 0.1875rem rgba(255, 255, 255, 0.85);
     transition: scale var(--dur-2, 0.35s) var(--ease-out, ease);
   }
   .milestone.active::before { scale: 1.4; }
 
   .reading-panel {
     position: absolute;
-    top: calc(4.2rem + 36px + 0.6rem);
+    top: calc(4.2rem + 2.25rem + 0.6rem);
     left: 1rem;
     right: 1rem;
     z-index: 9;
@@ -2236,10 +2252,10 @@ a.promo-card:hover .promo-cta svg { transform: translateX(3px); }
 }
 
 @keyframes panel-in {
-  from { opacity: 0; translate: 0 8px; }
+  from { opacity: 0; translate: 0 0.5rem; }
   to { opacity: 1; translate: 0 0; }
 }
 
 @keyframes panel-out {
-  to { opacity: 0; translate: 0 -8px; }
+  to { opacity: 0; translate: 0 -0.5rem; }
 }

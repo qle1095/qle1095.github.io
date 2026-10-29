@@ -1,6 +1,7 @@
 import { ArrowDown, FileDown, Mail } from 'lucide-react';
 import { profile } from '../data/journey';
 import { smoothScrollTo } from '../lib/scroll';
+import { iconSize } from '../lib/uiScale';
 import Rich from './Rich';
 
 /** Smooth-scroll to the top of the journey (the pinned stage, or the static list). */
@@ -47,10 +48,10 @@ export default function Hero({ staticMode = false }: { staticMode?: boolean }) {
         <div className="hero-actions">
           <button type="button" className="btn btn-primary" onClick={startJourney}>
             {staticMode ? 'Read the journey' : 'Start the journey'}
-            <ArrowDown size={18} strokeWidth={2.2} aria-hidden="true" />
+            <ArrowDown {...iconSize(18)} strokeWidth={2.2} aria-hidden="true" />
           </button>
           <a className="btn btn-secondary" href={profile.resumePdf} download>
-            <FileDown size={18} strokeWidth={2} aria-hidden="true" />
+            <FileDown {...iconSize(18)} strokeWidth={2} aria-hidden="true" />
             Resume (PDF)
           </a>
           <a
@@ -59,7 +60,7 @@ export default function Hero({ staticMode = false }: { staticMode?: boolean }) {
             aria-label={`Email ${profile.email}`}
             title={profile.email}
           >
-            <Mail size={18} strokeWidth={2} aria-hidden="true" />
+            <Mail {...iconSize(18)} strokeWidth={2} aria-hidden="true" />
           </a>
           <a
             className="btn btn-icon"

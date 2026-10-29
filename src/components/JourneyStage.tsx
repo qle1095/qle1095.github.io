@@ -30,6 +30,10 @@ const CHARACTER_AT = 0.35;
 const CHARACTER_AT_MOBILE = 0.45;
 const MOBILE_MAX = 640;
 
+// Every px constant below is at UI scale 1 and is multiplied by the stage's
+// `scale` prop (lib/uiScale.ts) where it is used; charCenter() is a fraction
+// of the viewport, so it needs no scaling.
+
 // The `.character` box is 210px wide and his canvas overflows it
 // symmetrically, so the layer's left edge is his centre minus half of that.
 const CHAR_W = 210;
@@ -70,12 +74,26 @@ function useIsMobile() {
   return mobile;
 }
 
+/**
+ * The pinned journey. Built once for a UI `scale`: when the scale changes,
+ * App remounts the stage (key) so the world, its GSAP context and every
+ * scaled constant are rebuilt from scratch rather than patched.
+ */
 export default function JourneyStage({
   characterRef,
+  scale = 1,
 }: {
   characterRef: RefObject<CharacterHandle | null>;
+  scale?: number;
 }) {
-  const layout = useMemo(() => buildLayout(), []);
+  const S = scale;
+  const layout = useMemo(() => buildLayout(S), [S]);
+  const charW = CHAR_W * S;
+  const charHead = CHAR_HEAD * S;
+  const charFeet = CHAR_FEET * S;
+  const charClear = CHAR_CLEAR * S;
+  const cardLead = CARD_LEAD * S;
+  const finaleLeadMobile = FINALE_LEAD_MOBILE * S;
   const mobile = useIsMobile();
   const stageRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -90,7 +108,7 @@ export default function JourneyStage({
   const lastX = layout.milestones[layout.milestones.length - 1].x;
   // Horizontal scroll distance: until the last card sits in its reading spot.
   const scrollDist = () =>
-    Math.max(1, lastX - (isMobile() ? FINALE_LEAD_MOBILE : CARD_LEAD) - charCenter());
+    Math.max(1, lastX - (isMobile() ? finaleLeadMobile : cardLead) - charCenter());
 
   // Scroll so the character stands at world-x `x` (clamped to the stage).
   const jumpTo = (x: number) => {
@@ -102,7 +120,7 @@ export default function JourneyStage({
   };
   // Where he stands while milestone i is being read.
   const milestoneSpot = (i: number) =>
-    layout.milestones[i].x - (isMobile() ? FINALE_LEAD_MOBILE : CARD_LEAD);
+    layout.milestones[i].x - (isMobile() ? finaleLeadMobile : cardLead);
   const navRef = useRef({ idx: -1, at: 0 });
   const goToMilestone = (i: number) => {
     const n = Math.max(0, Math.min(layout.milestones.length - 1, i));
@@ -131,7 +149,7 @@ export default function JourneyStage({
       };
       const restTop = () =>
         window.innerHeight - restBottom - (charLayer?.offsetHeight ?? 0);
-      const walkX = () => charCenter() - CHAR_W / 2;
+      const walkX = () => charCenter() - charW / 2;
 
       // --- Hero: he stands on the hero's character slot (centred on it, feet
       // on its bottom edge), rides up with it for a moment as the page
@@ -146,11 +164,11 @@ export default function JourneyStage({
       };
       const heroX = () => {
         const s = slotRect();
-        return (s ? s.cx : window.innerWidth * 0.5) - CHAR_W / 2;
+        return (s ? s.cx : window.innerWidth * 0.5) - charW / 2;
       };
       const heroY = () => {
         const s = slotRect();
-        return s ? s.bottom - CHAR_FEET - restTop() : -14;
+        return s ? s.bottom - charFeet - restTop() : -14 * S;
       };
       if (charLayer && heroEl) {
         characterRef.current?.setWaving(true);
@@ -158,7 +176,7 @@ export default function JourneyStage({
         const RIDE = 0.3; // share of the hero scroll he spends riding the slot
         const UP = (1 - RIDE) * 0.42; // share of the leap spent rising
         const rideEnd = () => heroY() - heroDist() * RIDE;
-        const apex = () => Math.min(rideEnd(), 0) - 110;
+        const apex = () => Math.min(rideEnd(), 0) - 110 * S;
         gsap
           .timeline({
             scrollTrigger: {
@@ -233,10 +251,10 @@ export default function JourneyStage({
               best = i;
             }
           });
-          return bestD < 420 ? best : -1;
+          return bestD < 420 * S ? best : -1;
         }
         for (let i = 0; i < ms.length; i++) {
-          if (ms[i].x - (halfW[i] ?? 168) >= cx + CHAR_CLEAR) {
+          if (ms[i].x - (halfW[i] ?? 168 * S) >= cx + charClear) {
             return ms[i].x - cx < window.innerWidth ? i : -1;
           }
         }
@@ -265,7 +283,7 @@ export default function JourneyStage({
         Object.assign(ghost.style, { left: `${from.left}px`, top: `${from.top}px` });
         document.body.appendChild(ghost);
         gsap.to(ghost, {
-          x: to.left + Math.min(to.width, 120) / 2 - from.left - from.width / 2,
+          x: to.left + Math.min(to.width, 120 * S) / 2 - from.left - from.width / 2,
           y: to.top + to.height / 2 - from.top - from.height / 2,
           scale: 0.55,
           duration: 0.55,
@@ -276,7 +294,7 @@ export default function JourneyStage({
       const updatePickups = (cx: number, forward: boolean) => {
         let changed = false;
         layout.skills.forEach((s, i) => {
-          const has = s.x <= cx + 18;
+          const has = s.x <= cx + 18 * S;
           if (has === got[i]) return;
           got[i] = has;
           changed = true;
@@ -323,7 +341,7 @@ export default function JourneyStage({
       // The last card instead gets the finale beat at the end of the pin.
       const lastIdx = layout.milestones.length - 1;
       const celebrateAt = layout.milestones
-        .map((m, i) => (m.celebrate && i !== lastIdx ? m.x - CARD_LEAD : null))
+        .map((m, i) => (m.celebrate && i !== lastIdx ? m.x - cardLead : null))
         .filter((x): x is number => x !== null);
       let prevCx = -Infinity;
       let finaleArmed = true;
@@ -336,8 +354,8 @@ export default function JourneyStage({
         const r = cardEls[lastIdx]?.getBoundingClientRect();
         const onCard = !isMobile() && r && r.width > 0;
         const ox = onCard ? r.left + r.width / 2 - s.left : charCenter();
-        const oy = onCard ? r.top - s.top + 12 : s.height * 0.55;
-        confetti(stage, ox, oy);
+        const oy = onCard ? r.top - s.top + 12 * S : s.height * 0.55;
+        confetti(stage, ox, oy, S);
       };
 
       // Everything that follows the world's actual (scrub-smoothed) position.
@@ -420,16 +438,16 @@ export default function JourneyStage({
           const r = landingEl.getBoundingClientRect();
           if (isSlot) {
             return {
-              x: r.left + r.width / 2 - CHAR_W / 2,
-              top: r.bottom - outroRect.top - CHAR_FEET,
+              x: r.left + r.width / 2 - charW / 2,
+              top: r.bottom - outroRect.top - charFeet,
             };
           }
           // Legacy fallback: centred in the pad under the contact row.
           const padTop = r.bottom - outroRect.top;
           const pad = outroRect.height - padTop;
           return {
-            x: window.innerWidth * 0.5 - CHAR_W / 2,
-            top: padTop + Math.max(12, (pad - (CHAR_FEET - CHAR_HEAD)) / 2) - CHAR_HEAD,
+            x: window.innerWidth * 0.5 - charW / 2,
+            top: padTop + Math.max(12 * S, (pad - (charFeet - charHead)) / 2) - charHead,
           };
         };
 
@@ -484,7 +502,7 @@ export default function JourneyStage({
             charLayer,
             { y: 0 },
             {
-              y: () => Math.min(0, dropY()) - 80,
+              y: () => Math.min(0, dropY()) - 80 * S,
               ease: 'power2.out',
               duration: 0.4,
               immediateRender: false,
@@ -547,7 +565,7 @@ export default function JourneyStage({
       cardEls.forEach((el) => {
         gsap.from(el, {
           opacity: 0,
-          y: 60,
+          y: 60 * S,
           duration: 0.6,
           ease: 'power2.out',
           scrollTrigger: {
@@ -574,13 +592,13 @@ export default function JourneyStage({
           el.style.left = `${a * 100}%`;
           el.style.width = `${(b - a) * 100}%`;
         });
-        // Drop any year label within 44px of the previous one shown.
+        // Drop any year label within 44px (scaled) of the previous one shown.
         const w = track.offsetWidth;
         let lastShown = -Infinity;
         track.querySelectorAll<HTMLElement>('.progress-year').forEach((el) => {
           const f = frac(Number(el.dataset.x));
           el.style.left = `${f * 100}%`;
-          const show = f * w - lastShown >= 44;
+          const show = f * w - lastShown >= 44 * S;
           el.classList.toggle('is-dropped', !show);
           if (show) lastShown = f * w;
         });
@@ -778,7 +796,7 @@ function ChapterChip({ chapter, index }: { chapter: PlacedChapter; index: number
 }
 
 /** A small hand-rolled confetti burst in screen space (transform/opacity only). */
-function confetti(host: HTMLElement, x: number, y: number) {
+function confetti(host: HTMLElement, x: number, y: number, S = 1) {
   const layer = document.createElement('div');
   layer.className = 'confetti';
   host.appendChild(layer);
@@ -791,7 +809,7 @@ function confetti(host: HTMLElement, x: number, y: number) {
     if (i % 3 === 0) p.style.borderRadius = '50%';
     layer.appendChild(p);
     const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.95;
-    const speed = 160 + Math.random() * 220;
+    const speed = (160 + Math.random() * 220) * S;
     gsap
       .timeline()
       .to(p, {
@@ -802,8 +820,8 @@ function confetti(host: HTMLElement, x: number, y: number) {
         ease: 'power3.out',
       })
       .to(p, {
-        y: `+=${260 + Math.random() * 160}`,
-        x: `+=${(Math.random() - 0.5) * 80}`,
+        y: `+=${(260 + Math.random() * 160) * S}`,
+        x: `+=${(Math.random() - 0.5) * 80 * S}`,
         rotation: `+=${(Math.random() - 0.5) * 360}`,
         opacity: 0,
         duration: 1.3 + Math.random() * 0.5,

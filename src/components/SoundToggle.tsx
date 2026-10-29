@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { setSfxEnabled, sfxEnabled } from '../lib/sfx';
+import { iconSize } from '../lib/uiScale';
 
 export default function SoundToggle() {
   const [on, setOn] = useState(sfxEnabled());
@@ -18,7 +19,7 @@ export default function SoundToggle() {
         setSfxEnabled(next);
       }}
     >
-      <Icon size={18} strokeWidth={2} aria-hidden="true" />
+      <Icon {...iconSize(18)} strokeWidth={2} aria-hidden="true" />
     </button>
   );
 }
