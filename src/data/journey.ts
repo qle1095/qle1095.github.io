@@ -177,10 +177,10 @@ export const chapters: Chapter[] = [
         date: '2022-04',
         display: 'Apr 2022',
         title: 'Associate Software Engineer',
-        subtitle: 'Raft · Remote · Employee #56',
+        subtitle: 'Raft · Remote · Employee #62',
         story:
-          'Traded big-bank guardrails for startup speed as employee #56 (now 350+), building **cloud-native systems for government customers**.',
-        metric: { value: '#56', label: 'employee number; Raft is now 350+' },
+          'Traded big-bank guardrails for startup speed as employee #62 (now 350+), building **cloud-native systems for government customers**.',
+        metric: { value: '#62', label: 'employee number; Raft is now 350+' },
         kind: 'job',
         skills: [
           { id: 'go', label: 'Go', icon: 'go' },

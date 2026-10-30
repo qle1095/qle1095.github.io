@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Can a 30B Model Draw a Cat? · Levi Le</title>
-<meta name="description" content="Four open ~30B models get one try each to draw a tuxedo kitten in Canvas JavaScript on a single RTX 5090 with vLLM. Watch them race, compare the cats, and see what broke.">
+<meta name="description" content="Qwen 3.8, Flint, Muse Glimmer and Ornith 1.5 (~30B open models) get one try each to draw a tuxedo kitten in Canvas JavaScript on a single RTX 5090 with vLLM. Watch them race, compare the cats, and see what broke.">
 <meta property="og:title" content="Can a 30B Model Draw a Cat? · Levi Le">
 <meta property="og:description" content="Four open models, one RTX 5090, one try each. A side-by-side drawing race with real timings.">
 <meta property="og:image" content="/playground/procedural-cat/assets/ornith-dflash.png">
@@ -73,10 +73,19 @@
   .topbar nav a:hover { background: var(--surface-2); color: var(--text); }
 
   /* ---------- Hero ---------- */
-  .hero { padding: 48px 0 28px; }
+  .hero { padding: 48px 16px 28px; }
   .hero h1 { font-size: clamp(2.2rem, 6vw, 4rem); line-height: 1.02; margin: 10px 0 14px; }
   .hero .lede { font-size: clamp(1.05rem, 2vw, 1.25rem); color: var(--muted); max-width: 760px; margin: 0 0 10px; }
   .hero .byline { color: var(--faint); font-size: .9rem; margin: 0 0 28px; }
+  /* Spec strip: one row per model, scrolls sideways on narrow screens. */
+  .strip { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin: 0 0 14px; overflow-x: auto; }
+  .strip table { width: 100%; border-collapse: collapse; font-size: .8rem; min-width: 900px; }
+  .strip th, .strip td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  .strip th { color: var(--muted); font-size: .72rem; font-weight: 700; white-space: nowrap; }
+  .strip tbody tr:last-child td { border-bottom: 0; }
+  .strip td:first-child { white-space: nowrap; }
+  .strip a code { color: inherit; }
+  .strip-run { margin: 0; padding: 8px 12px 10px; border-top: 1px solid var(--border); font-size: .8rem; color: var(--muted); }
   .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
   .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
   .tile .lbl { font-size: .8rem; color: var(--muted); }
@@ -264,7 +273,19 @@
 <header class="hero wrap">
   <span class="eyebrow">AI Inference Playground · Benchmark</span>
   <h1>Can a 30B open model draw a cat?</h1>
-  <p class="lede">Four open models of about 30 billion parameters each got <strong>one try</strong> to draw a tuxedo kitten in pure Canvas JavaScript, served with vLLM on a single rented RTX&nbsp;5090. No retries, no fixing their code.</p>
+  <p class="lede">This compares <strong>4 models drawing a cat</strong>: Qwen 3.8 27B, Flint, Muse Glimmer 30B and Ornith 1.5 each got <strong>one try</strong> to draw a tuxedo kitten in pure Canvas JavaScript, served with vLLM on a single rented RTX&nbsp;5090. No retries, no fixing their code.</p>
+  <div class="strip" role="region" aria-label="Model and run specification" tabindex="0">
+    <table>
+      <thead><tr><th>Model</th><th>Checkpoint @ revision</th><th>Params (total / active)</th><th>Quantization</th><th>Speculation (k)</th><th>KV cache</th><th>Compile · attention</th></tr></thead>
+      <tbody>
+        <tr><td><b>Qwen 3.8 27B</b></td><td><a href="https://huggingface.co/Inferact/Qwen3.8-27B-NVFP4/tree/6128240ebaf4eaa7bad2b3d1c72c37d677c5f462"><code>Inferact/Qwen3.8-27B-NVFP4</code></a> @ 6128240e</td><td>~27B dense</td><td>ModelOpt NVFP4, W4A4; some modules kept higher precision</td><td>MTP, k = 3</td><td>FP8</td><td>torch.compile + CUDA graphs · not logged</td></tr>
+        <tr><td><b>Flint</b></td><td><a href="https://huggingface.co/RecursiveSI/flint-nvfp4-gguf/tree/6ec43e19b565fc8d560e2d04985d7724f20673bf"><code>RecursiveSI/flint-nvfp4-gguf</code></a> @ 6ec43e19</td><td>39.8B / ~2.5B MoE</td><td>NVFP4 GGUF, W4A16; BF16 output head</td><td>n-gram, k = 3</td><td><b>BF16</b></td><td>requested*; CUDA graphs · not logged</td></tr>
+        <tr><td><b>Muse Glimmer 30B</b></td><td><a href="https://huggingface.co/Inferact/Muse-Glimmer-30B-NVFP4-W4A4/tree/d35cb79050f419c457611b1cee5c5d15b176f285"><code>Inferact/Muse-Glimmer-30B-NVFP4-W4A4</code></a> @ d35cb790</td><td>~30B dense</td><td>ModelOpt NVFP4, W4A4; selected modules unquantized</td><td>DFlash, k = 15</td><td>FP8</td><td>torch.compile + CUDA graphs · not logged</td></tr>
+        <tr><td><b>Ornith 1.5</b></td><td><a href="https://huggingface.co/ornith-ai/Ornith-1.5-35B-A3B-NVFP4/tree/94e431d9cc47fa1986a7a1a4e9a80f7f118b03aa"><code>ornith-ai/Ornith-1.5-35B-A3B-NVFP4</code></a> @ 94e431d9</td><td>~35B / ~3B MoE</td><td>ModelOpt NVFP4, mixed precision</td><td>DFlash, k = 8</td><td>FP8</td><td>torch.compile + CUDA graphs · not logged</td></tr>
+      </tbody>
+    </table>
+    <p class="strip-run">1× RTX 5090, 32,607 MiB · vLLM 0.32.1rc1.dev602+g5d35ce393 nightly (commit <code>5d35ce39</code>) · 32K context · concurrency 1 · input 210–274 tokens (one prompt) · output uncapped, 4,007–32,494 tokens · n = 1 per configuration, 8 runs. * The same build logged torch.compile as unsupported for Flint in a later run; this run's logs were not kept.</p>
+  </div>
   <p class="byline">By Levi Le · 28 October 2026 · 8 runs: each model with and without speculative decoding</p>
   <div class="tiles">
     <div class="tile"><div class="lbl">Best picture</div><div class="val">Ornith 1.5</div><div class="note">with DFlash speculative decoding</div></div>
@@ -317,7 +338,7 @@
           <div class="media">
             <div class="fail">
               <span class="chip bad">✕ No code</span>
-              <p>The same 32,494-token loop, 1.8× faster. Speculation changes speed, not the outcome.</p>
+              <p>The same 32,494-token loop, 1.8× faster. In this run, speculation changed the speed but not the outcome.</p>
               <ul><li>MTP draft acceptance <b>66%</b></li><li>Ran out of context at <b>286 s</b></li></ul>
             </div>
           </div>
@@ -410,9 +431,9 @@
   <h2 id="take-h">Three things this run showed</h2>
   <div class="cards">
     <article class="card">
-      <h3>The small-active MoE drew the best cat</h3>
+      <h3>In this run, a small-active MoE drew the best cat</h3>
       <img class="best-img" src="assets/ornith-dflash.png" alt="Ornith 1.5 tuxedo kitten" width="800" height="800" loading="lazy">
-      <p>Ornith 1.5 runs only about 3B of its 35B parameters per token, so it can afford to think for 21K tokens and still finish in 70 s. It spent that budget on shading, highlights and a curled tail.</p>
+      <p>Ornith 1.5 uses about 3B of its 35B parameters per token. With DFlash it reasoned for 21K tokens, finished in 70 s, and drew the most shaded, detailed cat. One sample per configuration cannot say whether the architecture caused that.</p>
     </article>
     <article class="card">
       <h3>Speculative decoding: up to 3× faster</h3>
@@ -424,7 +445,7 @@
         <div class="hrow"><b>Flint</b><div class="pair"><div class="hb s1" data-tip="Flint, standard: 278.9 tok/s"><i style="width:69.7%"></i>279</div><div class="hb s2" data-tip="Flint, n-gram: 363.4 tok/s"><i style="width:90.9%"></i>363 <em>1.3×</em></div></div></div>
       </div>
       <div class="axis"><span>0</span><span>100</span><span>200</span><span>300</span><span>400 tok/s</span></div>
-      <p>A small drafter guesses several tokens and the full model checks them in one pass. Dense models gain the most; the fast MoEs were already quick.</p>
+      <p>A small drafter guesses several tokens and the full model checks them in one pass. In this single run the two dense models gained more (3.0×, 1.8×) than the two MoEs (1.4×, 1.3×), with different methods per model.</p>
     </article>
     <article class="card">
       <h3>One serving flag: 7.3× faster</h3>
@@ -453,16 +474,16 @@
       <span class="small">Uniform-sampling run: only 282 of 682 long reasoning lines are distinct. With top_k 20: 632 of 638.</span>
     </div>
   </div>
-  <p class="small muted">Likely contributors: sampling settings (fixed by top_k), aggressive 4-bit weight-and-activation quantization of a dense model, and an open-ended creative prompt. A 64K context is not possible for Qwen MTP on one 32 GB card; turning thinking off is the next experiment.</p>
+  <p class="small muted">Possible contributors, untested with one sample each: sampling settings (fixed by top_k), aggressive 4-bit weight-and-activation quantization of a dense model, and an open-ended creative prompt. A 64K context is not possible for Qwen MTP on one 32 GB card; turning thinking off is the next experiment.</p>
 </section>
 
 <section id="setup" class="wrap" aria-labelledby="setup-h">
   <span class="eyebrow">Setup</span>
   <h2 id="setup-h">How it was run</h2>
-  <p class="sub">Production-style serving on one consumer GPU, the same rules for every model.</p>
+  <p class="sub">Single-request serving on one consumer GPU with a pinned nightly vLLM build, the same rules for every model.</p>
   <div class="specs">
     <div class="spec"><h3>Hardware</h3><dl><dt>GPU</dt><dd>1× RTX 5090, 32 GB</dd><dt>Cloud</dt><dd>Runpod Secure · $1.19/h</dd><dt>Host</dt><dd>16 vCPU · 62 GB RAM</dd></dl></div>
-    <div class="spec"><h3>Serving</h3><dl><dt>Engine</dt><dd>vLLM 0.32.1 · CUDA graphs</dd><dt>Context</dt><dd>32,768 tokens · FP8 KV cache</dd><dt>Load</dt><dd>One request at a time</dd></dl></div>
+    <div class="spec"><h3>Serving</h3><dl><dt>Engine</dt><dd>vLLM 0.32.1rc1.dev602 nightly · CUDA graphs</dd><dt>Context</dt><dd>32,768 tokens · FP8 KV (Flint BF16)</dd><dt>Load</dt><dd>One request at a time</dd></dl></div>
     <div class="spec"><h3>Request</h3><dl><dt>Sampling</dt><dd>temp 0.6 · top_p 0.95 · seed 42</dd><dt>Limits</dt><dd>No token cap · no time limit</dd><dt>Thinking</dt><dd>Each model's default</dd></dl></div>
     <div class="spec"><h3>Rules</h3><dl><dt>Attempts</dt><dd>One per configuration</dd><dt>Rendering</dt><dd>Sandboxed browser, no network</dd><dt>Repairs</dt><dd>None, not even a fence</dd></dl></div>
   </div>
@@ -495,7 +516,7 @@ The illustration must be a static finished image when the page loads. Do not use
       <tbody>
         <tr><td><code>--max-model-len</code></td><td>32,768</td><td>Room for long reasoning; output is capped only by this</td></tr>
         <tr><td><code>--kv-cache-dtype</code></td><td>fp8 (Flint: bfloat16)</td><td>Halves KV memory so 32K fits every model; Flint's vLLM code only accepts BF16</td></tr>
-        <tr><td>Execution mode</td><td>torch.compile + CUDA graphs</td><td>vLLM's production default; eager mode was 7.3× slower</td></tr>
+        <tr><td>Execution mode</td><td>torch.compile + CUDA graphs</td><td>vLLM's default execution mode; eager mode was 7.3× slower</td></tr>
         <tr><td><code>--gpu-memory-utilization</code></td><td>0.95</td><td>Maximum KV headroom on a 32 GB card</td></tr>
         <tr><td><code>--max-num-batched-tokens</code></td><td>2,048</td><td>8,192 ran out of memory during compiled warmup</td></tr>
         <tr><td><code>--max-num-seqs</code></td><td>1</td><td>Single-user latency, not batch throughput</td></tr>
@@ -544,7 +565,7 @@ The illustration must be a static finished image when the page loads. Do not use
     <article><span class="n">02 · SPEED</span><h3>Eager mode was the bottleneck</h3><p>Qwen decoded at 8.5 tok/s with the GPU about 17% busy, stalled on per-layer kernel launches.</p><p class="fix"><b>Fix:</b> vLLM's default compiled + CUDA-graph mode: 61.9 tok/s, 7.3×.</p></article>
     <article><span class="n">03 · HARDWARE</span><h3>Two cloud hosts were broken</h3><p>One returned <code>CUDA unknown error</code> for any GPU work while <code>nvidia-smi</code> looked fine; another couldn't start GPU containers at all.</p><p class="fix"><b>Fix:</b> a CUDA tensor check before downloading anything, and a driver that stops instead of burning a slot on a host fault.</p></article>
     <article><span class="n">04 · METHOD</span><h3>A 300-second limit measured the wrong thing</h3><p>The original design capped requests at 300 s and 6,144 tokens; Qwen spent all of it planning.</p><p class="fix"><b>Fix:</b> no time or token cap; measure the time instead.</p></article>
-    <article><span class="n">05 · CONTEXT</span><h3>8K context was too small</h3><p>With a BF16 KV cache, Qwen MTP had room for only 18,521 tokens.</p><p class="fix"><b>Fix:</b> an FP8 KV cache for every model, so 32K fits everywhere.</p></article>
+    <article><span class="n">05 · CONTEXT</span><h3>8K context was too small</h3><p>With a BF16 KV cache, Qwen MTP had room for only 18,521 tokens.</p><p class="fix"><b>Fix:</b> an FP8 KV cache, so 32K fits everywhere (Flint stayed BF16, see 07).</p></article>
     <article><span class="n">06 · MEMORY</span><h3>Compiled warmup ran out of memory</h3><p>With 32K FP8 KV reserved, warmup at an 8,192-token batch needed 544 MiB with 364 MiB free.</p><p class="fix"><b>Fix:</b> <code>max_num_batched_tokens</code> 2,048; prompts are far shorter.</p></article>
     <article><span class="n">07 · ENGINE</span><h3>Flint rejected the FP8 KV cache</h3><p>Its vLLM attention code hard-asserts BF16.</p><p class="fix"><b>Fix:</b> a recorded per-model BF16 exception; it still fits 32K.</p></article>
     <article><span class="n">08 · SAMPLING</span><h3>Qwen looped</h3><p>Under shared sampling it repeated the same design thoughts up to 9 times.</p><p class="fix"><b>Fix:</b> its publisher's <code>top_k 20</code> removed the loop, and showed it simply needs more than 32K tokens here.</p></article>
@@ -569,6 +590,7 @@ The illustration must be a static finished image when the page loads. Do not use
       <tr><th>Sessions</th><td><code>scored-005</code> (Qwen standard) · <code>scored-006</code> (other seven) · <code>qwen-publisher-001</code> (Qwen follow-up)</td></tr>
       <tr><th>Archives (SHA-256)</th><td><code>6c0ea1c0…797d</code> · <code>780003c9…296c</code> · <code>dd4b3945…bc6</code></td></tr>
       <tr><th>Cost</th><td>$4.59 in posted Runpod charges for 27–28 October, including preparation, two faulty hosts and the follow-up.</td></tr>
+      <tr><th>Raw data</th><td>The runner lives in a private repository. Streams, metrics, receipts and renders are available on request.</td></tr>
     </tbody></table></div>
   </details>
 </section>

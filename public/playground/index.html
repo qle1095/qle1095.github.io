@@ -45,6 +45,10 @@
   a.tile:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: 0 14px 32px -18px rgba(196, 71, 43, .55); }
   a.tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
   .tile img { width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: cover; display: block; background: #fff; }
+  /* Inline chart thumbnail; series colors match the benchmark page (Qwen blue, Flint orange). */
+  .tile svg.thumb { --s1: #2a78d6; --s2: #eb6834; width: 100%; height: auto; aspect-ratio: 1 / 1; display: block; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tile svg.thumb { --s1: #3987e5; --s2: #d95926; } }
+  :root[data-theme="dark"] .tile svg.thumb { --s1: #3987e5; --s2: #d95926; }
   .tile .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
   .tile .kind { font-size: .72rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
   .tile h3 { font-family: var(--font-display); font-weight: 800; font-size: 1.25rem; line-height: 1.2; margin: 0; }
@@ -76,17 +80,40 @@
   <!-- To add an experiment: copy the first <a class="tile"> block, point it at its folder
        under /playground/, and keep the newest tiles first. -->
   <section class="library" aria-label="Experiments">
+    <a class="tile" href="/playground/moe-vs-dense-concurrency/">
+      <svg class="thumb" viewBox="0 0 200 200" role="img" aria-label="Per-request decode speed against aggregate throughput: the MoE curve sits above and right of the dense curve">
+        <rect width="200" height="200" fill="var(--surface-2)"/>
+        <g stroke="var(--border)" stroke-width="1"><line x1="24" y1="176" x2="188" y2="176"/><line x1="24" y1="148.9" x2="188" y2="148.9"/><line x1="24" y1="59" x2="188" y2="59"/></g>
+        <polyline fill="none" stroke="var(--s1)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="28.1,84.8 37.4,93.1 47.5,97.6 59.7,108.9 67.7,115.3 72.2,122.4 79.8,131.7 80.3,140.4 79.4,158.2"/>
+        <polyline fill="none" stroke="var(--s2)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="41.2,27.4 74.7,39.7 96.1,53.5 117.1,71.4 128.7,82.6 141.5,89.5 152.4,103.0 164.5,110.4 186.9,118.2"/>
+        <g fill="var(--s1)" stroke="var(--surface-2)" stroke-width="1.5"><circle cx="28.1" cy="84.8" r="3.5"/><circle cx="79.8" cy="131.7" r="3.5"/><circle cx="79.4" cy="158.2" r="3.5"/></g>
+        <g fill="var(--s2)" stroke="var(--surface-2)" stroke-width="1.5"><rect x="37.7" y="23.9" width="7" height="7" rx="1"/><rect x="183.4" y="114.7" width="7" height="7" rx="1"/></g>
+        <g font-family="Inter, system-ui, sans-serif" font-size="9.5" font-weight="600" fill="var(--muted)"><text x="80" y="30">Flint · MoE</text><text x="92" y="161">Qwen · dense</text></g>
+      </svg>
+      <div class="body">
+        <span class="kind">Benchmark · October 2026</span>
+        <h3>MoE vs Dense Under Load</h3>
+        <p>Flint (~40B MoE, NVFP4 W4A16) vs Qwen 3.8 27B (dense, NVFP4 W4A4) on vLLM, from 1 to 96 concurrent requests on one RTX PRO 6000. Per-request speed, total throughput, goodput under a latency SLO, cost per token and KV cache, with every caveat.</p>
+        <div class="tags"><span>vLLM</span><span>RTX PRO 6000</span><span>MoE</span><span>NVFP4</span><span>GuideLLM</span><span>Concurrency</span></div>
+        <div class="stats">
+          <div><b>224 tok/s</b><small>Flint per-request decode at 1 request (Qwen 51.5)</small></div>
+          <div><b>1,987 tok/s</b><small>Flint all-request output at 96 (Qwen max 687)</small></div>
+          <div><b>64 vs 16</b><small>max requests within SLO, Flint vs Qwen</small></div>
+        </div>
+        <span class="open">Read the benchmark</span>
+      </div>
+    </a>
     <a class="tile" href="/playground/procedural-cat/">
       <img src="/playground/procedural-cat/assets/ornith-dflash.png" alt="Tuxedo kitten drawn in Canvas JavaScript by Ornith 1.5 with DFlash" width="800" height="800" loading="lazy">
       <div class="body">
         <span class="kind">Benchmark · October 2026</span>
         <h3>Procedural Cat Benchmark</h3>
-        <p>Four open ~30B models each get one try to draw a tuxedo kitten in Canvas JavaScript, served with vLLM on a single RTX 5090. Includes speed, tokens, speculative decoding, and eight problems I hit and fixed along the way.</p>
+        <p>Qwen 3.8 27B, Flint, Muse Glimmer 30B and Ornith 1.5 each get one try to draw a tuxedo kitten in Canvas JavaScript, served with vLLM on a single RTX 5090, with and without speculative decoding. Includes speed, tokens, and eight problems I hit and fixed along the way.</p>
         <div class="tags"><span>vLLM</span><span>RTX 5090</span><span>NVFP4</span><span>Speculative decoding</span><span>CUDA graphs</span></div>
         <div class="stats">
-          <div><b>5 / 8</b><small>valid cats</small></div>
-          <div><b>363 tok/s</b><small>fastest decode</small></div>
-          <div><b>7.3×</b><small>CUDA-graph speedup</small></div>
+          <div><b>5 / 8</b><small>runs drew a valid cat</small></div>
+          <div><b>363 tok/s</b><small>Flint n-gram per-request decode at 1 request</small></div>
+          <div><b>7.3×</b><small>Qwen decode, CUDA graphs vs eager</small></div>
         </div>
         <span class="open">Read the benchmark</span>
       </div>

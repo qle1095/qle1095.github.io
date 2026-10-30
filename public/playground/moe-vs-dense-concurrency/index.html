@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MoE vs Dense Under Load · Levi Le</title>
+<meta name="description" content="A ~40B MoE and a 27B dense model, both NVFP4 on vLLM, under 1 to 96 concurrent requests on one RTX PRO 6000. Per-request speed, aggregate throughput, TTFT, queueing and KV cache, with every caveat.">
+<meta property="og:title" content="MoE vs Dense Under Load · Levi Le">
+<meta property="og:description" content="Two NVFP4 models on vLLM, one RTX PRO 6000, 1 to 96 concurrent requests. Measured, charted, caveated.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  @font-face { font-family: 'Bricolage Grotesque'; src: url('/fonts/bricolage-800.woff2') format('woff2'); font-weight: 800; font-display: swap; }
+  @font-face { font-family: 'Inter'; src: url('/fonts/inter-400.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+  @font-face { font-family: 'Inter'; src: url('/fonts/inter-600.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+  @font-face { font-family: 'Inter'; src: url('/fonts/inter-800.woff2') format('woff2'); font-weight: 800; font-display: swap; }
+
+  :root {
+    color-scheme: light;
+    --bg: #fffdf8; --surface: #ffffff; --surface-2: #f6f1e8; --text: #23273a; --muted: #4a4f63; --faint: #6e7388;
+    --border: #ebe4d6; --grid: #ece7dc; --axis: #d6cfbf; --accent: #c4472b; --accent-soft: #ffeee8;
+    --s1: #2a78d6; --s2: #eb6834;                 /* chart series: Qwen / Flint (validated pair) */
+    --tip-bg: #23273a; --tip-text: #ffffff; --tip-muted: #b9bdd0;
+    --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #17181f; --surface: #1f2029; --surface-2: #272834; --text: #eceef4; --muted: #a6a9b8; --faint: #8b8fa1;
+      --border: #333545; --grid: #2c2e3b; --axis: #41435a; --accent: #ff9a7f; --accent-soft: #3a2620;
+      --s1: #3987e5; --s2: #d95926;
+      --tip-bg: #30344d;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #17181f; --surface: #1f2029; --surface-2: #272834; --text: #eceef4; --muted: #a6a9b8; --faint: #8b8fa1;
+    --border: #333545; --grid: #2c2e3b; --axis: #41435a; --accent: #ff9a7f; --accent-soft: #3a2620;
+    --s1: #3987e5; --s2: #d95926;
+    --tip-bg: #30344d;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 var(--font-body); -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 16px; }
+  h1, h2 { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; }
+  h2 { font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.15; margin: 0 0 8px; }
+  h3 { font-size: 1.05rem; margin: 0; }
+  .eyebrow { font-size: .74rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+  .sub { color: var(--muted); max-width: 760px; margin: 0 0 24px; }
+  section { padding: 64px 0 0; }
+  .small { font-size: .88rem; }
+  .muted { color: var(--muted); }
+  code { font-family: var(--mono); font-size: .86em; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+
+  /* ---------- Top bar ---------- */
+  .topbar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+  .topbar .wrap { display: flex; align-items: center; gap: 16px; height: 52px; }
+  .topbar .back { font-weight: 600; font-size: .9rem; text-decoration: none; white-space: nowrap; }
+  .topbar nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; margin-left: auto; }
+  .topbar nav::-webkit-scrollbar { display: none; }
+  .topbar nav a { color: var(--muted); text-decoration: none; font-size: .86rem; padding: 6px 10px; border-radius: 999px; white-space: nowrap; }
+  .topbar nav a:hover { background: var(--surface-2); color: var(--text); }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 48px 16px 8px; }
+  .hero h1 { font-size: clamp(2.1rem, 5.6vw, 3.6rem); line-height: 1.04; margin: 10px 0 14px; }
+  .hero .lede { font-size: clamp(1.05rem, 2vw, 1.22rem); color: var(--muted); max-width: 780px; margin: 0 0 10px; }
+  .hero .byline { color: var(--faint); font-size: .9rem; margin: 0 0 24px; }
+  .tldr { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px 22px; }
+  .tldr h2 { font-size: .8rem; font-family: var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; }
+  .tldr ul { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+  .tldr li { color: var(--muted); }
+  .tldr li b { color: var(--text); }
+  .hero .lede.small { font-size: 1rem; }
+  /* Spec strip: one row per model, scrolls sideways on narrow screens. */
+  .strip { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin: 14px 0 12px; overflow-x: auto; }
+  .strip table { width: 100%; border-collapse: collapse; font-size: .82rem; min-width: 860px; }
+  .strip th, .strip td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  .strip th { color: var(--muted); font-size: .72rem; font-weight: 700; white-space: nowrap; }
+  .strip tbody tr:last-child td { border-bottom: 0; }
+  .strip td:first-child { white-space: nowrap; }
+  .strip a code { color: inherit; }
+  .strip-run { margin: 0; padding: 8px 12px 10px; border-top: 1px solid var(--border); font-size: .8rem; color: var(--muted); min-width: 0; }
+  .goodput { width: 100%; border-collapse: collapse; font-size: .9rem; min-width: 760px; }
+  .goodput th, .goodput td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  .goodput th { color: var(--muted); font-size: .74rem; font-weight: 700; vertical-align: bottom; }
+  .goodput th:first-child, .goodput td:first-child { text-align: left; }
+  .goodput tr:last-child td { border-bottom: 0; }
+  .scroll { overflow-x: auto; }
+  .missing { margin: 0; padding-left: 20px; color: var(--muted); font-size: .92rem; display: grid; gap: 6px; }
+
+  /* ---------- Setup ---------- */
+  .setup { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; overflow-x: auto; }
+  .setup table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  .setup th, .setup td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  .setup tr:last-child th, .setup tr:last-child td { border-bottom: 0; }
+  .setup th { color: var(--muted); font-size: .78rem; font-weight: 700; white-space: nowrap; width: 1%; }
+  .setup td span { color: var(--muted); }
+  @media (max-width: 560px) {
+    .setup tr { display: block; padding: 8px 0; border-bottom: 1px solid var(--grid); }
+    .setup tr:last-child { border-bottom: 0; }
+    .setup th, .setup td { display: block; border: 0; padding: 2px 14px; width: auto; }
+  }
+
+  /* ---------- Charts ---------- */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px 18px 10px; }
+  .card + .card, .card + .grid, .grid + .card { margin-top: 16px; }
+  .card-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 18px; margin-bottom: 6px; }
+  .card-head h3 { font-family: var(--font-display); font-weight: 800; font-size: 1.2rem; line-height: 1.2; }
+  .card-head p { margin: 2px 0 0; color: var(--muted); font-size: .88rem; max-width: 640px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; }
+  .grid .card h3 { font-family: var(--font-body); font-size: .95rem; font-weight: 700; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .82rem; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .legend svg { overflow: visible; }
+  .chart { position: relative; width: 100%; }
+  .chart svg { display: block; width: 100%; overflow: visible; }
+  .chart svg:focus { outline: none; }
+  .chart svg:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  .note { font-size: .84rem; color: var(--faint); margin: 6px 0 4px; }
+
+  /* SVG roles: colors come from tokens so both themes work. */
+  .grid-l { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+  .base-l { stroke: var(--axis); stroke-width: 1; shape-rendering: crispEdges; }
+  .tick { fill: var(--faint); font: 11px var(--font-body); font-variant-numeric: tabular-nums; }
+  .axis-t { fill: var(--muted); font: 600 11.5px var(--font-body); }
+  .lbl { fill: var(--muted); font: 600 11px var(--font-body); font-variant-numeric: tabular-nums; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+  .lbl.strong { fill: var(--text); font-size: 12px; }
+  .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .ln.q { stroke: var(--s1); } .ln.f { stroke: var(--s2); }
+  .mk { stroke: var(--surface); stroke-width: 2; }
+  .mk.q { fill: var(--s1); } .mk.f { fill: var(--s2); }
+  .mk.on { stroke-width: 3; }
+  .xh { stroke: var(--muted); stroke-width: 1; opacity: .5; shape-rendering: crispEdges; }
+
+  #tip { position: fixed; z-index: 50; pointer-events: none; background: var(--tip-bg); color: var(--tip-text); font-size: .8rem; line-height: 1.45; padding: 8px 10px; border-radius: 8px; min-width: 150px; max-width: 260px; opacity: 0; transition: opacity .1s; box-shadow: 0 10px 28px -12px rgba(0,0,0,.5); }
+  #tip .th { color: var(--tip-muted); font-size: .74rem; margin-bottom: 4px; }
+  #tip .tr { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+  #tip .tr i { width: 12px; height: 2px; border-radius: 1px; flex: none; }
+  #tip .tr b { font-variant-numeric: tabular-nums; }
+  #tip .tr span { color: var(--tip-muted); }
+
+  /* ---------- Explain / caveats ---------- */
+  .why { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .why article { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; display: grid; gap: 6px; align-content: start; }
+  .why .n { font-size: .74rem; font-weight: 800; color: var(--accent); letter-spacing: .08em; }
+  .why h3 { font-size: 1rem; }
+  .why p { margin: 0; color: var(--muted); font-size: .9rem; }
+  .why .src { font-size: .78rem; color: var(--faint); }
+  @media (max-width: 760px) { .why { grid-template-columns: 1fr; } }
+  .caveats { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 20px 16px 38px; margin: 0; display: grid; gap: 8px; }
+  .caveats li { color: var(--muted); font-size: .92rem; }
+  .caveats li b { color: var(--text); }
+
+  details.more { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-top: 12px; }
+  details.more > summary { cursor: pointer; padding: 14px 18px; font-weight: 700; list-style: none; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more > summary::after { content: "+"; color: var(--accent); font-size: 1.2rem; line-height: 1; margin-left: auto; }
+  details.more[open] > summary::after { content: "–"; }
+  details.more > summary span { font-weight: 400; color: var(--muted); font-size: .88rem; }
+  .more-body { padding: 0 18px 18px; overflow-x: auto; }
+  .more-body table { width: 100%; border-collapse: collapse; font-size: .84rem; min-width: 1380px; }
+  .more-body th, .more-body td { text-align: right; padding: 7px 9px; border-bottom: 1px solid var(--grid); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .more-body th { color: var(--muted); font-size: .74rem; font-weight: 700; vertical-align: bottom; white-space: normal; }
+  .more-body th:first-child, .more-body td:first-child { text-align: left; }
+  .more-body tr.sep td { border-top: 2px solid var(--border); }
+  pre.cmd { background: var(--surface-2); border-radius: 12px; padding: 14px 16px; margin: 0 0 12px; font: .8rem/1.55 var(--mono); overflow-x: auto; white-space: pre; }
+
+  footer { margin: 72px 0 0; padding: 24px 0 48px; border-top: 1px solid var(--border); color: var(--faint); font-size: .86rem; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <a class="back" href="/playground/">← Playground</a>
+    <nav aria-label="Sections">
+      <a href="#setup">Setup</a><a href="#frontier">Key chart</a><a href="#goodput">Goodput</a><a href="#load">Under load</a><a href="#why">Why</a><a href="#caveats">Caveats</a><a href="#reproduce">Reproduce</a>
+    </nav>
+  </div>
+</div>
+
+<main>
+<header class="hero wrap">
+  <span class="eyebrow">AI Inference Playground · Benchmark</span>
+  <h1>MoE vs dense under load: 1 to 96 concurrent requests</h1>
+  <p class="lede">Flint, a ~40B mixture-of-experts model run as NVFP4 W4A16 on Marlin kernels without torch.compile and on FlashInfer attention, against Qwen 3.8 27B, a dense model run as NVFP4 W4A4, compiled, on FlashAttention&nbsp;2. Both were served by vLLM on one RTX&nbsp;PRO&nbsp;6000 at 1 to 96 concurrent requests. The serving flags matched; the kernels and execution paths did not.</p>
+  <p class="lede small">Workload: synthetic coding-agent chats with an 8K-token shared prefix and 14 turns. Each turn targets ~875 input and ~214 output tokens; the measured mean output was 241–357 tokens per level.</p>
+  <div class="strip" role="region" aria-label="Model and run specification" tabindex="0">
+    <table>
+      <thead><tr><th>Model</th><th>Checkpoint @ revision</th><th>Params (total / active)</th><th>Quantization</th><th>Speculation</th><th>KV cache</th><th>Compile · attention</th></tr></thead>
+      <tbody>
+        <tr><td><b>Qwen 3.8 27B</b></td><td><a href="https://huggingface.co/Inferact/Qwen3.8-27B-NVFP4/tree/6128240ebaf4eaa7bad2b3d1c72c37d677c5f462"><code>Inferact/Qwen3.8-27B-NVFP4</code></a> @ 6128240e</td><td>~27B dense</td><td>ModelOpt NVFP4, W4A4 on MLP and attention projections; linear-attention input projections and LM head BF16</td><td>none</td><td>BF16</td><td>torch.compile + CUDA graphs · FlashAttention 2</td></tr>
+        <tr><td><b>Flint</b></td><td><a href="https://huggingface.co/RecursiveSI/flint-nvfp4-gguf/tree/6ec43e19b565fc8d560e2d04985d7724f20673bf"><code>RecursiveSI/flint-nvfp4-gguf</code></a> @ 6ec43e19</td><td>39.8B / ~2.5B (6 of 256 experts + shared)</td><td>NVFP4 GGUF, W4A16 on Marlin</td><td>none</td><td>BF16</td><td>no torch.compile (unsupported), CUDA graphs · FlashInfer</td></tr>
+      </tbody>
+    </table>
+    <p class="strip-run">RTX PRO 6000 Blackwell Server Edition, 97,887 MiB · vLLM 0.32.1rc1.dev602+g5d35ce393 nightly (commit <code>5d35ce39</code>) · 32K context · 1–96 concurrent requests · ~875 in / ~214 out per turn (measured 241–357 out) · n = 1 run per level</p>
+  </div>
+  <p class="byline">By Levi Le · 30 October 2026 · about $2.15 of cloud time</p>
+  <div class="tldr">
+    <h2>TL;DR</h2>
+    <ul>
+      <li><b>One request at a time:</b> Flint (MoE) streamed <b>224 tok/s</b> per request, Qwen (dense) <b>51.5 tok/s</b>.</li>
+      <li><b>Total output, all requests:</b> Flint reached <b>1,987 tok/s</b> at 96 requests (server count 2,046) and was still climbing. Qwen levelled off at <b>675–687 tok/s</b> from 48 requests (server count 670–701).</li>
+      <li><b>Within a latency SLO</b> (p95 TTFT ≤ 1.5 s and p95 inter-token latency ≤ 50 ms): Flint held up to <b>64</b> concurrent requests, Qwen up to <b>16</b>.</li>
+      <li><b>Compute cost at peak output:</b> Flint <b>$0.35</b>, Qwen <b>$1.01</b> per 1M output tokens (derived, compute only).</li>
+      <li><b>Not a pure MoE-vs-dense test:</b> different model families, 4-bit recipes and kernels. Read the <a href="#caveats">caveats</a> before quoting.</li>
+    </ul>
+  </div>
+</header>
+
+<section id="setup" class="wrap" aria-labelledby="setup-h">
+  <span class="eyebrow">Setup</span>
+  <h2 id="setup-h">What ran</h2>
+  <p class="sub">Both models were served one after the other on the same GPU with the same vLLM flags. Kernels, compile mode and attention backend differed, as listed above.</p>
+  <div class="setup">
+    <table>
+      <tbody>
+        <tr><th>Hardware</th><td>1× RTX PRO 6000 Blackwell Server Edition, 97,887 MiB (<code>nvidia-smi</code>) · RunPod · $2.49/h<br><span>GPU time about 0.85 h; about $2.15 in total including a CPU pod for the downloads. Power cap: not measured.</span></td></tr>
+        <tr><th>Engine</th><td>vLLM 0.32.1rc1.dev602+g5d35ce393 nightly, image pinned by digest <code>sha256:deb9ad8c…</code></td></tr>
+        <tr><th>Serving flags</th><td>32K context · BF16 KV cache · prefix caching on · <code>max-num-batched-tokens</code> 8192 · <code>max-num-seqs</code> 512 · <code>gpu-memory-utilization</code> 0.90</td></tr>
+        <tr><th>KV capacity</th><td>Qwen 767,038 tokens in 832-token blocks · Flint 899,044 tokens in 16-token blocks <span>(from vLLM's startup log)</span></td></tr>
+        <tr><th>Load</th><td>GuideLLM 0.8.0, closed-loop concurrent streams at 1, 4, 8, 16, 24, 32, 48, 64 and 96 · 120 s per level including 15 s warmup · stop early if p95 TTFT &gt; 10 s</td></tr>
+        <tr><th>Workload</th><td>Synthetic multi-turn coding-agent chats: an 8K-token shared prefix, then 14 turns that resend the history. Each turn adds ~875 prompt and ~214 output tokens, sized from TraceLab medians (<a href="https://arxiv.org/abs/2606.30560">arXiv 2606.30560</a>).</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="frontier" class="wrap" aria-labelledby="frontier-h">
+  <span class="eyebrow">The key chart</span>
+  <h2 id="frontier-h">Speed per request vs total throughput</h2>
+  <p class="sub">Each point is one concurrency level. Up is a faster stream for each request; right is more tokens per second for the whole GPU. Flint's curve sits above and to the right of Qwen's at every level.</p>
+  <div class="card">
+    <div class="card-head">
+      <div><h3>Per-request decode speed vs aggregate output</h3><p>x: output tok/s from all requests, finished or still streaming (GuideLLM successful + incomplete; server count within 3%). y: 1000 ÷ median inter-token latency, log scale. Labels are concurrent requests.</p></div>
+      <div class="legend" data-legend></div>
+    </div>
+    <div class="chart" id="c-frontier"></div>
+  </div>
+</section>
+
+<section id="goodput" class="wrap" aria-labelledby="goodput-h">
+  <span class="eyebrow">Goodput and cost</span>
+  <h2 id="goodput-h">How much load fits inside a latency target</h2>
+  <p class="sub">SLO: p95 time to first token ≤ 1.5 s <b>and</b> p95 inter-token latency ≤ 50 ms, over successful requests. Only the tested levels were checked, so the real limit lies between the last passing and the first failing level.</p>
+  <div class="card">
+    <div class="scroll">
+      <table class="goodput">
+        <thead><tr><th>Model</th><th>Highest level within SLO</th><th>p95 TTFT there</th><th>p95 ITL there</th><th>Output there (all requests)</th><th>$ / 1M output tokens there</th><th>Peak output (level)</th><th>$ / 1M at peak</th></tr></thead>
+        <tbody>
+          <tr><td><b>Qwen 3.8 27B</b></td><td>16</td><td>0.41 s</td><td>40.0 ms</td><td>436 tok/s</td><td>$1.59</td><td>687 tok/s (64)</td><td>$1.01</td></tr>
+          <tr><td><b>Flint</b></td><td>64</td><td>0.27 s</td><td>41.7 ms</td><td>1,713 tok/s</td><td>$0.40</td><td>1,987 tok/s (96)</td><td>$0.35</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">First failing level: Qwen at 24 (p95 ITL 50.02 ms), Flint at 96 (p95 ITL 55.6 ms). Cost is <b>derived, compute only</b>: $2.49/h ÷ (output tok/s × 3,600) × 1,000,000. It excludes startup, downloads, storage and idle time.</p>
+  </div>
+</section>
+
+<section id="load" class="wrap" aria-labelledby="load-h">
+  <span class="eyebrow">Under load</span>
+  <h2 id="load-h">What changes as requests pile up</h2>
+  <p class="sub">Hover or tab into any chart for exact values. Every number is also in the <a href="#all-data">full table</a>.</p>
+
+  <div class="card">
+    <div class="card-head">
+      <div><h3>Aggregate output throughput</h3><p>Output tokens per second from all requests, finished or still streaming when the window closed (GuideLLM successful + incomplete). The server count is in the tooltip and agrees within 3%.</p></div>
+      <div class="legend" data-legend></div>
+    </div>
+    <div class="chart" id="c-agg"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div><h3>Time to first token</h3><p>Median and 95th percentile, on the same scale.</p></div>
+      <div class="legend" data-legend></div>
+    </div>
+    <div class="grid">
+      <div><h3 class="small muted">p50</h3><div class="chart" id="c-ttft50"></div></div>
+      <div><h3 class="small muted">p95</h3><div class="chart" id="c-ttft95"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div><h3>Where a request's time goes</h3><p>Mean per request, from vLLM's own histograms. Each panel has its own scale.</p></div>
+      <div class="legend" data-legend></div>
+    </div>
+    <div class="grid">
+      <div><h3 class="small muted">Waiting in queue</h3><div class="chart" id="c-queue"></div></div>
+      <div><h3 class="small muted">Prefill</h3><div class="chart" id="c-prefill"></div></div>
+      <div><h3 class="small muted">Decode (whole response)</h3><div class="chart" id="c-decode"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div><h3>Memory, cache and power</h3><p>Peak KV-cache use, prefix-cache hit rate and mean GPU power in each level's measured window.</p></div>
+      <div class="legend" data-legend></div>
+    </div>
+    <div class="grid">
+      <div><h3 class="small muted">Peak KV cache used</h3><div class="chart" id="c-kv"></div></div>
+      <div><h3 class="small muted">Prefix-cache hits</h3><div class="chart" id="c-prefix"></div></div>
+      <div><h3 class="small muted">Mean GPU power</h3><div class="chart" id="c-power"></div></div>
+    </div>
+    <p class="note">The prefix-hit axis starts at 70%.</p>
+  </div>
+
+  <details class="more" id="all-data">
+    <summary>All measurements <span>one row per model and concurrency level</span></summary>
+    <div class="more-body"><table id="data-table"></table>
+      <p class="small muted">Per-request speed = 1000 ÷ median inter-token latency. Aggregate = GuideLLM's successful + incomplete output rate; "Server count" is vLLM's own generation counter. TTFT, ITL, E2E (GuideLLM's <code>request_latency</code>) and token means come from GuideLLM over successful requests; queue, prefill, decode, KV and prefix hits come from vLLM's <code>/metrics</code>, sampled every 2 s; power comes from <code>nvidia-smi</code>, sampled every 1 s. Warmup is excluded.</p>
+    </div>
+  </details>
+</section>
+
+<section id="why" class="wrap" aria-labelledby="why-h">
+  <span class="eyebrow">Why it looks like this</span>
+  <h2 id="why-h">Reading the curves</h2>
+  <div class="why">
+    <article>
+      <span class="n">01 · ONE REQUEST</span>
+      <h3>The MoE uses far fewer weights per token</h3>
+      <p>Flint sends each token through 6 of its 256 experts plus a shared expert: about 2.5B of its 39.8B parameters. Dense Qwen uses all ~27B for every token. At one request, Flint streamed 224 tok/s and Qwen 51.5.</p>
+      <p class="src">Sources: Flint's <code>config.json</code> (256 experts, 6 per token, shared expert), measured levels.</p>
+    </article>
+    <article>
+      <span class="n">02 · MORE REQUESTS</span>
+      <h3>The gap narrows as batches touch more experts</h3>
+      <p>Every decode step serves the whole batch. With 6 experts per token, a batch of 43 tokens can already reach all 256 experts, so the MoE's per-token savings shrink as concurrency rises. Per-request speed went from 224 vs 51.5 tok/s at 1 request to 32.3 vs 15.5 at 48.</p>
+      <p class="src">The expert count is an upper bound; how many experts a batch actually touched was not measured.</p>
+    </article>
+    <article>
+      <span class="n">03 · QWEN PAST 48</span>
+      <h3>A plateau, not a memory wall</h3>
+      <p>From 48 to 96 requests, Qwen's all-request output stayed at 680, 687 and 675 tok/s (server count 694, 701, 670) while each stream slowed (median token gap 64, 81, 127 ms) and mean queue wait grew (0.26, 0.56, 1.49 s). The KV cache peaked at 75% and vLLM preempted nothing, so memory was not the limit.</p>
+      <p class="src">GuideLLM's completed-only count fell (596 → 465) because unfinished long requests are omitted; counting them matches vLLM within 3%.</p>
+    </article>
+    <article>
+      <span class="n">04 · FLINT AT 96</span>
+      <h3>Headroom left</h3>
+      <p>At 96 requests Flint's KV cache peaked at 51%, mean queue wait was 3.5 ms, and p95 time to first token was 0.31 s. The early-stop rule never fired, so its ceiling on this GPU is still unknown.</p>
+      <p class="src">Sources: measured levels and vLLM metrics.</p>
+    </article>
+  </div>
+</section>
+
+<section id="caveats" class="wrap" aria-labelledby="caveats-h">
+  <span class="eyebrow">Caveats</span>
+  <h2 id="caveats-h">Read before quoting these numbers</h2>
+  <ul class="caveats">
+    <li><b>Not a pure MoE-vs-dense test.</b> Different model families and different NVFP4 recipes: Qwen runs W4A4 on vLLM's FlashInfer CUTLASS FP4 kernels, Flint runs W4A16 on Marlin. vLLM logged that Flint would use "weight-only FP4 compression … leveraging the Marlin kernel".</li>
+    <li><b>Different execution paths.</b> Flint ran without torch.compile (unsupported for this model) on FlashInfer attention; Qwen ran compiled on FlashAttention 2.</li>
+    <li><b>Responses ran longer than configured.</b> The target mean was 214 output tokens; measured means were 241–357 per level. Both models used the same settings.</li>
+    <li><b>Requests are not users.</b> Each stream sends its next turn as soon as the last one finishes, with no think time.</li>
+    <li><b>Single run, no repeats.</b> No error bars.</li>
+    <li><b>No ceiling found.</b> The early-stop rule (p95 TTFT above 10 s) never fired for either model.</li>
+    <li><b>Qwen's lower prefix-hit rate is partly by design.</b> Its hybrid layers make vLLM use 832-token cache blocks (Flint: 16), and prefix caching reuses only whole blocks.</li>
+    <li><b>Uneven prompts at high concurrency.</b> In each 120 s window Qwen's slower conversations reached fewer turns, so its mean prompt was shorter: 10,138 vs 14,538 tokens at 96 requests.</li>
+  </ul>
+  <h3 class="small muted" style="margin:20px 0 8px">Not measured</h3>
+  <ul class="missing">
+    <li>Repeats: one run per level, so run-to-run variance is unknown.</li>
+    <li>A prefix-caching-off run, so the cache's share of these numbers is unknown.</li>
+    <li>Flint's saturation point: throughput was still rising at 96 requests.</li>
+    <li>GPU power cap and clocks.</li>
+    <li>Output quality: <code>ignore_eos</code> makes outputs fixed-length synthetic text.</li>
+  </ul>
+  <p class="small muted">p99 TTFT, p99 ITL and end-to-end latency (p50/p95/p99) were measured and are in the <a href="#all-data">full table</a>. At 1 request Qwen completed only 15 requests, so its p95 and p99 coincide.</p>
+</section>
+
+<section id="reproduce" class="wrap" aria-labelledby="repro-h">
+  <span class="eyebrow">Reproduce</span>
+  <h2 id="repro-h">Method</h2>
+  <p class="sub">The runner script and CSV exporter live in my private lab repository. The settings below are the complete method; host, network and account details are left out. The raw data (GuideLLM reports, vLLM metrics and logs) is available on request.</p>
+  <details class="more">
+    <summary>Serving and load commands <span>vLLM and GuideLLM</span></summary>
+    <div class="more-body">
+<pre class="cmd">vllm serve &lt;model&gt; \
+  --tensor-parallel-size 1 --dtype bfloat16 --kv-cache-dtype auto \
+  --max-model-len 32768 --max-num-seqs 512 --max-num-batched-tokens 8192 \
+  --gpu-memory-utilization 0.90 --enable-prefix-caching --generation-config vllm
+#   Qwen:  Inferact/Qwen3.8-27B-NVFP4 @ 6128240e, plus --language-model-only
+#   Flint: RecursiveSI/flint-nvfp4-gguf @ 6ec43e19 (flint-nvfp4.gguf), with
+#          --hf-config-path and --tokenizer from RecursiveSI/flint @ 2a247be0
+
+# GuideLLM 0.8.0, once per level C in 1 4 8 16 24 32 48 64 96
+guidellm run \
+  --profile    "kind=concurrent,streams=$C,warmup=15" \
+  --constraint "kind=max_duration,seconds=120" \
+  --data "kind=synthetic_text,prefix_tokens=8000,prefix_count=1,turns=14,\
+prompt_tokens=875,prompt_tokens_stdev=400,prompt_tokens_min=200,prompt_tokens_max=2000,\
+output_tokens=214,output_tokens_stdev=250,output_tokens_min=50,output_tokens_max=1700"
+# Requests: /v1/chat/completions, streamed,
+#   temperature 1.0, top_p 0.95, top_k 20, ignore_eos true</pre>
+      <p class="small muted">Between levels the runner waits until vLLM reports no running or waiting requests. Metrics come from vLLM's <code>/metrics</code> (every 2 s) and <code>nvidia-smi</code> (every 1 s), cut to each level's window after warmup.</p>
+    </div>
+  </details>
+</section>
+</main>
+
+<footer class="wrap">MoE vs dense under load · Levi Le · <a href="/playground/">More experiments in the Playground</a> · <a href="/">Résumé</a></footer>
+<div id="tip" role="tooltip" aria-hidden="true"></div>
+
+<script>
+/* Generated from results/export/levels.csv plus mean prompt/output tokens from each GuideLLM c<N>.json. */
+const DATA = {"qwen":[{"concurrency":1,"completed":15,"errored":0,"ttft_p50_s":0.1862,"ttft_p95_s":0.6727,"itl_p50_ms":19.4097,"itl_p95_ms":19.679,"per_user_tps":51.5207,"agg_output_tps":50.1224,"kv_peak_pct":2.7051,"gpu_power_mean_w":335.7287,"decode_tps_server":50.1597,"prefill_ms_mean":162.902,"decode_ms_mean":6358.7122,"queue_ms_mean":0.0094,"prefix_hit_pct":87.5844,"out_tok_mean":357.2,"in_tok_mean":15529.5,"ttft_p99_s":0.6727,"itl_p99_ms":19.693,"e2e_p50_s":7.511,"e2e_p95_s":15.516,"e2e_p99_s":15.516},{"concurrency":4,"completed":53,"errored":0,"ttft_p50_s":0.21,"ttft_p95_s":0.2883,"itl_p50_ms":23.9683,"itl_p95_ms":24.6562,"per_user_tps":41.7218,"agg_output_tps":163.6763,"kv_peak_pct":7.7661,"gpu_power_mean_w":343.2555,"decode_tps_server":164.0514,"prefill_ms_mean":163.6625,"decode_ms_mean":7258.6877,"queue_ms_mean":0.0055,"prefix_hit_pct":90.4966,"out_tok_mean":317.7,"in_tok_mean":16218.0,"ttft_p99_s":0.3143,"itl_p99_ms":25.229,"e2e_p50_s":8.707,"e2e_p95_s":16.373,"e2e_p99_s":18.463},{"concurrency":8,"completed":101,"errored":0,"ttft_p50_s":0.2219,"ttft_p95_s":0.3065,"itl_p50_ms":26.9098,"itl_p95_ms":29.8927,"per_user_tps":37.1612,"agg_output_tps":286.0157,"kv_peak_pct":15.0087,"gpu_power_mean_w":386.0898,"decode_tps_server":284.2086,"prefill_ms_mean":179.8357,"decode_ms_mean":8228.6619,"queue_ms_mean":0.0069,"prefix_hit_pct":90.5684,"out_tok_mean":312.6,"in_tok_mean":16298.5,"ttft_p99_s":0.3477,"itl_p99_ms":30.434,"e2e_p50_s":9.202,"e2e_p95_s":17.18,"e2e_p99_s":19.778},{"concurrency":16,"completed":158,"errored":0,"ttft_p50_s":0.25,"ttft_p95_s":0.4053,"itl_p50_ms":35.9246,"itl_p95_ms":40.0147,"per_user_tps":27.8361,"agg_output_tps":435.8051,"kv_peak_pct":25.3927,"gpu_power_mean_w":431.3877,"decode_tps_server":439.3516,"prefill_ms_mean":221.4799,"decode_ms_mean":9762.903,"queue_ms_mean":0.0064,"prefix_hit_pct":90.2009,"out_tok_mean":284.5,"in_tok_mean":15629.3,"ttft_p99_s":0.5063,"itl_p99_ms":42.319,"e2e_p50_s":9.271,"e2e_p95_s":23.525,"e2e_p99_s":27.717},{"concurrency":24,"completed":200,"errored":0,"ttft_p50_s":0.2729,"ttft_p95_s":0.4854,"itl_p50_ms":42.2567,"itl_p95_ms":50.0162,"per_user_tps":23.6649,"agg_output_tps":532.4757,"kv_peak_pct":38.3944,"gpu_power_mean_w":456.5616,"decode_tps_server":540.9339,"prefill_ms_mean":263.172,"decode_ms_mean":11871.0121,"queue_ms_mean":0.0072,"prefix_hit_pct":89.632,"out_tok_mean":285.2,"in_tok_mean":14442.8,"ttft_p99_s":0.5746,"itl_p99_ms":52.995,"e2e_p50_s":11.036,"e2e_p95_s":28.612,"e2e_p99_s":34.258},{"concurrency":32,"completed":232,"errored":0,"ttft_p50_s":0.2906,"ttft_p95_s":0.5254,"itl_p50_ms":50.7914,"itl_p95_ms":62.327,"per_user_tps":19.6884,"agg_output_tps":588.1981,"kv_peak_pct":46.4223,"gpu_power_mean_w":482.6066,"decode_tps_server":593.8774,"prefill_ms_mean":352.6613,"decode_ms_mean":13193.2509,"queue_ms_mean":43.7268,"prefix_hit_pct":89.0785,"out_tok_mean":269.6,"in_tok_mean":13613.1,"ttft_p99_s":0.5974,"itl_p99_ms":67.591,"e2e_p50_s":13.037,"e2e_p95_s":33.316,"e2e_p99_s":40.236},{"concurrency":48,"completed":259,"errored":0,"ttft_p50_s":0.3252,"ttft_p95_s":0.5935,"itl_p50_ms":64.3714,"itl_p95_ms":79.6242,"per_user_tps":15.5348,"agg_output_tps":680.0569,"kv_peak_pct":57.1553,"gpu_power_mean_w":516.5404,"decode_tps_server":693.5101,"prefill_ms_mean":494.8999,"decode_ms_mean":16574.8706,"queue_ms_mean":260.1905,"prefix_hit_pct":87.6159,"out_tok_mean":268.8,"in_tok_mean":12184.7,"ttft_p99_s":0.7623,"itl_p99_ms":98.473,"e2e_p50_s":17.19,"e2e_p95_s":47.763,"e2e_p99_s":56.475},{"concurrency":64,"completed":248,"errored":0,"ttft_p50_s":0.3653,"ttft_p95_s":0.8127,"itl_p50_ms":80.51,"itl_p95_ms":108.4498,"per_user_tps":12.4208,"agg_output_tps":686.9311,"kv_peak_pct":63.3508,"gpu_power_mean_w":542.9659,"decode_tps_server":700.8533,"prefill_ms_mean":658.2479,"decode_ms_mean":21259.8739,"queue_ms_mean":555.2078,"prefix_hit_pct":83.1921,"out_tok_mean":267.2,"in_tok_mean":11155.3,"ttft_p99_s":1.3903,"itl_p99_ms":117.415,"e2e_p50_s":20.258,"e2e_p95_s":55.447,"e2e_p99_s":71.065},{"concurrency":96,"completed":226,"errored":0,"ttft_p50_s":0.5138,"ttft_p95_s":1.202,"itl_p50_ms":126.9711,"itl_p95_ms":161.6045,"per_user_tps":7.8758,"agg_output_tps":675.3872,"kv_peak_pct":75.0436,"gpu_power_mean_w":551.8358,"decode_tps_server":670.1361,"prefill_ms_mean":932.1075,"decode_ms_mean":29526.4872,"queue_ms_mean":1485.2381,"prefix_hit_pct":80.7597,"out_tok_mean":240.6,"in_tok_mean":10138.0,"ttft_p99_s":1.608,"itl_p99_ms":175.983,"e2e_p50_s":26.562,"e2e_p95_s":83.546,"e2e_p99_s":109.251}],"flint":[{"concurrency":1,"completed":68,"errored":0,"ttft_p50_s":0.0924,"ttft_p95_s":0.1445,"itl_p50_ms":4.4624,"itl_p95_ms":4.6342,"per_user_tps":224.0926,"agg_output_tps":210.2719,"kv_peak_pct":1.2354,"gpu_power_mean_w":229.6825,"decode_tps_server":210.3562,"prefill_ms_mean":59.9764,"decode_ms_mean":1466.2341,"queue_ms_mean":0.0077,"prefix_hit_pct":92.2435,"out_tok_mean":326.7,"in_tok_mean":16439.5,"ttft_p99_s":0.2569,"itl_p99_ms":4.665,"e2e_p50_s":1.583,"e2e_p95_s":3.171,"e2e_p99_s":3.553},{"concurrency":4,"completed":226,"errored":0,"ttft_p50_s":0.0966,"ttft_p95_s":0.1419,"itl_p50_ms":6.1152,"itl_p95_ms":6.6551,"per_user_tps":163.528,"agg_output_tps":618.3374,"kv_peak_pct":2.9457,"gpu_power_mean_w":299.7186,"decode_tps_server":609.241,"prefill_ms_mean":60.16,"decode_ms_mean":1739.2396,"queue_ms_mean":0.0043,"prefix_hit_pct":93.1374,"out_tok_mean":285.5,"in_tok_mean":16068.2,"ttft_p99_s":0.1766,"itl_p99_ms":6.927,"e2e_p50_s":1.748,"e2e_p95_s":4.124,"e2e_p99_s":4.908},{"concurrency":8,"completed":338,"errored":0,"ttft_p50_s":0.1055,"ttft_p95_s":0.1542,"itl_p50_ms":8.7058,"itl_p95_ms":9.4286,"per_user_tps":114.866,"agg_output_tps":879.0032,"kv_peak_pct":5.6302,"gpu_power_mean_w":343.0557,"decode_tps_server":879.1747,"prefill_ms_mean":65.7797,"decode_ms_mean":2402.6517,"queue_ms_mean":0.0047,"prefix_hit_pct":93.1762,"out_tok_mean":272.7,"in_tok_mean":16463.2,"ttft_p99_s":0.2257,"itl_p99_ms":9.831,"e2e_p50_s":2.254,"e2e_p95_s":5.812,"e2e_p99_s":6.827},{"concurrency":16,"completed":453,"errored":0,"ttft_p50_s":0.1187,"ttft_p95_s":0.1761,"itl_p50_ms":13.7512,"itl_p95_ms":14.7572,"per_user_tps":72.7208,"agg_output_tps":1135.8625,"kv_peak_pct":9.1172,"gpu_power_mean_w":375.8046,"decode_tps_server":1134.367,"prefill_ms_mean":72.9214,"decode_ms_mean":3638.2684,"queue_ms_mean":0.0049,"prefix_hit_pct":93.1648,"out_tok_mean":266.1,"in_tok_mean":16284.8,"ttft_p99_s":0.2206,"itl_p99_ms":15.319,"e2e_p50_s":3.225,"e2e_p95_s":8.669,"e2e_p99_s":11.019},{"concurrency":24,"completed":507,"errored":0,"ttft_p50_s":0.1264,"ttft_p95_s":0.1814,"itl_p50_ms":18.3425,"itl_p95_ms":19.7587,"per_user_tps":54.5182,"agg_output_tps":1277.1261,"kv_peak_pct":14.0512,"gpu_power_mean_w":391.7035,"decode_tps_server":1286.2279,"prefill_ms_mean":78.095,"decode_ms_mean":4807.9085,"queue_ms_mean":0.0053,"prefix_hit_pct":93.0587,"out_tok_mean":265.3,"in_tok_mean":16105.5,"ttft_p99_s":0.2274,"itl_p99_ms":20.393,"e2e_p50_s":4.282,"e2e_p95_s":11.758,"e2e_p99_s":14.931},{"concurrency":32,"completed":556,"errored":0,"ttft_p50_s":0.1325,"ttft_p95_s":0.1959,"itl_p50_ms":21.8805,"itl_p95_ms":23.7352,"per_user_tps":45.7027,"agg_output_tps":1433.4339,"kv_peak_pct":18.2882,"gpu_power_mean_w":406.1165,"decode_tps_server":1459.4236,"prefill_ms_mean":84.3794,"decode_ms_mean":5736.298,"queue_ms_mean":0.0053,"prefix_hit_pct":92.9104,"out_tok_mean":269.1,"in_tok_mean":15959.1,"ttft_p99_s":0.2405,"itl_p99_ms":24.781,"e2e_p50_s":5.13,"e2e_p95_s":14.16,"e2e_p99_s":17.982},{"concurrency":48,"completed":611,"errored":0,"ttft_p50_s":0.1527,"ttft_p95_s":0.2334,"itl_p50_ms":30.9218,"itl_p95_ms":33.5527,"per_user_tps":32.3396,"agg_output_tps":1566.0018,"kv_peak_pct":27.948,"gpu_power_mean_w":415.6253,"decode_tps_server":1594.1987,"prefill_ms_mean":104.7711,"decode_ms_mean":7680.6502,"queue_ms_mean":0.006,"prefix_hit_pct":92.8129,"out_tok_mean":268.8,"in_tok_mean":16001.6,"ttft_p99_s":0.2814,"itl_p99_ms":34.162,"e2e_p50_s":7.068,"e2e_p95_s":19.56,"e2e_p99_s":25.064},{"concurrency":64,"completed":669,"errored":0,"ttft_p50_s":0.1726,"ttft_p95_s":0.2717,"itl_p50_ms":37.3354,"itl_p95_ms":41.7336,"per_user_tps":26.7842,"agg_output_tps":1712.9245,"kv_peak_pct":37.0449,"gpu_power_mean_w":427.841,"decode_tps_server":1749.0235,"prefill_ms_mean":119.9341,"decode_ms_mean":9128.3617,"queue_ms_mean":2.4042,"prefix_hit_pct":92.9291,"out_tok_mean":264.7,"in_tok_mean":15841.9,"ttft_p99_s":0.3275,"itl_p99_ms":42.448,"e2e_p50_s":8.432,"e2e_p95_s":22.798,"e2e_p99_s":28.346},{"concurrency":96,"completed":794,"errored":0,"ttft_p50_s":0.1929,"ttft_p95_s":0.3115,"itl_p50_ms":45.5948,"itl_p95_ms":55.606,"per_user_tps":21.9323,"agg_output_tps":1986.8542,"kv_peak_pct":50.5688,"gpu_power_mean_w":447.995,"decode_tps_server":2046.1686,"prefill_ms_mean":142.2531,"decode_ms_mean":11683.7573,"queue_ms_mean":3.4997,"prefix_hit_pct":92.3097,"out_tok_mean":268.3,"in_tok_mean":14538.1,"ttft_p99_s":0.3992,"itl_p99_ms":56.852,"e2e_p50_s":11.165,"e2e_p95_s":29.511,"e2e_p99_s":38.852}]};
+(() => {
+  const NS = 'http://www.w3.org/2000/svg';
+  const MODELS = [
+    { key: 'qwen', name: 'Qwen 3.8 27B (dense)', short: 'Qwen', cls: 'q', color: '--s1', shape: 'circle' },
+    { key: 'flint', name: 'Flint ~40B (MoE)', short: 'Flint', cls: 'f', color: '--s2', shape: 'square' },
+  ];
+  const tip = document.getElementById('tip');
+  const nf = (d) => (v) => v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const f0 = nf(0), f1 = nf(1), f2 = nf(2);
+
+  function el(tag, attrs, parent) {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+  function marker(g, m, x, y, r = 4.5) {
+    return m.shape === 'circle'
+      ? el('circle', { cx: x, cy: y, r, class: 'mk ' + m.cls }, g)
+      : el('rect', { x: x - r, y: y - r, width: 2 * r, height: 2 * r, rx: 1.5, class: 'mk ' + m.cls }, g);
+  }
+  function niceTicks(min, max, n) {
+    const span = max - min, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+    const step = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => span / s <= n) || 10 * mag;
+    const out = [];
+    for (let v = Math.ceil(min / step) * step; v <= max + 1e-9; v += step) out.push(+v.toFixed(10));
+    return out;
+  }
+
+  /* Legends: line key + marker shape, text in ink colours. */
+  document.querySelectorAll('[data-legend]').forEach(box => {
+    MODELS.forEach(m => {
+      const s = document.createElement('span');
+      const svg = el('svg', { width: 22, height: 12, 'aria-hidden': 'true' });
+      el('line', { x1: 0, y1: 6, x2: 22, y2: 6, class: 'ln ' + m.cls }, svg);
+      marker(svg, m, 11, 6, 4);
+      s.appendChild(svg); s.appendChild(document.createTextNode(m.name));
+      box.appendChild(s);
+    });
+  });
+
+  /* Tooltip: values lead, series names follow, line keys instead of boxes; built with textContent. */
+  function showTip(evt, head, rows) {
+    tip.textContent = '';
+    const h = document.createElement('div'); h.className = 'th'; h.textContent = head; tip.appendChild(h);
+    rows.forEach(r => {
+      const d = document.createElement('div'); d.className = 'tr';
+      const i = document.createElement('i'); i.style.background = r.color ? `var(${r.color})` : 'transparent';
+      const b = document.createElement('b'); b.textContent = r.value;
+      const s = document.createElement('span'); s.textContent = r.label;
+      d.append(i, b, s); tip.appendChild(d);
+    });
+    tip.style.opacity = 1;
+    const w = tip.offsetWidth, hgt = tip.offsetHeight;
+    let x = evt.clientX + 14, y = evt.clientY + 16;
+    if (x + w > innerWidth - 8) x = evt.clientX - w - 14;
+    if (y + hgt > innerHeight - 8) y = evt.clientY - hgt - 12;
+    tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+  }
+  const hideTip = () => { tip.style.opacity = 0; };
+
+  /*
+   * chart(id, cfg): one line per model.
+   *  cfg.x / cfg.y: { get(row), min, max, log?, ticks?, fmt, title }
+   *  cfg.mode: 'level' (crosshair snaps to a concurrency level) | 'point' (nearest point)
+   *  cfg.pointLabels: label each point with its concurrency
+   *  cfg.labels(m, rows, sx, sy, g): optional selective direct labels
+   */
+  function chart(id, cfg) {
+    const host = document.getElementById(id);
+    let lastW = 0;
+    function draw() {
+      const W = Math.round(host.clientWidth);
+      if (!W || W === lastW) return;
+      lastW = W;
+      host.textContent = '';
+      const narrow = W < 420;
+      const H = typeof cfg.height === 'function' ? cfg.height(W) : (cfg.height || 220);
+      const m = { l: 44, r: cfg.padRight != null ? cfg.padRight : 14, t: 24, b: 40 };
+      const pw = W - m.l - m.r, ph = H - m.t - m.b;
+      const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', tabindex: 0, 'aria-label': cfg.aria }, host);
+      const X = cfg.x, Y = cfg.y;
+      const ly = v => Math.log10(v);
+      const sx = v => m.l + (v - X.min) / (X.max - X.min) * pw;
+      const sy = Y.log ? v => m.t + ph - (ly(v) - ly(Y.min)) / (ly(Y.max) - ly(Y.min)) * ph
+                       : v => m.t + ph - (v - Y.min) / (Y.max - Y.min) * ph;
+      const yt = Y.ticks || niceTicks(Y.min, Y.max, narrow ? 4 : 5);
+      const xt = (narrow && X.ticksNarrow) || X.ticks || niceTicks(X.min, X.max, narrow ? 4 : 6);
+      const axis = el('g', {}, svg);
+      yt.forEach(v => {
+        const y = Math.round(sy(v)) + .5;
+        el('line', { x1: m.l, x2: W - m.r, y1: y, y2: y, class: v === Y.min ? 'base-l' : 'grid-l' }, axis);
+        el('text', { x: m.l - 8, y: y + 4, 'text-anchor': 'end', class: 'tick' }, axis).textContent = Y.fmt(v);
+      });
+      if (!yt.includes(Y.min)) el('line', { x1: m.l, x2: W - m.r, y1: m.t + ph + .5, y2: m.t + ph + .5, class: 'base-l' }, axis);
+      xt.forEach(v => {
+        el('text', { x: sx(v), y: m.t + ph + 16, 'text-anchor': 'middle', class: 'tick' }, axis).textContent = X.fmt(v);
+      });
+      el('text', { x: m.l + pw / 2, y: H - 4, 'text-anchor': 'middle', class: 'axis-t' }, axis).textContent = (narrow && X.titleNarrow) || X.title;
+      el('text', { x: m.l - 36, y: 12, class: 'axis-t' }, axis).textContent = Y.title;
+
+      const pts = [];
+      const layer = el('g', {}, svg);
+      MODELS.forEach(mo => {
+        const rows = DATA[mo.key];
+        const d = rows.map((r, i) => (i ? 'L' : 'M') + sx(X.get(r)).toFixed(1) + ' ' + sy(Y.get(r)).toFixed(1)).join(' ');
+        el('path', { d, class: 'ln ' + mo.cls }, layer);
+      });
+      MODELS.forEach(mo => {
+        DATA[mo.key].forEach((r, i) => {
+          const px = sx(X.get(r)), py = sy(Y.get(r));
+          pts.push({ m: mo, r, i, px, py, node: marker(layer, mo, px, py) });
+        });
+      });
+      if (cfg.pointLabels) {
+        /* cfg.pointLabels returns candidate placements { dx, dy, anchor } in preference order.
+           The first one whose box clears every placed label, every other marker and the plot
+           edges wins, so labels never collide at narrow widths. */
+        const lg = el('g', {}, svg);
+        const placed = [];
+        const box = (p, o, txt) => {
+          const w = txt.length * 6.8 + 2, x = p.px + o.dx, y = p.py + o.dy;
+          const x0 = o.anchor === 'end' ? x - w : o.anchor === 'middle' ? x - w / 2 : x;
+          return { x0, x1: x0 + w, y0: y - 9, y1: y + 2 };
+        };
+        const hits = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+        pts.forEach(p => {
+          const txt = String(p.r.concurrency), cands = cfg.pointLabels(p.m, p.r, narrow);
+          const ok = o => {
+            const b = box(p, o, txt);
+            if (b.x0 < m.l + 2 || b.x1 > W - 2 || b.y0 < m.t - 8 || b.y1 > m.t + ph - 2) return false;
+            if (placed.some(q => hits(b, q))) return false;
+            return !pts.some(q => q !== p && hits(b, { x0: q.px - 6, x1: q.px + 6, y0: q.py - 6, y1: q.py + 6 }));
+          };
+          const o = cands.find(ok) || cands[0];
+          placed.push(box(p, o, txt));
+          el('text', { class: 'lbl', x: p.px + o.dx, y: p.py + o.dy, 'text-anchor': o.anchor }, lg).textContent = txt;
+        });
+      }
+      if (cfg.labels) cfg.labels(el('g', {}, svg), sx, sy, narrow);
+
+      /* Hover / focus layer. */
+      const xh = el('line', { class: 'xh', y1: m.t, y2: m.t + ph, x1: -10, x2: -10, visibility: 'hidden' }, svg);
+      const hit = el('rect', { x: m.l - 10, y: 0, width: pw + 20, height: H, fill: 'transparent' }, svg);
+      let on = [];
+      const clear = () => { on.forEach(p => p.node.classList.remove('on')); on = []; xh.setAttribute('visibility', 'hidden'); };
+      const levels = DATA.qwen.map(r => r.concurrency);
+      let cursor = -1;
+      function selectLevel(idx, evt) {
+        clear(); cursor = idx;
+        const c = levels[idx];
+        on = pts.filter(p => p.r.concurrency === c);
+        on.forEach(p => p.node.classList.add('on'));
+        if (cfg.mode === 'level') { const x = Math.round(sx(c)) + .5; xh.setAttribute('x1', x); xh.setAttribute('x2', x); xh.setAttribute('visibility', 'visible'); }
+        const rows = cfg.tipRows
+          ? cfg.tipRows(c)
+          : MODELS.map(mo => ({ color: mo.color, value: Y.tip(DATA[mo.key][idx]), label: mo.short }));
+        showTip(evt, cfg.tipHead ? cfg.tipHead(c) : c + ' concurrent requests', rows);
+      }
+      function selectPoint(p, evt) {
+        clear(); on = [p]; p.node.classList.add('on');
+        showTip(evt, p.m.short + ' · ' + p.r.concurrency + ' concurrent requests', cfg.pointRows(p.m, p.r));
+      }
+      hit.addEventListener('pointermove', evt => {
+        const b = svg.getBoundingClientRect(), mx = (evt.clientX - b.left) * W / b.width, my = (evt.clientY - b.top) * H / b.height;
+        if (cfg.mode === 'point') {
+          let best = null, bd = 1e9;
+          pts.forEach(p => { const d = Math.hypot(p.px - mx, p.py - my); if (d < bd) { bd = d; best = p; } });
+          if (best && bd < 36) selectPoint(best, evt); else { clear(); hideTip(); }
+        } else {
+          let bi = 0;
+          levels.forEach((c, i) => { if (Math.abs(sx(c) - mx) < Math.abs(sx(levels[bi]) - mx)) bi = i; });
+          selectLevel(bi, evt);
+        }
+      });
+      hit.addEventListener('pointerleave', () => { clear(); hideTip(); });
+      /* Keyboard: arrows step through levels (and through both models in point mode). */
+      const order = cfg.mode === 'point' ? pts : null;
+      svg.addEventListener('keydown', evt => {
+        if (evt.key !== 'ArrowRight' && evt.key !== 'ArrowLeft') return;
+        evt.preventDefault();
+        const n = order ? order.length : levels.length;
+        cursor = (cursor + (evt.key === 'ArrowRight' ? 1 : -1) + n) % n;
+        const b = svg.getBoundingClientRect();
+        if (order) { const p = order[cursor]; selectPoint(p, { clientX: b.left + p.px * b.width / W, clientY: b.top + p.py * b.height / H }); }
+        else selectLevel(cursor, { clientX: b.left + sx(levels[cursor]) * b.width / W, clientY: b.top + m.t });
+      });
+      svg.addEventListener('blur', () => { clear(); hideTip(); cursor = -1; });
+    }
+    new ResizeObserver(draw).observe(host);
+    draw();
+  }
+
+  const conc = { get: r => r.concurrency, min: 0, max: 100, ticks: [1, 16, 32, 48, 64, 96], ticksNarrow: [1, 32, 64, 96], fmt: String, title: 'Concurrent requests' };
+
+  /* (a) Key chart: per-request decode speed vs aggregate output. */
+  chart('c-frontier', {
+    aria: 'Per-request decode tokens per second against aggregate output tokens per second, one line per model, points labelled by concurrent requests.',
+    height: W => W < 520 ? 340 : 420, padRight: 26, mode: 'point',
+    x: { get: r => r.agg_output_tps, min: 0, max: 2000, fmt: v => v >= 1000 ? f1(v / 1000).replace('.0', '') + 'K' : String(v), title: 'Aggregate output tok/s (all requests)', titleNarrow: 'Aggregate output tok/s' },
+    y: { get: r => r.per_user_tps, min: 5, max: 300, log: true, ticks: [5, 10, 20, 50, 100, 200], fmt: String, title: 'Per-request decode tok/s (log)' },
+    /* Preferred side first: Flint's line runs down-right, so above-right. Qwen's runs down-right
+       to 48 (below-left), then drops almost straight down (right, then left). */
+    pointLabels: (m, r) => {
+      const R = { dx: 9, dy: 4, anchor: 'start' }, L = { dx: -9, dy: 4, anchor: 'end' },
+            AR = { dx: 5, dy: -9, anchor: 'start' }, BL = { dx: -6, dy: 15, anchor: 'end' },
+            BR = { dx: 6, dy: 15, anchor: 'start' }, AL = { dx: -5, dy: -9, anchor: 'end' };
+      if (m.key === 'flint') return [AR, R, AL, BR];
+      return r.concurrency >= 48 ? [R, L, BR, BL, AR] : [BL, L, BR, AL];
+    },
+    pointRows: (m, r) => [
+      { color: m.color, value: f1(r.per_user_tps) + ' tok/s', label: 'per request' },
+      { color: m.color, value: f0(r.agg_output_tps) + ' tok/s', label: 'aggregate' },
+    ],
+    labels: (g, sx, sy, narrow) => {
+      /* Series names sit in clear space: above Qwen's 4 to 8 segment, below Flint's 4 to 8 segment. */
+      const q = DATA.qwen[1], f = DATA.flint[2];
+      el('text', { class: 'lbl strong', x: sx(q.agg_output_tps), y: sy(q.per_user_tps) - 14 }, g).textContent = 'Qwen (dense)';
+      el('text', { class: 'lbl strong', x: sx(f.agg_output_tps) - 10, y: sy(f.per_user_tps) + 26, 'text-anchor': 'end' }, g).textContent = 'Flint (MoE)';
+    },
+  });
+
+  /* (b) Aggregate output (successful + incomplete) vs concurrency; end values labelled, server count in the tooltip. */
+  chart('c-agg', {
+    aria: 'Aggregate output tokens per second, including requests still streaming, against concurrent requests for both models.',
+    height: W => W < 520 ? 260 : 300, padRight: 60, mode: 'level',
+    x: conc,
+    y: { get: r => r.agg_output_tps, min: 0, max: 2000, fmt: v => v >= 1000 ? f1(v / 1000).replace('.0', '') + 'K' : String(v), title: 'Output tok/s' },
+    tipRows: c => MODELS.flatMap(mo => {
+      const r = DATA[mo.key].find(x => x.concurrency === c);
+      return [{ color: mo.color, value: f0(r.agg_output_tps) + ' tok/s', label: mo.short },
+              { value: f0(r.decode_tps_server) + ' tok/s', label: 'server count' }];
+    }),
+    labels: (g, sx, sy) => {
+      const fl = DATA.flint.at(-1), ql = DATA.qwen.at(-1);
+      el('text', { class: 'lbl strong', x: sx(fl.concurrency) + 8, y: sy(fl.agg_output_tps) + 4 }, g).textContent = f0(fl.agg_output_tps);
+      el('text', { class: 'lbl', x: sx(ql.concurrency) + 8, y: sy(ql.agg_output_tps) + 4 }, g).textContent = f0(ql.agg_output_tps);
+    },
+  });
+
+  /* (c) TTFT p50 / p95 on a shared scale. */
+  const ttftY = (key) => ({ get: r => r[key], min: 0, max: 1.25, ticks: [0, 0.25, 0.5, 0.75, 1, 1.25], fmt: v => f2(v), title: 'Seconds', tip: r => f2(r[key]) + ' s' });
+  chart('c-ttft50', { aria: 'Median time to first token against concurrent requests.', mode: 'level', x: conc, y: ttftY('ttft_p50_s'), tipHead: c => 'p50 TTFT · ' + c + ' requests' });
+  chart('c-ttft95', { aria: '95th percentile time to first token against concurrent requests.', mode: 'level', x: conc, y: ttftY('ttft_p95_s'), tipHead: c => 'p95 TTFT · ' + c + ' requests' });
+
+  /* (d) Mean queue / prefill / decode time per request. */
+  chart('c-queue', { aria: 'Mean queue wait per request against concurrent requests.', mode: 'level', x: conc,
+    y: { get: r => r.queue_ms_mean, min: 0, max: 1600, fmt: v => f0(v), title: 'ms', tip: r => f0(r.queue_ms_mean) + ' ms' }, tipHead: c => 'Queue wait · ' + c + ' requests' });
+  chart('c-prefill', { aria: 'Mean prefill time per request against concurrent requests.', mode: 'level', x: conc,
+    y: { get: r => r.prefill_ms_mean, min: 0, max: 1000, fmt: v => f0(v), title: 'ms', tip: r => f0(r.prefill_ms_mean) + ' ms' }, tipHead: c => 'Prefill · ' + c + ' requests' });
+  chart('c-decode', { aria: 'Mean decode time per request against concurrent requests.', mode: 'level', x: conc,
+    y: { get: r => r.decode_ms_mean / 1000, min: 0, max: 30, fmt: v => f0(v), title: 'Seconds', tip: r => f1(r.decode_ms_mean / 1000) + ' s' }, tipHead: c => 'Decode · ' + c + ' requests' });
+
+  /* (e, f) KV peak, prefix hits, GPU power. */
+  chart('c-kv', { aria: 'Peak KV cache usage percent against concurrent requests.', mode: 'level', x: conc,
+    y: { get: r => r.kv_peak_pct, min: 0, max: 100, ticks: [0, 25, 50, 75, 100], fmt: v => v + '%', title: '% of KV cache', tip: r => f1(r.kv_peak_pct) + '%' }, tipHead: c => 'Peak KV · ' + c + ' requests' });
+  chart('c-prefix', { aria: 'Prefix cache hit rate against concurrent requests; axis starts at 70 percent.', mode: 'level', x: conc,
+    y: { get: r => r.prefix_hit_pct, min: 70, max: 100, ticks: [70, 80, 90, 100], fmt: v => v + '%', title: '% of prompt tokens', tip: r => f1(r.prefix_hit_pct) + '%' }, tipHead: c => 'Prefix hits · ' + c + ' requests' });
+  chart('c-power', { aria: 'Mean GPU power draw against concurrent requests.', mode: 'level', x: conc,
+    y: { get: r => r.gpu_power_mean_w, min: 0, max: 600, fmt: v => f0(v), title: 'Watts', tip: r => f0(r.gpu_power_mean_w) + ' W' }, tipHead: c => 'GPU power · ' + c + ' requests' });
+
+  /* Table view: every charted value, built with textContent. */
+  const COLS = [
+    ['Model / requests', null], ['Completed', r => f0(r.completed)], ['Errors', r => f0(r.errored)],
+    ['Per-request tok/s', r => f1(r.per_user_tps)], ['Aggregate tok/s', r => f0(r.agg_output_tps)],
+    ['TTFT p50 s', r => f2(r.ttft_p50_s)], ['TTFT p95 s', r => f2(r.ttft_p95_s)], ['TTFT p99 s', r => f2(r.ttft_p99_s)],
+    ['ITL p95 ms', r => f1(r.itl_p95_ms)], ['ITL p99 ms', r => f1(r.itl_p99_ms)],
+    ['E2E p50 s', r => f1(r.e2e_p50_s)], ['E2E p95 s', r => f1(r.e2e_p95_s)], ['E2E p99 s', r => f1(r.e2e_p99_s)],
+    ['Queue ms', r => f0(r.queue_ms_mean)], ['Prefill ms', r => f0(r.prefill_ms_mean)], ['Decode s', r => f1(r.decode_ms_mean / 1000)],
+    ['Server count tok/s', r => f0(r.decode_tps_server)], ['KV peak %', r => f1(r.kv_peak_pct)], ['Prefix hit %', r => f1(r.prefix_hit_pct)],
+    ['GPU W', r => f0(r.gpu_power_mean_w)], ['Mean prompt tok', r => f0(r.in_tok_mean)], ['Mean output tok', r => f0(r.out_tok_mean)],
+  ];
+  const table = document.getElementById('data-table');
+  const thead = table.createTHead().insertRow();
+  COLS.forEach(([h]) => { const th = document.createElement('th'); th.textContent = h; thead.appendChild(th); });
+  const tb = table.createTBody();
+  MODELS.forEach((mo, mi) => DATA[mo.key].forEach((r, i) => {
+    const tr = tb.insertRow(); if (mi && !i) tr.className = 'sep';
+    COLS.forEach(([, fn], ci) => { tr.insertCell().textContent = ci ? fn(r) : mo.short + ' · ' + r.concurrency; });
+  }));
+})();
+</script>
+</body>
+</html>

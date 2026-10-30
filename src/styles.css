@@ -1905,19 +1905,167 @@ a.promo-card:hover {
 .promo-cta:hover svg,
 a.promo-card:hover .promo-cta svg { transform: translateX(0.1875rem); }
 
-.playground-row {
+/* Playground promo: a native scroll-snap row of benchmark cards (newest
+   first, data/playground.ts). Cards are narrower than the row so the next one
+   peeks in; a soft edge fade marks the side that still has more. */
+.playground-promo { min-width: 0; }
+
+.pg-head {
+  align-self: stretch;
   display: flex;
-  align-items: flex-start;
-  gap: var(--sp-4);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
 }
 
-.playground-thumb {
+.pg-nav {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.pg-nav-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink-night);
+  cursor: pointer;
+  transition: border-color var(--dur-1) ease, background var(--dur-1) ease, color var(--dur-1) ease;
+}
+
+.pg-nav-btn:hover:not(:disabled) {
+  border-color: var(--accent-night);
+  background: rgba(255, 122, 89, 0.12);
+  color: var(--accent-night);
+}
+
+.pg-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pg-track {
+  align-self: stretch;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 2px;
+  scrollbar-width: none;
+  /* Room for the focus ring and card hover lift inside the clip. */
+  margin: -0.25rem -2px;
+  padding: 0.25rem 2px;
+  border-radius: var(--r-md);
+  --pg-fade-l: 0rem;
+  --pg-fade-r: 0rem;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--pg-fade-l), #000 calc(100% - var(--pg-fade-r)), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 var(--pg-fade-l), #000 calc(100% - var(--pg-fade-r)), transparent);
+}
+
+.pg-track::-webkit-scrollbar { display: none; }
+.pg-track[data-at-start='false'] { --pg-fade-l: 1.5rem; }
+.pg-track[data-at-end='false'] { --pg-fade-r: 2.5rem; }
+.pg-track:focus-visible { outline-offset: -2px; }
+
+.pg-list {
+  list-style: none;
+  display: flex;
+  gap: var(--sp-3);
+}
+
+.pg-item {
+  flex: 0 0 86%;
+  display: flex;
+  scroll-snap-align: start;
+}
+
+.pg-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border-radius: var(--r-md);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color var(--dur-1) ease, background var(--dur-1) ease;
+}
+
+.pg-card:hover {
+  border-color: rgba(255, 176, 158, 0.45);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.pg-card-top {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.pg-thumb {
   flex: none;
+  display: block;
   width: 4.5rem;
   height: 4.5rem;
   border-radius: var(--r-md);
   background: #fff;
   object-fit: cover;
+}
+
+svg.pg-thumb { background: #272834; }
+
+.pg-card-titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.pg-date {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-night-500);
+}
+
+.pg-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--ink-night);
+  text-wrap: balance;
+}
+
+.pg-summary {
+  font-size: var(--fs-md);
+  line-height: var(--lh-body);
+  color: var(--ink-night-700);
+  text-wrap: pretty;
+}
+
+.pg-result {
+  margin-top: auto;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--accent-night);
+  text-wrap: pretty;
+}
+
+/* Highlighted model names and numbers on the night cards: .hl defaults to
+   dark ink for the light journey, so lift it to white here. */
+.pg-summary .hl,
+.pg-result .hl {
+  color: #fff;
+  font-weight: 700;
 }
 
 /* ===== Tech stack (the scannable inventory) =====
