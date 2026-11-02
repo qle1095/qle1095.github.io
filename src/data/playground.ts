@@ -28,22 +28,23 @@ const EXPERIMENTS: PlaygroundExperiment[] = [
   {
     id: 'moe-vs-dense-concurrency',
     date: '2026-10-30',
-    title: 'MoE vs dense under load',
+    title: 'MoE held 64 requests within SLO; dense held 16',
     href: '/playground/moe-vs-dense-concurrency/',
     summary:
       '**Flint** (MoE, ~2.5B active) vs **Qwen 3.8 27B** (dense), both NVFP4 on vLLM, from 1 to 96 concurrent requests on one **RTX PRO 6000** (96 GB).',
     result:
-      'One request: **224 vs 51.5 tok/s**. Under load Qwen’s total output levels off at **675–687 tok/s**; Flint reaches **1,987** and is still climbing.',
+      'Inside the latency SLO: **64 vs 16** concurrent requests, at **$0.40 vs $1.59** per 1M output tokens. Peak output **1,987 vs 687 tok/s**.',
     thumb: { kind: 'moe-vs-dense' },
   },
   {
     id: 'procedural-cat',
     date: '2026-10-28',
-    title: 'Four open LLMs drawing a cat',
+    title: '5 of 8 runs drew a cat; Qwen never stopped planning',
     href: '/playground/procedural-cat/',
     summary:
       '**Qwen 3.8 27B**, **Muse Glimmer** (~30B), **Ornith 1.5** (~35B MoE) and **Flint** (39.8B MoE) each get one try to draw a kitten in Canvas JavaScript on one **RTX 5090**.',
-    result: '**5 of 8** runs drew a valid cat; fastest decode **363 tok/s**.',
+    result:
+      'Speculative decoding: **1.3–3.0×** faster decode. One serving flag (CUDA graphs): **7.3×**. Fastest finished cat: **22.6 s**.',
     thumb: { kind: 'image', src: '/playground/procedural-cat/assets/ornith-dflash.png' },
   },
 ];

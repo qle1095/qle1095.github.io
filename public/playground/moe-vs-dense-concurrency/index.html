@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MoE vs Dense Under Load · Levi Le</title>
-<meta name="description" content="A ~40B MoE and a 27B dense model, both NVFP4 on vLLM, under 1 to 96 concurrent requests on one RTX PRO 6000. Per-request speed, aggregate throughput, TTFT, queueing and KV cache, with every caveat.">
-<meta property="og:title" content="MoE vs Dense Under Load · Levi Le">
-<meta property="og:description" content="Two NVFP4 models on vLLM, one RTX PRO 6000, 1 to 96 concurrent requests. Measured, charted, caveated.">
+<title>A ~40B MoE held 64 concurrent requests in SLO; dense 27B held 16 · Levi Le</title>
+<meta name="description" content="On one RTX PRO 6000 with vLLM, Flint (a ~40B MoE) stayed inside a p95 latency SLO up to 64 concurrent requests; dense Qwen 3.8 27B up to 16. Peak output 1,987 vs 687 tok/s.">
+<meta property="og:title" content="A ~40B MoE held 64 concurrent requests in SLO; dense 27B held 16">
+<meta property="og:description" content="Flint vs Qwen 3.8 27B, both NVFP4 on vLLM, one RTX PRO 6000, 1 to 96 concurrent requests: $0.40 vs $1.59 per 1M output tokens at the SLO limit. Caveats included.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <style>
   @font-face { font-family: 'Bricolage Grotesque'; src: url('/fonts/bricolage-800.woff2') format('woff2'); font-weight: 800; font-display: swap; }
@@ -165,14 +165,62 @@
   details.more[open] > summary::after { content: "–"; }
   details.more > summary span { font-weight: 400; color: var(--muted); font-size: .88rem; }
   .more-body { padding: 0 18px 18px; overflow-x: auto; }
-  .more-body table { width: 100%; border-collapse: collapse; font-size: .84rem; min-width: 1380px; }
-  .more-body th, .more-body td { text-align: right; padding: 7px 9px; border-bottom: 1px solid var(--grid); white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .more-body th { color: var(--muted); font-size: .74rem; font-weight: 700; vertical-align: bottom; white-space: normal; }
-  .more-body th:first-child, .more-body td:first-child { text-align: left; }
-  .more-body tr.sep td { border-top: 2px solid var(--border); }
+  .more-body table.data { width: 100%; border-collapse: collapse; font-size: .84rem; min-width: 1380px; }
+  .data th, .data td { text-align: right; padding: 7px 9px; border-bottom: 1px solid var(--grid); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .data th { color: var(--muted); font-size: .74rem; font-weight: 700; vertical-align: bottom; white-space: normal; }
+  .data th:first-child, .data td:first-child { text-align: left; }
+  .data tr.sep td { border-top: 2px solid var(--border); }
   pre.cmd { background: var(--surface-2); border-radius: 12px; padding: 14px 16px; margin: 0 0 12px; font: .8rem/1.55 var(--mono); overflow-x: auto; white-space: pre; }
 
   footer { margin: 72px 0 0; padding: 24px 0 48px; border-top: 1px solid var(--border); color: var(--faint); font-size: .86rem; }
+
+  /* ---------- v2: answer-first layout ---------- */
+  .hero h1 { max-width: 960px; }
+  .dek { font-size: clamp(1.05rem, 2vw, 1.22rem); color: var(--muted); max-width: 780px; margin: 0 0 16px; }
+  .key { margin: 0 0 8px; font-size: .84rem; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0 0 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: grid; gap: 2px; align-content: start; }
+  .tile .num { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.5rem, 3.2vw, 2.1rem); line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .tile .num .vs { font-family: var(--font-body); font-weight: 400; font-size: .55em; color: var(--faint); margin: 0 .2em; }
+  .tile .lab { font-weight: 600; font-size: .92rem; }
+  .tile .base { color: var(--faint); font-size: .8rem; }
+  @media (max-width: 640px) {
+    .tiles { grid-template-columns: 1fr; gap: 8px; }
+    .tile { padding: 10px 14px; }
+    .tile .num { font-size: 1.45rem; }
+  }
+  .sw { display: inline-block; width: 9px; height: 9px; margin: 0 6px 1px 0; vertical-align: middle; flex: none; }
+  .sw.q { background: var(--s1); border-radius: 50%; }
+  .sw.f { background: var(--s2); border-radius: 2px; }
+  main > section.wrap { padding-top: 64px; }
+  main > section.hero-chart { padding-top: 16px; }
+  .scope a { white-space: nowrap; }
+  .scope { font-size: .82rem; color: var(--faint); margin: 8px 2px 0; }
+  .beat h2 { max-width: 900px; margin-bottom: 14px; }
+  .why-t { color: var(--muted); max-width: 760px; margin: 12px 2px 0; }
+  .why-t b { color: var(--text); }
+  .slo { stroke: var(--text); stroke-width: 1.25; stroke-dasharray: 5 4; opacity: .65; }
+  .lead { stroke: var(--faint); stroke-width: 1; }
+  .calc { margin: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px 18px; overflow-x: auto; }
+  .calc figcaption { font: .84rem/1.5 var(--mono); color: var(--muted); margin: 0 0 10px; }
+  .calc table { border-collapse: collapse; font-size: .92rem; font-variant-numeric: tabular-nums; min-width: 480px; }
+  .calc th, .calc td { text-align: right; padding: 7px 12px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+  .calc th { color: var(--muted); font-size: .74rem; font-weight: 700; }
+  .calc th:first-child, .calc td:first-child { text-align: left; padding-left: 0; }
+  .calc tr:last-child td { border-bottom: 0; }
+  .calc td b { font-family: var(--font-display); font-size: 1.15rem; }
+  @media (max-width: 560px) {
+    .calc { padding: 14px; }
+    .calc table { min-width: 0; width: 100%; font-size: .84rem; }
+    .calc th, .calc td { padding: 6px 6px; }
+    .calc th:first-child, .calc td:first-child { white-space: normal; }
+  }
+  .so { background: var(--accent-soft); border-radius: 18px; padding: 18px 22px; max-width: 860px; }
+  .so p { margin: 0; }
+  .appendix .more-body > .card, .appendix .more-body > .grid { margin-top: 16px; }
+  .appendix .more-body > p:first-child { margin-top: 0; }
+  .appendix h3.sec { font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 22px 0 8px; }
+  .appendix .strip { margin-top: 0; }
 </style>
 </head>
 <body>
@@ -181,7 +229,7 @@
   <div class="wrap">
     <a class="back" href="/playground/">← Playground</a>
     <nav aria-label="Sections">
-      <a href="#setup">Setup</a><a href="#frontier">Key chart</a><a href="#goodput">Goodput</a><a href="#load">Under load</a><a href="#why">Why</a><a href="#caveats">Caveats</a><a href="#reproduce">Reproduce</a>
+      <a href="#result">Result</a><a href="#why">Why</a><a href="#limits">Limits</a><a href="#details">Details</a>
     </nav>
   </div>
 </div>
@@ -189,200 +237,250 @@
 <main>
 <header class="hero wrap">
   <span class="eyebrow">AI Inference Playground · Benchmark</span>
-  <h1>MoE vs dense under load: 1 to 96 concurrent requests</h1>
-  <p class="lede">Flint, a ~40B mixture-of-experts model run as NVFP4 W4A16 on Marlin kernels without torch.compile and on FlashInfer attention, against Qwen 3.8 27B, a dense model run as NVFP4 W4A4, compiled, on FlashAttention&nbsp;2. Both were served by vLLM on one RTX&nbsp;PRO&nbsp;6000 at 1 to 96 concurrent requests. The serving flags matched; the kernels and execution paths did not.</p>
-  <p class="lede small">Workload: synthetic coding-agent chats with an 8K-token shared prefix and 14 turns. Each turn targets ~875 input and ~214 output tokens; the measured mean output was 241–357 tokens per level.</p>
-  <div class="strip" role="region" aria-label="Model and run specification" tabindex="0">
-    <table>
-      <thead><tr><th>Model</th><th>Checkpoint @ revision</th><th>Params (total / active)</th><th>Quantization</th><th>Speculation</th><th>KV cache</th><th>Compile · attention</th></tr></thead>
-      <tbody>
-        <tr><td><b>Qwen 3.8 27B</b></td><td><a href="https://huggingface.co/Inferact/Qwen3.8-27B-NVFP4/tree/6128240ebaf4eaa7bad2b3d1c72c37d677c5f462"><code>Inferact/Qwen3.8-27B-NVFP4</code></a> @ 6128240e</td><td>~27B dense</td><td>ModelOpt NVFP4, W4A4 on MLP and attention projections; linear-attention input projections and LM head BF16</td><td>none</td><td>BF16</td><td>torch.compile + CUDA graphs · FlashAttention 2</td></tr>
-        <tr><td><b>Flint</b></td><td><a href="https://huggingface.co/RecursiveSI/flint-nvfp4-gguf/tree/6ec43e19b565fc8d560e2d04985d7724f20673bf"><code>RecursiveSI/flint-nvfp4-gguf</code></a> @ 6ec43e19</td><td>39.8B / ~2.5B (6 of 256 experts + shared)</td><td>NVFP4 GGUF, W4A16 on Marlin</td><td>none</td><td>BF16</td><td>no torch.compile (unsupported), CUDA graphs · FlashInfer</td></tr>
-      </tbody>
-    </table>
-    <p class="strip-run">RTX PRO 6000 Blackwell Server Edition, 97,887 MiB · vLLM 0.32.1rc1.dev602+g5d35ce393 nightly (commit <code>5d35ce39</code>) · 32K context · 1–96 concurrent requests · ~875 in / ~214 out per turn (measured 241–357 out) · n = 1 run per level</p>
+  <h1>Flint MoE held 64 concurrent requests within SLO; dense Qwen held 16</h1>
+  <p class="dek">Flint, a ~40B mixture-of-experts, vs dense Qwen 3.8 27B: both NVFP4 on vLLM, one RTX&nbsp;PRO&nbsp;6000, 1 to 96 concurrent chats.</p>
+  <div class="tiles">
+    <div class="tile"><span class="num"><i class="sw f"></i>64<span class="vs">vs</span><i class="sw q"></i>16</span><span class="lab">concurrent requests inside the SLO</span><span class="base">p95 first token ≤ 1.5 s, token gap ≤ 50 ms</span></div>
+    <div class="tile"><span class="num"><i class="sw f"></i>1,987<span class="vs">vs</span><i class="sw q"></i>687</span><span class="lab">peak output tok/s</span><span class="base">Flint still climbing</span></div>
+    <div class="tile"><span class="num"><i class="sw f"></i>$0.40<span class="vs">vs</span><i class="sw q"></i>$1.59</span><span class="lab">per 1M output tokens at SLO limit</span><span class="base">GPU compute only</span></div>
   </div>
-  <p class="byline">By Levi Le · 30 October 2026 · about $2.15 of cloud time</p>
-  <div class="tldr">
-    <h2>TL;DR</h2>
-    <ul>
-      <li><b>One request at a time:</b> Flint (MoE) streamed <b>224 tok/s</b> per request, Qwen (dense) <b>51.5 tok/s</b>.</li>
-      <li><b>Total output, all requests:</b> Flint reached <b>1,987 tok/s</b> at 96 requests (server count 2,046) and was still climbing. Qwen levelled off at <b>675–687 tok/s</b> from 48 requests (server count 670–701).</li>
-      <li><b>Within a latency SLO</b> (p95 TTFT ≤ 1.5 s and p95 inter-token latency ≤ 50 ms): Flint held up to <b>64</b> concurrent requests, Qwen up to <b>16</b>.</li>
-      <li><b>Compute cost at peak output:</b> Flint <b>$0.35</b>, Qwen <b>$1.01</b> per 1M output tokens (derived, compute only).</li>
-      <li><b>Not a pure MoE-vs-dense test:</b> different model families, 4-bit recipes and kernels. Read the <a href="#caveats">caveats</a> before quoting.</li>
-    </ul>
-  </div>
+  <p class="byline">Levi Le · 30 Oct 2026 · ~$2.15 GPU time · 1 run per level</p>
 </header>
 
-<section id="setup" class="wrap" aria-labelledby="setup-h">
-  <span class="eyebrow">Setup</span>
-  <h2 id="setup-h">What ran</h2>
-  <p class="sub">Both models were served one after the other on the same GPU with the same vLLM flags. Kernels, compile mode and attention backend differed, as listed above.</p>
-  <div class="setup">
-    <table>
-      <tbody>
-        <tr><th>Hardware</th><td>1× RTX PRO 6000 Blackwell Server Edition, 97,887 MiB (<code>nvidia-smi</code>) · RunPod · $2.49/h<br><span>GPU time about 0.85 h; about $2.15 in total including a CPU pod for the downloads. Power cap: not measured.</span></td></tr>
-        <tr><th>Engine</th><td>vLLM 0.32.1rc1.dev602+g5d35ce393 nightly, image pinned by digest <code>sha256:deb9ad8c…</code></td></tr>
-        <tr><th>Serving flags</th><td>32K context · BF16 KV cache · prefix caching on · <code>max-num-batched-tokens</code> 8192 · <code>max-num-seqs</code> 512 · <code>gpu-memory-utilization</code> 0.90</td></tr>
-        <tr><th>KV capacity</th><td>Qwen 767,038 tokens in 832-token blocks · Flint 899,044 tokens in 16-token blocks <span>(from vLLM's startup log)</span></td></tr>
-        <tr><th>Load</th><td>GuideLLM 0.8.0, closed-loop concurrent streams at 1, 4, 8, 16, 24, 32, 48, 64 and 96 · 120 s per level including 15 s warmup · stop early if p95 TTFT &gt; 10 s</td></tr>
-        <tr><th>Workload</th><td>Synthetic multi-turn coding-agent chats: an 8K-token shared prefix, then 14 turns that resend the history. Each turn adds ~875 prompt and ~214 output tokens, sized from TraceLab medians (<a href="https://arxiv.org/abs/2606.30560">arXiv 2606.30560</a>).</td></tr>
-      </tbody>
-    </table>
-  </div>
-</section>
-
-<section id="frontier" class="wrap" aria-labelledby="frontier-h">
-  <span class="eyebrow">The key chart</span>
-  <h2 id="frontier-h">Speed per request vs total throughput</h2>
-  <p class="sub">Each point is one concurrency level. Up is a faster stream for each request; right is more tokens per second for the whole GPU. Flint's curve sits above and to the right of Qwen's at every level.</p>
+<section id="result" class="wrap hero-chart" aria-labelledby="result-h">
   <div class="card">
     <div class="card-head">
-      <div><h3>Per-request decode speed vs aggregate output</h3><p>x: output tok/s from all requests, finished or still streaming (GuideLLM successful + incomplete; server count within 3%). y: 1000 ÷ median inter-token latency, log scale. Labels are concurrent requests.</p></div>
+      <div><h3 id="result-h">Qwen's token gap breaks 50 ms after 16 requests; Flint's after 64</h3><p>p95 inter-token latency (the pause between streamed tokens), ms. Only the tested levels were checked. p95 time to first token stayed under 1.5 s everywhere, so the token gap set both limits.</p></div>
       <div class="legend" data-legend></div>
     </div>
-    <div class="chart" id="c-frontier"></div>
+    <div class="chart" id="c-hero"></div>
   </div>
+  <p class="scope">RTX PRO 6000 Blackwell · vLLM 0.32.1rc1 nightly · Flint NVFP4 W4A16 vs Qwen 3.8 27B NVFP4 W4A4 · 8K shared prefix, 14-turn chats · GuideLLM 0.8.0 · 1 run per level · <a href="#setup">Full setup ↓</a></p>
 </section>
 
-<section id="goodput" class="wrap" aria-labelledby="goodput-h">
-  <span class="eyebrow">Goodput and cost</span>
-  <h2 id="goodput-h">How much load fits inside a latency target</h2>
-  <p class="sub">SLO: p95 time to first token ≤ 1.5 s <b>and</b> p95 inter-token latency ≤ 50 ms, over successful requests. Only the tested levels were checked, so the real limit lies between the last passing and the first failing level.</p>
-  <div class="card">
-    <div class="scroll">
-      <table class="goodput">
-        <thead><tr><th>Model</th><th>Highest level within SLO</th><th>p95 TTFT there</th><th>p95 ITL there</th><th>Output there (all requests)</th><th>$ / 1M output tokens there</th><th>Peak output (level)</th><th>$ / 1M at peak</th></tr></thead>
-        <tbody>
-          <tr><td><b>Qwen 3.8 27B</b></td><td>16</td><td>0.41 s</td><td>40.0 ms</td><td>436 tok/s</td><td>$1.59</td><td>687 tok/s (64)</td><td>$1.01</td></tr>
-          <tr><td><b>Flint</b></td><td>64</td><td>0.27 s</td><td>41.7 ms</td><td>1,713 tok/s</td><td>$0.40</td><td>1,987 tok/s (96)</td><td>$0.35</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="note">First failing level: Qwen at 24 (p95 ITL 50.02 ms), Flint at 96 (p95 ITL 55.6 ms). Cost is <b>derived, compute only</b>: $2.49/h ÷ (output tok/s × 3,600) × 1,000,000. It excludes startup, downloads, storage and idle time.</p>
-  </div>
-</section>
-
-<section id="load" class="wrap" aria-labelledby="load-h">
-  <span class="eyebrow">Under load</span>
-  <h2 id="load-h">What changes as requests pile up</h2>
-  <p class="sub">Hover or tab into any chart for exact values. Every number is also in the <a href="#all-data">full table</a>.</p>
-
+<section id="why" class="wrap beat" aria-labelledby="b1-h">
+  <h2 id="b1-h">Alone, Flint streams 224 tok/s; Qwen streams 51.5</h2>
   <div class="card">
     <div class="card-head">
-      <div><h3>Aggregate output throughput</h3><p>Output tokens per second from all requests, finished or still streaming when the window closed (GuideLLM successful + incomplete). The server count is in the tooltip and agrees within 3%.</p></div>
+      <div><h3>Flint's per-request lead shrinks as requests pile up</h3><p>Per-request decode tok/s = 1000 ÷ median inter-token latency, log scale. GuideLLM.</p></div>
+      <div class="legend" data-legend></div>
+    </div>
+    <div class="chart" id="c-pu"></div>
+  </div>
+  <p class="why-t"><b>Why:</b> Flint sends each token through 6 of its 256 experts plus a shared one: about 2.5B of 39.8B parameters. Dense Qwen uses all ~27B for every token. Batching erodes the lead, since a batch of 43 tokens can already reach all 256 experts (an upper bound, not measured). At 48 requests: 32.3 vs 15.5 tok/s.</p>
+</section>
+
+<section class="wrap beat" aria-labelledby="b2-h">
+  <h2 id="b2-h">Qwen's total output stalls near 680 tok/s; Flint reaches 1,987</h2>
+  <div class="card">
+    <div class="card-head">
+      <div><h3>Qwen levels off from 48 requests; Flint is still climbing at 96</h3><p>Output tok/s from all requests, finished or still streaming (GuideLLM successful + incomplete). vLLM's own count agrees within 3%.</p></div>
       <div class="legend" data-legend></div>
     </div>
     <div class="chart" id="c-agg"></div>
   </div>
+  <p class="why-t"><b>Limiter:</b> not memory. Qwen's KV cache peaked at 75% and vLLM preempted nothing. From 48 to 96 requests the extra load queued: mean wait rose from 0.26 to 1.49 s while each stream slowed. Which resource saturated was not measured. Flint at 96 used 51% of its KV cache and queued 3.5 ms, so its ceiling is unknown.</p>
+</section>
 
-  <div class="card">
-    <div class="card-head">
-      <div><h3>Time to first token</h3><p>Median and 95th percentile, on the same scale.</p></div>
-      <div class="legend" data-legend></div>
-    </div>
-    <div class="grid">
-      <div><h3 class="small muted">p50</h3><div class="chart" id="c-ttft50"></div></div>
-      <div><h3 class="small muted">p95</h3><div class="chart" id="c-ttft95"></div></div>
-    </div>
-  </div>
+<section class="wrap beat" aria-labelledby="b3-h">
+  <h2 id="b3-h">Inside the SLO, Flint's compute costs $0.40 per 1M tokens; Qwen's $1.59</h2>
+  <figure class="calc" aria-label="Worked cost calculation">
+    <figcaption>$ per 1M output tokens = $2.49/h ÷ (output tok/s × 3,600) × 1,000,000</figcaption>
+    <table>
+      <thead><tr><th>Operating point</th><th>Output tok/s</th><th>$ / 1M output tokens</th></tr></thead>
+      <tbody>
+        <tr><td><i class="sw f"></i>Flint at 64 requests (SLO limit)</td><td>1,713</td><td><b>$0.40</b></td></tr>
+        <tr><td><i class="sw q"></i>Qwen at 16 requests (SLO limit)</td><td>436</td><td><b>$1.59</b></td></tr>
+        <tr><td><i class="sw f"></i>Flint at 96 requests (peak output)</td><td>1,987</td><td>$0.35</td></tr>
+        <tr><td><i class="sw q"></i>Qwen at 64 requests (peak output)</td><td>687</td><td>$1.01</td></tr>
+      </tbody>
+    </table>
+  </figure>
+  <p class="why-t"><b>Why:</b> a GPU-hour costs the same whichever model runs, so cost per token falls as throughput rises. Compute only: it excludes startup, downloads, storage and idle time.</p>
+</section>
 
-  <div class="card">
-    <div class="card-head">
-      <div><h3>Where a request's time goes</h3><p>Mean per request, from vLLM's own histograms. Each panel has its own scale.</p></div>
-      <div class="legend" data-legend></div>
-    </div>
-    <div class="grid">
-      <div><h3 class="small muted">Waiting in queue</h3><div class="chart" id="c-queue"></div></div>
-      <div><h3 class="small muted">Prefill</h3><div class="chart" id="c-prefill"></div></div>
-      <div><h3 class="small muted">Decode (whole response)</h3><div class="chart" id="c-decode"></div></div>
-    </div>
-  </div>
+<section id="so-what" class="wrap" aria-labelledby="so-h">
+  <h2 id="so-h">For agent chats on one RTX PRO 6000, I'd pick Flint after two checks</h2>
+  <div class="so"><p>Flint fits 64 concurrent requests inside the SLO where Qwen fits 16, at $0.40 vs $1.59 per 1M output tokens. Before shipping it, I would rerun both with matched kernels and repeats, and score output quality, which this test did not measure.</p></div>
+</section>
 
-  <div class="card">
-    <div class="card-head">
-      <div><h3>Memory, cache and power</h3><p>Peak KV-cache use, prefix-cache hit rate and mean GPU power in each level's measured window.</p></div>
-      <div class="legend" data-legend></div>
+<section id="limits" class="wrap" aria-labelledby="limits-h">
+  <h2 id="limits-h">Three caveats could change this result</h2>
+  <ul class="caveats">
+    <li><b>Not a pure MoE-vs-dense test.</b> Different model families, 4-bit recipes (W4A16 on Marlin vs W4A4), compile modes and attention kernels.</li>
+    <li><b>Requests are not users.</b> Each stream sends its next turn as soon as the last one finishes, with no think time.</li>
+    <li><b>One run per level.</b> No repeats or error bars, and no output-quality check.</li>
+  </ul>
+  <p class="small muted">Five more caveats and the unmeasured list are under <a href="#caveats">Details</a>.</p>
+</section>
+
+<section id="details" class="wrap appendix" aria-labelledby="details-h">
+  <span class="eyebrow">Details</span>
+  <h2 id="details-h">Full setup, every measurement, every caveat</h2>
+
+  <details class="more" id="setup">
+    <summary>Full setup <span>models, hardware, flags, workload</span></summary>
+    <div class="more-body">
+      <p>Flint, a ~40B mixture-of-experts model run as NVFP4 W4A16 on Marlin kernels without torch.compile and on FlashInfer attention, against Qwen 3.8 27B, a dense model run as NVFP4 W4A4, compiled, on FlashAttention&nbsp;2. Both were served by vLLM on one RTX&nbsp;PRO&nbsp;6000 at 1 to 96 concurrent requests. The serving flags matched; the kernels and execution paths did not.</p>
+      <p>Workload: synthetic coding-agent chats with an 8K-token shared prefix and 14 turns. Each turn targets ~875 input and ~214 output tokens; the measured mean output was 241–357 tokens per level.</p>
+      <div class="strip" role="region" aria-label="Model and run specification" tabindex="0">
+        <table>
+          <thead><tr><th>Model</th><th>Checkpoint @ revision</th><th>Params (total / active)</th><th>Quantization</th><th>Speculation</th><th>KV cache</th><th>Compile · attention</th></tr></thead>
+          <tbody>
+            <tr><td><b>Qwen 3.8 27B</b></td><td><a href="https://huggingface.co/Inferact/Qwen3.8-27B-NVFP4/tree/6128240ebaf4eaa7bad2b3d1c72c37d677c5f462"><code>Inferact/Qwen3.8-27B-NVFP4</code></a> @ 6128240e</td><td>~27B dense</td><td>ModelOpt NVFP4, W4A4 on MLP and attention projections; linear-attention input projections and LM head BF16</td><td>none</td><td>BF16</td><td>torch.compile + CUDA graphs · FlashAttention 2</td></tr>
+            <tr><td><b>Flint</b></td><td><a href="https://huggingface.co/RecursiveSI/flint-nvfp4-gguf/tree/6ec43e19b565fc8d560e2d04985d7724f20673bf"><code>RecursiveSI/flint-nvfp4-gguf</code></a> @ 6ec43e19</td><td>39.8B / ~2.5B (6 of 256 experts + shared)</td><td>NVFP4 GGUF, W4A16 on Marlin</td><td>none</td><td>BF16</td><td>no torch.compile (unsupported), CUDA graphs · FlashInfer</td></tr>
+          </tbody>
+        </table>
+        <p class="strip-run">RTX PRO 6000 Blackwell Server Edition, 97,887 MiB · vLLM 0.32.1rc1.dev602+g5d35ce393 nightly (commit <code>5d35ce39</code>) · 32K context · 1–96 concurrent requests · ~875 in / ~214 out per turn (measured 241–357 out) · n = 1 run per level</p>
+      </div>
+      <p class="small muted">Both models were served one after the other on the same GPU with the same vLLM flags. Kernels, compile mode and attention backend differed, as listed above.</p>
+      <div class="setup">
+        <table>
+          <tbody>
+            <tr><th>Hardware</th><td>1× RTX PRO 6000 Blackwell Server Edition, 97,887 MiB (<code>nvidia-smi</code>) · RunPod · $2.49/h<br><span>GPU time about 0.85 h; about $2.15 in total including a CPU pod for the downloads. Power cap: not measured.</span></td></tr>
+            <tr><th>Engine</th><td>vLLM 0.32.1rc1.dev602+g5d35ce393 nightly, image pinned by digest <code>sha256:deb9ad8c…</code></td></tr>
+            <tr><th>Serving flags</th><td>32K context · BF16 KV cache · prefix caching on · <code>max-num-batched-tokens</code> 8192 · <code>max-num-seqs</code> 512 · <code>gpu-memory-utilization</code> 0.90</td></tr>
+            <tr><th>KV capacity</th><td>Qwen 767,038 tokens in 832-token blocks · Flint 899,044 tokens in 16-token blocks <span>(from vLLM's startup log)</span></td></tr>
+            <tr><th>Load</th><td>GuideLLM 0.8.0, closed-loop concurrent streams at 1, 4, 8, 16, 24, 32, 48, 64 and 96 · 120 s per level including 15 s warmup · stop early if p95 TTFT &gt; 10 s</td></tr>
+            <tr><th>Workload</th><td>Synthetic multi-turn coding-agent chats: an 8K-token shared prefix, then 14 turns that resend the history. Each turn adds ~875 prompt and ~214 output tokens, sized from TraceLab medians (<a href="https://arxiv.org/abs/2606.30560">arXiv 2606.30560</a>).</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-    <div class="grid">
-      <div><h3 class="small muted">Peak KV cache used</h3><div class="chart" id="c-kv"></div></div>
-      <div><h3 class="small muted">Prefix-cache hits</h3><div class="chart" id="c-prefix"></div></div>
-      <div><h3 class="small muted">Mean GPU power</h3><div class="chart" id="c-power"></div></div>
-    </div>
-    <p class="note">The prefix-hit axis starts at 70%.</p>
-  </div>
+  </details>
 
   <details class="more" id="all-data">
-    <summary>All measurements <span>one row per model and concurrency level</span></summary>
-    <div class="more-body"><table id="data-table"></table>
+    <summary>All measurements <span>goodput table, 8 more charts, every level</span></summary>
+    <div class="more-body">
+      <h3 class="sec">Goodput and cost</h3>
+      <p class="small muted">SLO: p95 time to first token ≤ 1.5 s <b>and</b> p95 inter-token latency ≤ 50 ms, over successful requests. Only the tested levels were checked, so the real limit lies between the last passing and the first failing level.</p>
+      <div class="card">
+        <div class="scroll">
+          <table class="goodput">
+            <thead><tr><th>Model</th><th>Highest level within SLO</th><th>p95 TTFT there</th><th>p95 ITL there</th><th>Output there (all requests)</th><th>$ / 1M output tokens there</th><th>Peak output (level)</th><th>$ / 1M at peak</th></tr></thead>
+            <tbody>
+              <tr><td><b>Qwen 3.8 27B</b></td><td>16</td><td>0.41 s</td><td>40.0 ms</td><td>436 tok/s</td><td>$1.59</td><td>687 tok/s (64)</td><td>$1.01</td></tr>
+              <tr><td><b>Flint</b></td><td>64</td><td>0.27 s</td><td>41.7 ms</td><td>1,713 tok/s</td><td>$0.40</td><td>1,987 tok/s (96)</td><td>$0.35</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">First failing level: Qwen at 24 (p95 ITL 50.02 ms), Flint at 96 (p95 ITL 55.6 ms). Cost is <b>derived, compute only</b>: $2.49/h ÷ (output tok/s × 3,600) × 1,000,000. It excludes startup, downloads, storage and idle time.</p>
+      </div>
+
+      <h3 class="sec">Speed per request vs total throughput</h3>
+      <div class="card">
+        <div class="card-head">
+          <div><h3>Flint's curve sits above and to the right of Qwen's at every level</h3><p>Each point is one concurrency level. Up is a faster stream for each request; right is more tokens per second for the whole GPU. x: output tok/s from all requests, finished or still streaming (GuideLLM successful + incomplete; server count within 3%). y: 1000 ÷ median inter-token latency, log scale. Labels are concurrent requests.</p></div>
+          <div class="legend" data-legend></div>
+        </div>
+        <div class="chart" id="c-frontier"></div>
+      </div>
+
+      <h3 class="sec">What changes as requests pile up</h3>
+      <p class="small muted">Hover or tab into any chart for exact values. Every number is also in the table at the end of this section.</p>
+      <div class="card">
+        <div class="card-head">
+          <div><h3>Qwen's p95 time to first token rises to 1.20 s at 96 requests; Flint's stays at or under 0.31 s</h3><p>Median and 95th percentile, on the same scale.</p></div>
+          <div class="legend" data-legend></div>
+        </div>
+        <div class="grid">
+          <div><h3 class="small muted">p50</h3><div class="chart" id="c-ttft50"></div></div>
+          <div><h3 class="small muted">p95</h3><div class="chart" id="c-ttft95"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div><h3>Qwen's requests start queueing from 32; Flint's barely wait</h3><p>Where a request's time goes. Mean per request, from vLLM's own histograms. Each panel has its own scale.</p></div>
+          <div class="legend" data-legend></div>
+        </div>
+        <div class="grid">
+          <div><h3 class="small muted">Waiting in queue</h3><div class="chart" id="c-queue"></div></div>
+          <div><h3 class="small muted">Prefill</h3><div class="chart" id="c-prefill"></div></div>
+          <div><h3 class="small muted">Decode (whole response)</h3><div class="chart" id="c-decode"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div><h3>Neither model filled its KV cache: peaks of 75% (Qwen) and 51% (Flint)</h3><p>Memory, cache and power: peak KV-cache use, prefix-cache hit rate and mean GPU power in each level's measured window.</p></div>
+          <div class="legend" data-legend></div>
+        </div>
+        <div class="grid">
+          <div><h3 class="small muted">Peak KV cache used</h3><div class="chart" id="c-kv"></div></div>
+          <div><h3 class="small muted">Prefix-cache hits</h3><div class="chart" id="c-prefix"></div></div>
+          <div><h3 class="small muted">Mean GPU power</h3><div class="chart" id="c-power"></div></div>
+        </div>
+        <p class="note">The prefix-hit axis starts at 70%.</p>
+      </div>
+
+      <h3 class="sec">Every level, every metric</h3>
+      <div class="scroll"><table id="data-table" class="data"></table></div>
       <p class="small muted">Per-request speed = 1000 ÷ median inter-token latency. Aggregate = GuideLLM's successful + incomplete output rate; "Server count" is vLLM's own generation counter. TTFT, ITL, E2E (GuideLLM's <code>request_latency</code>) and token means come from GuideLLM over successful requests; queue, prefill, decode, KV and prefix hits come from vLLM's <code>/metrics</code>, sampled every 2 s; power comes from <code>nvidia-smi</code>, sampled every 1 s. Warmup is excluded.</p>
     </div>
   </details>
-</section>
 
-<section id="why" class="wrap" aria-labelledby="why-h">
-  <span class="eyebrow">Why it looks like this</span>
-  <h2 id="why-h">Reading the curves</h2>
-  <div class="why">
-    <article>
-      <span class="n">01 · ONE REQUEST</span>
-      <h3>The MoE uses far fewer weights per token</h3>
-      <p>Flint sends each token through 6 of its 256 experts plus a shared expert: about 2.5B of its 39.8B parameters. Dense Qwen uses all ~27B for every token. At one request, Flint streamed 224 tok/s and Qwen 51.5.</p>
-      <p class="src">Sources: Flint's <code>config.json</code> (256 experts, 6 per token, shared expert), measured levels.</p>
-    </article>
-    <article>
-      <span class="n">02 · MORE REQUESTS</span>
-      <h3>The gap narrows as batches touch more experts</h3>
-      <p>Every decode step serves the whole batch. With 6 experts per token, a batch of 43 tokens can already reach all 256 experts, so the MoE's per-token savings shrink as concurrency rises. Per-request speed went from 224 vs 51.5 tok/s at 1 request to 32.3 vs 15.5 at 48.</p>
-      <p class="src">The expert count is an upper bound; how many experts a batch actually touched was not measured.</p>
-    </article>
-    <article>
-      <span class="n">03 · QWEN PAST 48</span>
-      <h3>A plateau, not a memory wall</h3>
-      <p>From 48 to 96 requests, Qwen's all-request output stayed at 680, 687 and 675 tok/s (server count 694, 701, 670) while each stream slowed (median token gap 64, 81, 127 ms) and mean queue wait grew (0.26, 0.56, 1.49 s). The KV cache peaked at 75% and vLLM preempted nothing, so memory was not the limit.</p>
-      <p class="src">GuideLLM's completed-only count fell (596 → 465) because unfinished long requests are omitted; counting them matches vLLM within 3%.</p>
-    </article>
-    <article>
-      <span class="n">04 · FLINT AT 96</span>
-      <h3>Headroom left</h3>
-      <p>At 96 requests Flint's KV cache peaked at 51%, mean queue wait was 3.5 ms, and p95 time to first token was 0.31 s. The early-stop rule never fired, so its ceiling on this GPU is still unknown.</p>
-      <p class="src">Sources: measured levels and vLLM metrics.</p>
-    </article>
-  </div>
-</section>
-
-<section id="caveats" class="wrap" aria-labelledby="caveats-h">
-  <span class="eyebrow">Caveats</span>
-  <h2 id="caveats-h">Read before quoting these numbers</h2>
-  <ul class="caveats">
-    <li><b>Not a pure MoE-vs-dense test.</b> Different model families and different NVFP4 recipes: Qwen runs W4A4 on vLLM's FlashInfer CUTLASS FP4 kernels, Flint runs W4A16 on Marlin. vLLM logged that Flint would use "weight-only FP4 compression … leveraging the Marlin kernel".</li>
-    <li><b>Different execution paths.</b> Flint ran without torch.compile (unsupported for this model) on FlashInfer attention; Qwen ran compiled on FlashAttention 2.</li>
-    <li><b>Responses ran longer than configured.</b> The target mean was 214 output tokens; measured means were 241–357 per level. Both models used the same settings.</li>
-    <li><b>Requests are not users.</b> Each stream sends its next turn as soon as the last one finishes, with no think time.</li>
-    <li><b>Single run, no repeats.</b> No error bars.</li>
-    <li><b>No ceiling found.</b> The early-stop rule (p95 TTFT above 10 s) never fired for either model.</li>
-    <li><b>Qwen's lower prefix-hit rate is partly by design.</b> Its hybrid layers make vLLM use 832-token cache blocks (Flint: 16), and prefix caching reuses only whole blocks.</li>
-    <li><b>Uneven prompts at high concurrency.</b> In each 120 s window Qwen's slower conversations reached fewer turns, so its mean prompt was shorter: 10,138 vs 14,538 tokens at 96 requests.</li>
-  </ul>
-  <h3 class="small muted" style="margin:20px 0 8px">Not measured</h3>
-  <ul class="missing">
-    <li>Repeats: one run per level, so run-to-run variance is unknown.</li>
-    <li>A prefix-caching-off run, so the cache's share of these numbers is unknown.</li>
-    <li>Flint's saturation point: throughput was still rising at 96 requests.</li>
-    <li>GPU power cap and clocks.</li>
-    <li>Output quality: <code>ignore_eos</code> makes outputs fixed-length synthetic text.</li>
-  </ul>
-  <p class="small muted">p99 TTFT, p99 ITL and end-to-end latency (p50/p95/p99) were measured and are in the <a href="#all-data">full table</a>. At 1 request Qwen completed only 15 requests, so its p95 and p99 coincide.</p>
-</section>
-
-<section id="reproduce" class="wrap" aria-labelledby="repro-h">
-  <span class="eyebrow">Reproduce</span>
-  <h2 id="repro-h">Method</h2>
-  <p class="sub">The runner script and CSV exporter live in my private lab repository. The settings below are the complete method; host, network and account details are left out. The raw data (GuideLLM reports, vLLM metrics and logs) is available on request.</p>
-  <details class="more">
-    <summary>Serving and load commands <span>vLLM and GuideLLM</span></summary>
+  <details class="more" id="mechanisms">
+    <summary>Why the curves look like this <span>four mechanisms, with sources</span></summary>
     <div class="more-body">
+      <div class="why">
+        <article>
+          <span class="n">01 · ONE REQUEST</span>
+          <h3>The MoE uses far fewer weights per token</h3>
+          <p>Flint sends each token through 6 of its 256 experts plus a shared expert: about 2.5B of its 39.8B parameters. Dense Qwen uses all ~27B for every token. At one request, Flint streamed 224 tok/s and Qwen 51.5.</p>
+          <p class="src">Sources: Flint's <code>config.json</code> (256 experts, 6 per token, shared expert), measured levels.</p>
+        </article>
+        <article>
+          <span class="n">02 · MORE REQUESTS</span>
+          <h3>The gap narrows as batches touch more experts</h3>
+          <p>Every decode step serves the whole batch. With 6 experts per token, a batch of 43 tokens can already reach all 256 experts, so the MoE's per-token savings shrink as concurrency rises. Per-request speed went from 224 vs 51.5 tok/s at 1 request to 32.3 vs 15.5 at 48.</p>
+          <p class="src">The expert count is an upper bound; how many experts a batch actually touched was not measured.</p>
+        </article>
+        <article>
+          <span class="n">03 · QWEN PAST 48</span>
+          <h3>A plateau, not a memory wall</h3>
+          <p>From 48 to 96 requests, Qwen's all-request output stayed at 680, 687 and 675 tok/s (server count 694, 701, 670) while each stream slowed (median token gap 64, 81, 127 ms) and mean queue wait grew (0.26, 0.56, 1.49 s). The KV cache peaked at 75% and vLLM preempted nothing, so memory was not the limit.</p>
+          <p class="src">GuideLLM's completed-only count fell (596 → 465) because unfinished long requests are omitted; counting them matches vLLM within 3%.</p>
+        </article>
+        <article>
+          <span class="n">04 · FLINT AT 96</span>
+          <h3>Headroom left</h3>
+          <p>At 96 requests Flint's KV cache peaked at 51%, mean queue wait was 3.5 ms, and p95 time to first token was 0.31 s. The early-stop rule never fired, so its ceiling on this GPU is still unknown.</p>
+          <p class="src">Sources: measured levels and vLLM metrics.</p>
+        </article>
+      </div>
+    </div>
+  </details>
+
+  <details class="more" id="caveats">
+    <summary>Every caveat and what was not measured <span>8 caveats, 5 gaps</span></summary>
+    <div class="more-body">
+      <ul class="caveats">
+        <li><b>Not a pure MoE-vs-dense test.</b> Different model families and different NVFP4 recipes: Qwen runs W4A4 on vLLM's FlashInfer CUTLASS FP4 kernels, Flint runs W4A16 on Marlin. vLLM logged that Flint would use "weight-only FP4 compression … leveraging the Marlin kernel".</li>
+        <li><b>Different execution paths.</b> Flint ran without torch.compile (unsupported for this model) on FlashInfer attention; Qwen ran compiled on FlashAttention 2.</li>
+        <li><b>Responses ran longer than configured.</b> The target mean was 214 output tokens; measured means were 241–357 per level. Both models used the same settings.</li>
+        <li><b>Requests are not users.</b> Each stream sends its next turn as soon as the last one finishes, with no think time.</li>
+        <li><b>Single run, no repeats.</b> No error bars.</li>
+        <li><b>No ceiling found.</b> The early-stop rule (p95 TTFT above 10 s) never fired for either model.</li>
+        <li><b>Qwen's lower prefix-hit rate is partly by design.</b> Its hybrid layers make vLLM use 832-token cache blocks (Flint: 16), and prefix caching reuses only whole blocks.</li>
+        <li><b>Uneven prompts at high concurrency.</b> In each 120 s window Qwen's slower conversations reached fewer turns, so its mean prompt was shorter: 10,138 vs 14,538 tokens at 96 requests.</li>
+      </ul>
+      <h3 class="sec">Not measured</h3>
+      <ul class="missing">
+        <li>Repeats: one run per level, so run-to-run variance is unknown.</li>
+        <li>A prefix-caching-off run, so the cache's share of these numbers is unknown.</li>
+        <li>Flint's saturation point: throughput was still rising at 96 requests.</li>
+        <li>GPU power cap and clocks.</li>
+        <li>Output quality: <code>ignore_eos</code> makes outputs fixed-length synthetic text.</li>
+      </ul>
+      <p class="small muted">p99 TTFT, p99 ITL and end-to-end latency (p50/p95/p99) were measured and are in the <a href="#all-data">full table</a>. At 1 request Qwen completed only 15 requests, so its p95 and p99 coincide.</p>
+    </div>
+  </details>
+
+  <details class="more" id="reproduce">
+    <summary>Method and commands <span>vLLM and GuideLLM</span></summary>
+    <div class="more-body">
+      <p class="small muted">The runner script and CSV exporter live in my private lab repository. The settings below are the complete method; host, network and account details are left out. The raw data (GuideLLM reports, vLLM metrics and logs) is available on request.</p>
 <pre class="cmd">vllm serve &lt;model&gt; \
   --tensor-parallel-size 1 --dtype bfloat16 --kv-cache-dtype auto \
   --max-model-len 32768 --max-num-seqs 512 --max-num-batched-tokens 8192 \
@@ -408,7 +506,6 @@ output_tokens=214,output_tokens_stdev=250,output_tokens_min=50,output_tokens_max
 
 <footer class="wrap">MoE vs dense under load · Levi Le · <a href="/playground/">More experiments in the Playground</a> · <a href="/">Résumé</a></footer>
 <div id="tip" role="tooltip" aria-hidden="true"></div>
-
 <script>
 /* Generated from results/export/levels.csv plus mean prompt/output tokens from each GuideLLM c<N>.json. */
 const DATA = {"qwen":[{"concurrency":1,"completed":15,"errored":0,"ttft_p50_s":0.1862,"ttft_p95_s":0.6727,"itl_p50_ms":19.4097,"itl_p95_ms":19.679,"per_user_tps":51.5207,"agg_output_tps":50.1224,"kv_peak_pct":2.7051,"gpu_power_mean_w":335.7287,"decode_tps_server":50.1597,"prefill_ms_mean":162.902,"decode_ms_mean":6358.7122,"queue_ms_mean":0.0094,"prefix_hit_pct":87.5844,"out_tok_mean":357.2,"in_tok_mean":15529.5,"ttft_p99_s":0.6727,"itl_p99_ms":19.693,"e2e_p50_s":7.511,"e2e_p95_s":15.516,"e2e_p99_s":15.516},{"concurrency":4,"completed":53,"errored":0,"ttft_p50_s":0.21,"ttft_p95_s":0.2883,"itl_p50_ms":23.9683,"itl_p95_ms":24.6562,"per_user_tps":41.7218,"agg_output_tps":163.6763,"kv_peak_pct":7.7661,"gpu_power_mean_w":343.2555,"decode_tps_server":164.0514,"prefill_ms_mean":163.6625,"decode_ms_mean":7258.6877,"queue_ms_mean":0.0055,"prefix_hit_pct":90.4966,"out_tok_mean":317.7,"in_tok_mean":16218.0,"ttft_p99_s":0.3143,"itl_p99_ms":25.229,"e2e_p50_s":8.707,"e2e_p95_s":16.373,"e2e_p99_s":18.463},{"concurrency":8,"completed":101,"errored":0,"ttft_p50_s":0.2219,"ttft_p95_s":0.3065,"itl_p50_ms":26.9098,"itl_p95_ms":29.8927,"per_user_tps":37.1612,"agg_output_tps":286.0157,"kv_peak_pct":15.0087,"gpu_power_mean_w":386.0898,"decode_tps_server":284.2086,"prefill_ms_mean":179.8357,"decode_ms_mean":8228.6619,"queue_ms_mean":0.0069,"prefix_hit_pct":90.5684,"out_tok_mean":312.6,"in_tok_mean":16298.5,"ttft_p99_s":0.3477,"itl_p99_ms":30.434,"e2e_p50_s":9.202,"e2e_p95_s":17.18,"e2e_p99_s":19.778},{"concurrency":16,"completed":158,"errored":0,"ttft_p50_s":0.25,"ttft_p95_s":0.4053,"itl_p50_ms":35.9246,"itl_p95_ms":40.0147,"per_user_tps":27.8361,"agg_output_tps":435.8051,"kv_peak_pct":25.3927,"gpu_power_mean_w":431.3877,"decode_tps_server":439.3516,"prefill_ms_mean":221.4799,"decode_ms_mean":9762.903,"queue_ms_mean":0.0064,"prefix_hit_pct":90.2009,"out_tok_mean":284.5,"in_tok_mean":15629.3,"ttft_p99_s":0.5063,"itl_p99_ms":42.319,"e2e_p50_s":9.271,"e2e_p95_s":23.525,"e2e_p99_s":27.717},{"concurrency":24,"completed":200,"errored":0,"ttft_p50_s":0.2729,"ttft_p95_s":0.4854,"itl_p50_ms":42.2567,"itl_p95_ms":50.0162,"per_user_tps":23.6649,"agg_output_tps":532.4757,"kv_peak_pct":38.3944,"gpu_power_mean_w":456.5616,"decode_tps_server":540.9339,"prefill_ms_mean":263.172,"decode_ms_mean":11871.0121,"queue_ms_mean":0.0072,"prefix_hit_pct":89.632,"out_tok_mean":285.2,"in_tok_mean":14442.8,"ttft_p99_s":0.5746,"itl_p99_ms":52.995,"e2e_p50_s":11.036,"e2e_p95_s":28.612,"e2e_p99_s":34.258},{"concurrency":32,"completed":232,"errored":0,"ttft_p50_s":0.2906,"ttft_p95_s":0.5254,"itl_p50_ms":50.7914,"itl_p95_ms":62.327,"per_user_tps":19.6884,"agg_output_tps":588.1981,"kv_peak_pct":46.4223,"gpu_power_mean_w":482.6066,"decode_tps_server":593.8774,"prefill_ms_mean":352.6613,"decode_ms_mean":13193.2509,"queue_ms_mean":43.7268,"prefix_hit_pct":89.0785,"out_tok_mean":269.6,"in_tok_mean":13613.1,"ttft_p99_s":0.5974,"itl_p99_ms":67.591,"e2e_p50_s":13.037,"e2e_p95_s":33.316,"e2e_p99_s":40.236},{"concurrency":48,"completed":259,"errored":0,"ttft_p50_s":0.3252,"ttft_p95_s":0.5935,"itl_p50_ms":64.3714,"itl_p95_ms":79.6242,"per_user_tps":15.5348,"agg_output_tps":680.0569,"kv_peak_pct":57.1553,"gpu_power_mean_w":516.5404,"decode_tps_server":693.5101,"prefill_ms_mean":494.8999,"decode_ms_mean":16574.8706,"queue_ms_mean":260.1905,"prefix_hit_pct":87.6159,"out_tok_mean":268.8,"in_tok_mean":12184.7,"ttft_p99_s":0.7623,"itl_p99_ms":98.473,"e2e_p50_s":17.19,"e2e_p95_s":47.763,"e2e_p99_s":56.475},{"concurrency":64,"completed":248,"errored":0,"ttft_p50_s":0.3653,"ttft_p95_s":0.8127,"itl_p50_ms":80.51,"itl_p95_ms":108.4498,"per_user_tps":12.4208,"agg_output_tps":686.9311,"kv_peak_pct":63.3508,"gpu_power_mean_w":542.9659,"decode_tps_server":700.8533,"prefill_ms_mean":658.2479,"decode_ms_mean":21259.8739,"queue_ms_mean":555.2078,"prefix_hit_pct":83.1921,"out_tok_mean":267.2,"in_tok_mean":11155.3,"ttft_p99_s":1.3903,"itl_p99_ms":117.415,"e2e_p50_s":20.258,"e2e_p95_s":55.447,"e2e_p99_s":71.065},{"concurrency":96,"completed":226,"errored":0,"ttft_p50_s":0.5138,"ttft_p95_s":1.202,"itl_p50_ms":126.9711,"itl_p95_ms":161.6045,"per_user_tps":7.8758,"agg_output_tps":675.3872,"kv_peak_pct":75.0436,"gpu_power_mean_w":551.8358,"decode_tps_server":670.1361,"prefill_ms_mean":932.1075,"decode_ms_mean":29526.4872,"queue_ms_mean":1485.2381,"prefix_hit_pct":80.7597,"out_tok_mean":240.6,"in_tok_mean":10138.0,"ttft_p99_s":1.608,"itl_p99_ms":175.983,"e2e_p50_s":26.562,"e2e_p95_s":83.546,"e2e_p99_s":109.251}],"flint":[{"concurrency":1,"completed":68,"errored":0,"ttft_p50_s":0.0924,"ttft_p95_s":0.1445,"itl_p50_ms":4.4624,"itl_p95_ms":4.6342,"per_user_tps":224.0926,"agg_output_tps":210.2719,"kv_peak_pct":1.2354,"gpu_power_mean_w":229.6825,"decode_tps_server":210.3562,"prefill_ms_mean":59.9764,"decode_ms_mean":1466.2341,"queue_ms_mean":0.0077,"prefix_hit_pct":92.2435,"out_tok_mean":326.7,"in_tok_mean":16439.5,"ttft_p99_s":0.2569,"itl_p99_ms":4.665,"e2e_p50_s":1.583,"e2e_p95_s":3.171,"e2e_p99_s":3.553},{"concurrency":4,"completed":226,"errored":0,"ttft_p50_s":0.0966,"ttft_p95_s":0.1419,"itl_p50_ms":6.1152,"itl_p95_ms":6.6551,"per_user_tps":163.528,"agg_output_tps":618.3374,"kv_peak_pct":2.9457,"gpu_power_mean_w":299.7186,"decode_tps_server":609.241,"prefill_ms_mean":60.16,"decode_ms_mean":1739.2396,"queue_ms_mean":0.0043,"prefix_hit_pct":93.1374,"out_tok_mean":285.5,"in_tok_mean":16068.2,"ttft_p99_s":0.1766,"itl_p99_ms":6.927,"e2e_p50_s":1.748,"e2e_p95_s":4.124,"e2e_p99_s":4.908},{"concurrency":8,"completed":338,"errored":0,"ttft_p50_s":0.1055,"ttft_p95_s":0.1542,"itl_p50_ms":8.7058,"itl_p95_ms":9.4286,"per_user_tps":114.866,"agg_output_tps":879.0032,"kv_peak_pct":5.6302,"gpu_power_mean_w":343.0557,"decode_tps_server":879.1747,"prefill_ms_mean":65.7797,"decode_ms_mean":2402.6517,"queue_ms_mean":0.0047,"prefix_hit_pct":93.1762,"out_tok_mean":272.7,"in_tok_mean":16463.2,"ttft_p99_s":0.2257,"itl_p99_ms":9.831,"e2e_p50_s":2.254,"e2e_p95_s":5.812,"e2e_p99_s":6.827},{"concurrency":16,"completed":453,"errored":0,"ttft_p50_s":0.1187,"ttft_p95_s":0.1761,"itl_p50_ms":13.7512,"itl_p95_ms":14.7572,"per_user_tps":72.7208,"agg_output_tps":1135.8625,"kv_peak_pct":9.1172,"gpu_power_mean_w":375.8046,"decode_tps_server":1134.367,"prefill_ms_mean":72.9214,"decode_ms_mean":3638.2684,"queue_ms_mean":0.0049,"prefix_hit_pct":93.1648,"out_tok_mean":266.1,"in_tok_mean":16284.8,"ttft_p99_s":0.2206,"itl_p99_ms":15.319,"e2e_p50_s":3.225,"e2e_p95_s":8.669,"e2e_p99_s":11.019},{"concurrency":24,"completed":507,"errored":0,"ttft_p50_s":0.1264,"ttft_p95_s":0.1814,"itl_p50_ms":18.3425,"itl_p95_ms":19.7587,"per_user_tps":54.5182,"agg_output_tps":1277.1261,"kv_peak_pct":14.0512,"gpu_power_mean_w":391.7035,"decode_tps_server":1286.2279,"prefill_ms_mean":78.095,"decode_ms_mean":4807.9085,"queue_ms_mean":0.0053,"prefix_hit_pct":93.0587,"out_tok_mean":265.3,"in_tok_mean":16105.5,"ttft_p99_s":0.2274,"itl_p99_ms":20.393,"e2e_p50_s":4.282,"e2e_p95_s":11.758,"e2e_p99_s":14.931},{"concurrency":32,"completed":556,"errored":0,"ttft_p50_s":0.1325,"ttft_p95_s":0.1959,"itl_p50_ms":21.8805,"itl_p95_ms":23.7352,"per_user_tps":45.7027,"agg_output_tps":1433.4339,"kv_peak_pct":18.2882,"gpu_power_mean_w":406.1165,"decode_tps_server":1459.4236,"prefill_ms_mean":84.3794,"decode_ms_mean":5736.298,"queue_ms_mean":0.0053,"prefix_hit_pct":92.9104,"out_tok_mean":269.1,"in_tok_mean":15959.1,"ttft_p99_s":0.2405,"itl_p99_ms":24.781,"e2e_p50_s":5.13,"e2e_p95_s":14.16,"e2e_p99_s":17.982},{"concurrency":48,"completed":611,"errored":0,"ttft_p50_s":0.1527,"ttft_p95_s":0.2334,"itl_p50_ms":30.9218,"itl_p95_ms":33.5527,"per_user_tps":32.3396,"agg_output_tps":1566.0018,"kv_peak_pct":27.948,"gpu_power_mean_w":415.6253,"decode_tps_server":1594.1987,"prefill_ms_mean":104.7711,"decode_ms_mean":7680.6502,"queue_ms_mean":0.006,"prefix_hit_pct":92.8129,"out_tok_mean":268.8,"in_tok_mean":16001.6,"ttft_p99_s":0.2814,"itl_p99_ms":34.162,"e2e_p50_s":7.068,"e2e_p95_s":19.56,"e2e_p99_s":25.064},{"concurrency":64,"completed":669,"errored":0,"ttft_p50_s":0.1726,"ttft_p95_s":0.2717,"itl_p50_ms":37.3354,"itl_p95_ms":41.7336,"per_user_tps":26.7842,"agg_output_tps":1712.9245,"kv_peak_pct":37.0449,"gpu_power_mean_w":427.841,"decode_tps_server":1749.0235,"prefill_ms_mean":119.9341,"decode_ms_mean":9128.3617,"queue_ms_mean":2.4042,"prefix_hit_pct":92.9291,"out_tok_mean":264.7,"in_tok_mean":15841.9,"ttft_p99_s":0.3275,"itl_p99_ms":42.448,"e2e_p50_s":8.432,"e2e_p95_s":22.798,"e2e_p99_s":28.346},{"concurrency":96,"completed":794,"errored":0,"ttft_p50_s":0.1929,"ttft_p95_s":0.3115,"itl_p50_ms":45.5948,"itl_p95_ms":55.606,"per_user_tps":21.9323,"agg_output_tps":1986.8542,"kv_peak_pct":50.5688,"gpu_power_mean_w":447.995,"decode_tps_server":2046.1686,"prefill_ms_mean":142.2531,"decode_ms_mean":11683.7573,"queue_ms_mean":3.4997,"prefix_hit_pct":92.3097,"out_tok_mean":268.3,"in_tok_mean":14538.1,"ttft_p99_s":0.3992,"itl_p99_ms":56.852,"e2e_p50_s":11.165,"e2e_p95_s":29.511,"e2e_p99_s":38.852}]};
@@ -607,6 +704,76 @@ const DATA = {"qwen":[{"concurrency":1,"completed":15,"errored":0,"ttft_p50_s":0
 
   const conc = { get: r => r.concurrency, min: 0, max: 100, ticks: [1, 16, 32, 48, 64, 96], ticksNarrow: [1, 32, 64, 96], fmt: String, title: 'Concurrent requests' };
 
+  /* v2 hero: p95 inter-token latency against the 50 ms SLO line; the headline levels are annotated. */
+  chart('c-hero', {
+    aria: '95th percentile inter-token latency against concurrent requests, with the 50 millisecond SLO line. Qwen stays under it up to 16 requests, Flint up to 64.',
+    height: W => W < 520 ? 260 : 290, padRight: 48, mode: 'level',
+    x: conc,
+    y: { get: r => r.itl_p95_ms, min: 0, max: 175, ticks: [0, 50, 100, 150], fmt: v => f0(v), title: 'p95 token gap, ms', tip: r => f1(r.itl_p95_ms) + ' ms' },
+    tipHead: c => 'p95 token gap · ' + c + ' requests',
+    labels: (g, sx, sy, narrow) => {
+      const y = Math.round(sy(50)) + .5;
+      el('line', { x1: sx(0), x2: sx(100), y1: y, y2: y, class: 'slo' }, g);
+      el('text', { class: 'lbl', x: sx(82), y: y - 7, 'text-anchor': 'end' }, g).textContent = narrow ? 'SLO 50 ms' : 'SLO: p95 token gap ≤ 50 ms';
+      const q = DATA.qwen.find(r => r.concurrency === 16), f = DATA.flint.find(r => r.concurrency === 64);
+      /* Qwen's last pass: label in the clear space above, with a leader line down to the point. */
+      el('line', { x1: sx(16), x2: sx(16), y1: sy(q.itl_p95_ms) - 7, y2: sy(84), class: 'lead' }, g);
+      el('text', { class: 'lbl strong', x: Math.max(sx(0) + 2, sx(16) - 30), y: sy(88) }, g).textContent = 'last pass: 16';
+      /* Flint's last pass: clear space below its line. */
+      el('line', { x1: sx(64), x2: sx(64), y1: sy(f.itl_p95_ms) + 7, y2: sy(22), class: 'lead' }, g);
+      el('text', { class: 'lbl strong', x: sx(64), y: sy(22) + 13, 'text-anchor': 'middle' }, g).textContent = 'last pass: 64';
+      const ql = DATA.qwen.at(-1), fl = DATA.flint.at(-1);
+      el('text', { class: 'lbl', x: sx(96) + 8, y: sy(ql.itl_p95_ms) + 4 }, g).textContent = 'Qwen';
+      el('text', { class: 'lbl', x: sx(96) + 8, y: sy(fl.itl_p95_ms) + 4 }, g).textContent = 'Flint';
+    },
+  });
+
+  /* v2 beat 1: per-request decode speed against concurrency (log), start and 48-request values annotated. */
+  chart('c-pu', {
+    aria: 'Per-request decode tokens per second against concurrent requests, log scale. Flint 224 versus Qwen 51.5 at one request; 32.3 versus 15.5 at 48.',
+    height: W => W < 520 ? 260 : 300, padRight: 48, mode: 'level', x: conc,
+    y: { get: r => r.per_user_tps, min: 5, max: 300, log: true, ticks: [5, 10, 20, 50, 100, 200], fmt: String, title: 'tok/s per request (log)', tip: r => f1(r.per_user_tps) + ' tok/s' },
+    tipHead: c => 'Per request · ' + c + ' requests',
+    labels: (g, sx, sy) => {
+      const at = (k, c) => DATA[k].find(r => r.concurrency === c).per_user_tps;
+      const t = (x, y, s, a, strong) => { el('text', { class: 'lbl' + (strong ? ' strong' : ''), x, y, 'text-anchor': a || 'start' }, g).textContent = s; };
+      t(sx(1) + 9, sy(at('flint', 1)) - 6, '224', 'start', true);
+      t(sx(1) + 2, sy(at('qwen', 1)) - 10, '51.5', 'middle', true);
+      t(sx(48) + 4, sy(at('flint', 48)) - 10, '32.3', 'start', true);
+      t(sx(48), sy(at('qwen', 48)) + 20, '15.5', 'middle', true);
+      t(sx(96) + 8, sy(at('flint', 96)) + 4, 'Flint');
+      t(sx(96) + 8, sy(at('qwen', 96)) + 4, 'Qwen');
+    },
+  });
+
+  /* v2 beat 2: aggregate output (successful + incomplete); plateau and end values labelled, server count in the tooltip. */
+  chart('c-agg', {
+    aria: 'Aggregate output tokens per second, including requests still streaming, against concurrent requests. Qwen levels off near 680 from 48 requests; Flint reaches 1,987 at 96.',
+    height: W => W < 520 ? 260 : 300, padRight: 84, mode: 'level',
+    x: conc,
+    y: { get: r => r.agg_output_tps, min: 0, max: 2000, fmt: v => v >= 1000 ? f1(v / 1000).replace('.0', '') + 'K' : String(v), title: 'Output tok/s' },
+    tipRows: c => MODELS.flatMap(mo => {
+      const r = DATA[mo.key].find(x => x.concurrency === c);
+      return [{ color: mo.color, value: f0(r.agg_output_tps) + ' tok/s', label: mo.short },
+              { value: f0(r.decode_tps_server) + ' tok/s', label: 'server count' }];
+    }),
+    labels: (g, sx, sy) => {
+      const fl = DATA.flint.at(-1), ql = DATA.qwen.at(-1), q48 = DATA.qwen.find(r => r.concurrency === 48);
+      el('text', { class: 'lbl strong', x: sx(fl.concurrency) + 8, y: sy(fl.agg_output_tps) + 4 }, g).textContent = 'Flint ' + f0(fl.agg_output_tps);
+      el('text', { class: 'lbl', x: sx(ql.concurrency) + 8, y: sy(ql.agg_output_tps) + 4 }, g).textContent = 'Qwen ' + f0(ql.agg_output_tps);
+      el('text', { class: 'lbl strong', x: sx(48), y: sy(q48.agg_output_tps) - 14, 'text-anchor': 'middle' }, g).textContent = f0(q48.agg_output_tps) + ' at 48';
+    },
+  });
+
+  /* Links into the collapsed appendix open the <details> that holds the target. */
+  const openTo = (hash) => {
+    const t = hash && hash.length > 1 && document.getElementById(hash.slice(1));
+    const d = t && (t.tagName === 'DETAILS' ? t : t.closest('details'));
+    if (d) d.open = true;
+  };
+  document.addEventListener('click', e => { const a = e.target.closest('a[href^="#"]'); if (a) openTo(a.getAttribute('href')); });
+  openTo(location.hash);
+
   /* (a) Key chart: per-request decode speed vs aggregate output. */
   chart('c-frontier', {
     aria: 'Per-request decode tokens per second against aggregate output tokens per second, one line per model, points labelled by concurrent requests.',
@@ -631,24 +798,6 @@ const DATA = {"qwen":[{"concurrency":1,"completed":15,"errored":0,"ttft_p50_s":0
       const q = DATA.qwen[1], f = DATA.flint[2];
       el('text', { class: 'lbl strong', x: sx(q.agg_output_tps), y: sy(q.per_user_tps) - 14 }, g).textContent = 'Qwen (dense)';
       el('text', { class: 'lbl strong', x: sx(f.agg_output_tps) - 10, y: sy(f.per_user_tps) + 26, 'text-anchor': 'end' }, g).textContent = 'Flint (MoE)';
-    },
-  });
-
-  /* (b) Aggregate output (successful + incomplete) vs concurrency; end values labelled, server count in the tooltip. */
-  chart('c-agg', {
-    aria: 'Aggregate output tokens per second, including requests still streaming, against concurrent requests for both models.',
-    height: W => W < 520 ? 260 : 300, padRight: 60, mode: 'level',
-    x: conc,
-    y: { get: r => r.agg_output_tps, min: 0, max: 2000, fmt: v => v >= 1000 ? f1(v / 1000).replace('.0', '') + 'K' : String(v), title: 'Output tok/s' },
-    tipRows: c => MODELS.flatMap(mo => {
-      const r = DATA[mo.key].find(x => x.concurrency === c);
-      return [{ color: mo.color, value: f0(r.agg_output_tps) + ' tok/s', label: mo.short },
-              { value: f0(r.decode_tps_server) + ' tok/s', label: 'server count' }];
-    }),
-    labels: (g, sx, sy) => {
-      const fl = DATA.flint.at(-1), ql = DATA.qwen.at(-1);
-      el('text', { class: 'lbl strong', x: sx(fl.concurrency) + 8, y: sy(fl.agg_output_tps) + 4 }, g).textContent = f0(fl.agg_output_tps);
-      el('text', { class: 'lbl', x: sx(ql.concurrency) + 8, y: sy(ql.agg_output_tps) + 4 }, g).textContent = f0(ql.agg_output_tps);
     },
   });
 

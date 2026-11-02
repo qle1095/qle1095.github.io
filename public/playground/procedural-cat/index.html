@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Can a 30B Model Draw a Cat? · Levi Le</title>
-<meta name="description" content="Qwen 3.8, Flint, Muse Glimmer and Ornith 1.5 (~30B open models) get one try each to draw a tuxedo kitten in Canvas JavaScript on a single RTX 5090 with vLLM. Watch them race, compare the cats, and see what broke.">
-<meta property="og:title" content="Can a 30B Model Draw a Cat? · Levi Le">
-<meta property="og:description" content="Four open models, one RTX 5090, one try each. A side-by-side drawing race with real timings.">
+<title>5 of 8 Runs Drew a Cat; Qwen Never Stopped Planning · Levi Le</title>
+<meta name="description" content="Four ~30B open models got one try each to draw a tuxedo kitten in Canvas JavaScript on one RTX 5090 with vLLM. 5 of 8 runs drew a cat, speculative decoding sped every model up 1.3–3.0×, and one serving flag made Qwen 7.3× faster.">
+<meta property="og:title" content="5 of 8 runs drew a cat; Qwen never stopped planning · Levi Le">
+<meta property="og:description" content="Four open models, one RTX 5090, one try each. Speculative decoding: 1.3–3.0× faster. One serving flag: 7.3×.">
 <meta property="og:image" content="/playground/procedural-cat/assets/ornith-dflash.png">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <style>
+
   @font-face { font-family: 'Bricolage Grotesque'; src: url('/fonts/bricolage-800.woff2') format('woff2'); font-weight: 800; font-display: swap; }
   @font-face { font-family: 'Inter'; src: url('/fonts/inter-400.woff2') format('woff2'); font-weight: 400; font-display: swap; }
   @font-face { font-family: 'Inter'; src: url('/fonts/inter-600.woff2') format('woff2'); font-weight: 600; font-display: swap; }
@@ -256,6 +257,54 @@
   footer { margin: 72px 0 0; padding: 24px 0 48px; border-top: 1px solid var(--border); color: var(--faint); font-size: .86rem; }
 
   #tip { position: fixed; z-index: 50; pointer-events: none; background: #23273a; color: #fff; font-size: .8rem; padding: 6px 9px; border-radius: 8px; max-width: 240px; opacity: 0; transition: opacity .1s; }
+
+
+  /* ---------- v2: answer-first layout ---------- */
+  .hero { padding: 48px 16px 8px; }
+  .hero h1 { font-size: clamp(2.1rem, 5.6vw, 3.6rem); line-height: 1.04; max-width: 960px; }
+  .dek { font-size: clamp(1.05rem, 2vw, 1.22rem); color: var(--muted); max-width: 780px; margin: 0 0 16px; }
+  .hero .byline { margin: 0 0 8px; }
+  .stiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0 0 12px; }
+  .st { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: grid; gap: 2px; align-content: start; }
+  .st .num { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.5rem, 3.2vw, 2.1rem); line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .st .lab { font-weight: 600; font-size: .92rem; }
+  .st .base { color: var(--faint); font-size: .8rem; }
+  @media (max-width: 640px) { .stiles { grid-template-columns: 1fr; gap: 8px; } .st { padding: 10px 14px; } .st .num { font-size: 1.45rem; } }
+
+  main > section.wrap { padding-top: 64px; }
+  main > section.hero-fig { padding-top: 16px; }
+  .scope { font-size: .82rem; color: var(--faint); margin: 8px 2px 0; }
+  .scope a { white-space: nowrap; }
+  .beat h2 { max-width: 900px; margin-bottom: 14px; }
+  figure { margin: 0; }
+  .fig-t { font-family: var(--font-display); font-weight: 800; font-size: 1.2rem; line-height: 1.2; margin: 0 0 4px; }
+  .fig-s { color: var(--muted); font-size: .88rem; margin: 0 0 12px; }
+  .why-t { color: var(--muted); max-width: 760px; margin: 12px 2px 0; }
+  .why-t b { color: var(--text); }
+  .panel-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px; }
+
+  /* Ranked gallery: the hero figure. */
+  .gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .g { background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+  .g img { width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: cover; display: block; background: #fff; }
+  .g .ph { aspect-ratio: 1 / 1; display: grid; place-content: center; gap: 6px; padding: 14px; text-align: center; color: var(--muted); font-size: .84rem; }
+  .g .ph b { font-family: var(--font-display); font-size: 1.5rem; color: var(--text); }
+  .g .cap { padding: 8px 10px 10px; display: grid; gap: 2px; font-size: .84rem; }
+  .g .cap .who { font-weight: 700; }
+  .g .cap .meta { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .g .rk { position: absolute; top: 8px; left: 8px; font-size: .74rem; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: rgba(35,39,58,.86); color: #fff; }
+  .g.best { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .g.best .rk { background: var(--accent); }
+  @media (max-width: 760px) { .gallery { grid-template-columns: repeat(2, 1fr); gap: 10px; } .g .cap { font-size: .78rem; } .g .ph { font-size: .76rem; padding: 10px; } .g .ph b { font-size: 1.2rem; } }
+
+  .so p { max-width: 760px; color: var(--muted); margin: 0; }
+  .caveats { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px 20px 16px 38px; margin: 0; display: grid; gap: 8px; }
+  .caveats li { color: var(--muted); font-size: .95rem; }
+  .caveats li b { color: var(--text); }
+  .appendix details.more:first-of-type { margin-top: 16px; }
+  .more-body h3 { font-size: .95rem; margin: 18px 0 8px; }
+  .more-body .log, .more-body .specs { margin: 8px 0 12px; }
+  .more-body ul { padding-left: 20px; color: var(--muted); display: grid; gap: 6px; }
 </style>
 </head>
 <body>
@@ -264,7 +313,7 @@
   <div class="wrap">
     <a class="back" href="/playground/">← Playground</a>
     <nav aria-label="Sections">
-      <a href="#race">Race</a><a href="#results">Results</a><a href="#takeaways">Takeaways</a><a href="#qwen">Why Qwen failed</a><a href="#setup">Setup</a><a href="#log">What broke</a>
+      <a href="#result">Result</a><a href="#race">Race</a><a href="#qwen">Qwen</a><a href="#speed">Speed</a><a href="#limits">Limits</a><a href="#details">Details</a>
     </nav>
   </div>
 </div>
@@ -272,34 +321,37 @@
 <main>
 <header class="hero wrap">
   <span class="eyebrow">AI Inference Playground · Benchmark</span>
-  <h1>Can a 30B open model draw a cat?</h1>
-  <p class="lede">This compares <strong>4 models drawing a cat</strong>: Qwen 3.8 27B, Flint, Muse Glimmer 30B and Ornith 1.5 each got <strong>one try</strong> to draw a tuxedo kitten in pure Canvas JavaScript, served with vLLM on a single rented RTX&nbsp;5090. No retries, no fixing their code.</p>
-  <div class="strip" role="region" aria-label="Model and run specification" tabindex="0">
-    <table>
-      <thead><tr><th>Model</th><th>Checkpoint @ revision</th><th>Params (total / active)</th><th>Quantization</th><th>Speculation (k)</th><th>KV cache</th><th>Compile · attention</th></tr></thead>
-      <tbody>
-        <tr><td><b>Qwen 3.8 27B</b></td><td><a href="https://huggingface.co/Inferact/Qwen3.8-27B-NVFP4/tree/6128240ebaf4eaa7bad2b3d1c72c37d677c5f462"><code>Inferact/Qwen3.8-27B-NVFP4</code></a> @ 6128240e</td><td>~27B dense</td><td>ModelOpt NVFP4, W4A4; some modules kept higher precision</td><td>MTP, k = 3</td><td>FP8</td><td>torch.compile + CUDA graphs · not logged</td></tr>
-        <tr><td><b>Flint</b></td><td><a href="https://huggingface.co/RecursiveSI/flint-nvfp4-gguf/tree/6ec43e19b565fc8d560e2d04985d7724f20673bf"><code>RecursiveSI/flint-nvfp4-gguf</code></a> @ 6ec43e19</td><td>39.8B / ~2.5B MoE</td><td>NVFP4 GGUF, W4A16; BF16 output head</td><td>n-gram, k = 3</td><td><b>BF16</b></td><td>requested*; CUDA graphs · not logged</td></tr>
-        <tr><td><b>Muse Glimmer 30B</b></td><td><a href="https://huggingface.co/Inferact/Muse-Glimmer-30B-NVFP4-W4A4/tree/d35cb79050f419c457611b1cee5c5d15b176f285"><code>Inferact/Muse-Glimmer-30B-NVFP4-W4A4</code></a> @ d35cb790</td><td>~30B dense</td><td>ModelOpt NVFP4, W4A4; selected modules unquantized</td><td>DFlash, k = 15</td><td>FP8</td><td>torch.compile + CUDA graphs · not logged</td></tr>
-        <tr><td><b>Ornith 1.5</b></td><td><a href="https://huggingface.co/ornith-ai/Ornith-1.5-35B-A3B-NVFP4/tree/94e431d9cc47fa1986a7a1a4e9a80f7f118b03aa"><code>ornith-ai/Ornith-1.5-35B-A3B-NVFP4</code></a> @ 94e431d9</td><td>~35B / ~3B MoE</td><td>ModelOpt NVFP4, mixed precision</td><td>DFlash, k = 8</td><td>FP8</td><td>torch.compile + CUDA graphs · not logged</td></tr>
-      </tbody>
-    </table>
-    <p class="strip-run">1× RTX 5090, 32,607 MiB · vLLM 0.32.1rc1.dev602+g5d35ce393 nightly (commit <code>5d35ce39</code>) · 32K context · concurrency 1 · input 210–274 tokens (one prompt) · output uncapped, 4,007–32,494 tokens · n = 1 per configuration, 8 runs. * The same build logged torch.compile as unsupported for Flint in a later run; this run's logs were not kept.</p>
+  <h1>5 of 8 runs drew a cat; Qwen never stopped planning</h1>
+  <p class="dek">Four ~30B open models, one try each, with and without speculative decoding, on vLLM and one RTX&nbsp;5090.</p>
+  <div class="stiles">
+    <div class="st"><span class="num">22.6 s</span><span class="lab">fastest finished cat</span><span class="base">Muse Glimmer with DFlash</span></div>
+    <div class="st"><span class="num">1.3–3.0×</span><span class="lab">faster decode from speculative decoding</span><span class="base">all four models</span></div>
+    <div class="st"><span class="num">7.3×</span><span class="lab">faster from one serving flag</span><span class="base">eager mode → CUDA graphs</span></div>
   </div>
-  <p class="byline">By Levi Le · 28 October 2026 · 8 runs: each model with and without speculative decoding</p>
-  <div class="tiles">
-    <div class="tile"><div class="lbl">Best picture</div><div class="val">Ornith 1.5</div><div class="note">with DFlash speculative decoding</div></div>
-    <div class="tile"><div class="lbl">Drew a valid cat</div><div class="val">5 of 8</div><div class="note">Qwen never wrote code</div></div>
-    <div class="tile"><div class="lbl">Fastest finished cat</div><div class="val">22.6 s</div><div class="note">Muse Glimmer with DFlash</div></div>
-    <div class="tile"><div class="lbl">Total cloud cost</div><div class="val">$4.59</div><div class="note">all GPU time, incl. failed hosts</div></div>
-  </div>
+  <p class="byline">Levi Le · 28 Oct 2026 · $4.59 of GPU time · one try per run</p>
 </header>
 
-<section id="race" class="wrap" aria-labelledby="race-h">
-  <span class="eyebrow">The race</span>
-  <h2 id="race-h">All eight runs, side by side</h2>
-  <p class="sub">The race replays each request on its <strong>real recorded timeline</strong>, fast-forwarded: watch every model think, write code, and draw its cat the moment it finishes. Switch to <em>Side-by-side replay</em> to compare the five drawings in sync.</p>
+<section id="result" class="wrap hero-fig" aria-labelledby="result-h">
+  <figure class="panel-card">
+    <h3 class="fig-t" id="result-h">Ornith 1.5 with DFlash drew the best cat; three runs drew none</h3>
+    <p class="fig-s">Ranked by picture quality (my read), with time from request to finished page.</p>
+    <div class="gallery">
+      <div class="g best"><span class="rk">#1 · best</span><img src="assets/ornith-dflash.png" alt="Ornith 1.5 with DFlash: shaded, detailed tuxedo kitten" width="800" height="800"><div class="cap"><span class="who">Ornith 1.5 · DFlash</span><span class="meta">69.9 s · 24.9K tokens</span></div></div>
+      <div class="g"><span class="rk">#2</span><img src="assets/flint-baseline.png" alt="Flint standard: clean flat cat with blue eyes" width="800" height="800"><div class="cap"><span class="who">Flint · standard</span><span class="meta">40.7 s · 11.3K tokens</span></div></div>
+      <div class="g"><span class="rk">#3</span><img src="assets/flint-ngram.png" alt="Flint with n-gram: rosy cheeks, white-tipped tail" width="800" height="800"><div class="cap"><span class="who">Flint · n-gram</span><span class="meta">26.0 s · 9.4K tokens</span></div></div>
+      <div class="g"><span class="rk">#4</span><img src="assets/muse-dflash.png" alt="Muse Glimmer with DFlash: tidy, but more penguin than kitten" width="800" height="800"><div class="cap"><span class="who">Muse Glimmer · DFlash</span><span class="meta">22.6 s · 4.4K tokens</span></div></div>
+      <div class="g"><span class="rk">#5</span><img src="assets/muse-baseline.png" alt="Muse Glimmer standard: penguin-like cat" width="800" height="800"><div class="cap"><span class="who">Muse Glimmer · standard</span><span class="meta">60.5 s · 4.0K tokens</span></div></div>
+      <div class="g"><div class="ph"><b>⚠ Rejected</b>Complete page, wrapped in a forbidden Markdown fence</div><div class="cap"><span class="who">Ornith 1.5 · standard</span><span class="meta">75.9 s · 19.5K tokens</span></div></div>
+      <div class="g"><div class="ph"><b>✕ No code</b>Context full of planning</div><div class="cap"><span class="who">Qwen 3.8 · MTP</span><span class="meta">286 s · 32.5K tokens</span></div></div>
+      <div class="g"><div class="ph"><b>✕ No code</b>Same loop, slower</div><div class="cap"><span class="who">Qwen 3.8 · standard</span><span class="meta">525 s · 32.5K tokens</span></div></div>
+    </div>
+  </figure>
+  <p class="scope">1× RTX 5090 (32 GB) · vLLM 0.32.1rc1 nightly · all NVFP4 · 32K context · one request at a time · temperature 0.6, seed 42 · <a href="#setup">Full setup ↓</a></p>
+</section>
 
+<section id="race" class="wrap beat" aria-labelledby="race-h">
+  <h2 id="race-h">The fastest cat took 22.6 s; Qwen ran 525 s and drew nothing</h2>
+  <figure>
   <div class="stage" id="stage">
     <div class="controls">
       <div class="seg" role="group" aria-label="View">
@@ -315,8 +367,7 @@
       <span class="clock" id="clock"><b>0.0 s</b> real time</span>
     </div>
     <input type="range" class="scrub" id="scrub" min="0" max="22" step="0.01" value="0" aria-label="Replay position" hidden>
-
-    <div class="models">
+<div class="models">
       <div class="model">
         <div class="model-head"><h3>Qwen 3.8</h3><p>27B dense · NVFP4</p></div>
         <article class="panel" data-slot="qwen-baseline" data-kind="nocode">
@@ -398,96 +449,97 @@
         </article>
       </div>
     </div>
-
     <p class="stage-note" id="stagenote">Bars under each panel fill the 32K-token context: <span style="color:#86b6ef">blue</span> = thinking, <span style="color:#ffab8a">orange</span> = writing the final HTML. Timings come from each request's saved stream; drawing videos re-run the saved program at a normalized pace and say nothing about inference speed.</p>
     <div class="start" id="start"><button type="button" class="ctl primary" id="startbtn">▶ Start the race</button></div>
   </div>
+  </figure>
+  <p class="why-t"><b>Time to a cat is tokens ÷ speed</b>, and token counts varied 8×, from 4,007 to 32,494. Most of it is thinking: Flint spent 36.2 of its 40.7 s before writing a line of HTML.</p>
 </section>
 
-<section id="results" class="wrap" aria-labelledby="results-h">
-  <span class="eyebrow">Results</span>
-  <h2 id="results-h">Ranked by picture quality</h2>
-  <p class="sub">Quality is my own read of the five valid pictures. Time is how long the one request took, start to finish. Speed is generation throughput while streaming.</p>
-  <div class="board">
-    <table>
-      <thead><tr><th>#</th><th></th><th>Configuration</th><th>Verdict</th><th>Time to finished cat</th><th>Tokens used (of 32K)</th><th class="num">Speed</th></tr></thead>
-      <tbody>
-        <tr><td class="rank">1</td><td class="thumb"><img src="assets/ornith-dflash.png" alt="" width="52" height="52" loading="lazy"></td><td class="cfg"><b>Ornith 1.5</b><span>DFlash · 8 drafts</span></td><td><span class="chip good">✓ Best picture</span><div class="why">Shaded, detailed, unmistakably a tuxedo kitten.</div></td><td><div class="bar" data-tip="69.9 s from request to finished HTML"><i style="width:87%"></i><span>69.9 s</span></div></td><td><div class="bar"><i style="width:76%"></i><span>24,876</span></div></td><td class="num">357 tok/s</td></tr>
-        <tr><td class="rank">2</td><td class="thumb"><img src="assets/flint-baseline.png" alt="" width="52" height="52" loading="lazy"></td><td class="cfg"><b>Flint</b><span>Standard</span></td><td><span class="chip good">✓ Valid</span><div class="why">Clean flat cat, blue eyes, wrapped tail.</div></td><td><div class="bar"><i style="width:51%"></i><span>40.7 s</span></div></td><td><div class="bar"><i style="width:35%"></i><span>11,309</span></div></td><td class="num">279 tok/s</td></tr>
-        <tr><td class="rank">3</td><td class="thumb"><img src="assets/flint-ngram.png" alt="" width="52" height="52" loading="lazy"></td><td class="cfg"><b>Flint</b><span>n-gram · 3 drafts</span></td><td><span class="chip good">✓ Valid</span><div class="why">Rosy cheeks, white-tipped tail; small gaps by the paws.</div></td><td><div class="bar"><i style="width:33%"></i><span>26.0 s</span></div></td><td><div class="bar"><i style="width:29%"></i><span>9,411</span></div></td><td class="num">363 tok/s</td></tr>
-        <tr><td class="rank">4</td><td class="thumb"><img src="assets/muse-dflash.png" alt="" width="52" height="52" loading="lazy"></td><td class="cfg"><b>Muse Glimmer</b><span>DFlash · 15 drafts</span></td><td><span class="chip good">✓ Valid</span><div class="why">Tidy, but more penguin than kitten.</div></td><td><div class="bar"><i style="width:28%"></i><span>22.6 s</span></div></td><td><div class="bar"><i style="width:14%"></i><span>4,430</span></div></td><td class="num">197 tok/s</td></tr>
-        <tr><td class="rank">5</td><td class="thumb"><img src="assets/muse-baseline.png" alt="" width="52" height="52" loading="lazy"></td><td class="cfg"><b>Muse Glimmer</b><span>Standard</span></td><td><span class="chip good">✓ Valid</span><div class="why">Penguin-like; one paw drawn black on black.</div></td><td><div class="bar"><i style="width:76%"></i><span>60.5 s</span></div></td><td><div class="bar"><i style="width:12%"></i><span>4,007</span></div></td><td class="num">66 tok/s</td></tr>
-        <tr><td class="rank">–</td><td class="thumb"><span class="none">!</span></td><td class="cfg"><b>Ornith 1.5</b><span>Standard</span></td><td><span class="chip warn">⚠ Rejected</span><div class="why">Complete page, but inside a forbidden Markdown fence.</div></td><td><div class="bar na"><i style="width:95%"></i><span>75.9 s</span></div></td><td><div class="bar"><i style="width:59%"></i><span>19,478</span></div></td><td class="num">257 tok/s</td></tr>
-        <tr><td class="rank">–</td><td class="thumb"><span class="none">✕</span></td><td class="cfg"><b>Qwen 3.8</b><span>MTP · 3 drafts</span></td><td><span class="chip bad">✕ No code</span><div class="why">Reasoned until the context was full.</div></td><td><div class="bar na"><span>no cat · stopped at 286 s</span></div></td><td><div class="bar"><i style="width:99%"></i><span>32,494</span></div></td><td class="num">114 tok/s</td></tr>
-        <tr><td class="rank">–</td><td class="thumb"><span class="none">✕</span></td><td class="cfg"><b>Qwen 3.8</b><span>Standard</span></td><td><span class="chip bad">✕ No code</span><div class="why">Same loop, slower.</div></td><td><div class="bar na"><span>no cat · stopped at 525 s</span></div></td><td><div class="bar"><i style="width:99%"></i><span>32,494</span></div></td><td class="num">62 tok/s</td></tr>
-      </tbody>
-    </table>
-  </div>
-  <p class="small muted">Time bars share one scale from 0 to 80 s; token bars show the share of the 32,768-token context. The full per-request metrics are under <a href="#all-metrics">Setup → All measurements</a>.</p>
-</section>
-
-<section id="takeaways" class="wrap" aria-labelledby="take-h">
-  <span class="eyebrow">Takeaways</span>
-  <h2 id="take-h">Three things this run showed</h2>
-  <div class="cards">
-    <article class="card">
-      <h3>In this run, a small-active MoE drew the best cat</h3>
-      <img class="best-img" src="assets/ornith-dflash.png" alt="Ornith 1.5 tuxedo kitten" width="800" height="800" loading="lazy">
-      <p>Ornith 1.5 uses about 3B of its 35B parameters per token. With DFlash it reasoned for 21K tokens, finished in 70 s, and drew the most shaded, detailed cat. One sample per configuration cannot say whether the architecture caused that.</p>
-    </article>
-    <article class="card">
-      <h3>Speculative decoding: up to 3× faster</h3>
-      <div class="legend"><span style="--c:var(--s1)">Standard</span><span style="--c:var(--s2)">Speculative</span></div>
-      <div class="hbars" id="specbars">
-        <div class="hrow"><b>Muse</b><div class="pair"><div class="hb s1" data-tip="Muse, standard: 66.4 tok/s"><i style="width:16.6%"></i>66</div><div class="hb s2" data-tip="Muse, DFlash: 197.3 tok/s"><i style="width:49.3%"></i>197 <em>3.0×</em></div></div></div>
-        <div class="hrow"><b>Qwen</b><div class="pair"><div class="hb s1" data-tip="Qwen, standard: 61.9 tok/s"><i style="width:15.5%"></i>62</div><div class="hb s2" data-tip="Qwen, MTP: 113.7 tok/s"><i style="width:28.4%"></i>114 <em>1.8×</em></div></div></div>
-        <div class="hrow"><b>Ornith</b><div class="pair"><div class="hb s1" data-tip="Ornith, standard: 257.4 tok/s"><i style="width:64.4%"></i>257</div><div class="hb s2" data-tip="Ornith, DFlash: 356.8 tok/s"><i style="width:89.2%"></i>357 <em>1.4×</em></div></div></div>
-        <div class="hrow"><b>Flint</b><div class="pair"><div class="hb s1" data-tip="Flint, standard: 278.9 tok/s"><i style="width:69.7%"></i>279</div><div class="hb s2" data-tip="Flint, n-gram: 363.4 tok/s"><i style="width:90.9%"></i>363 <em>1.3×</em></div></div></div>
-      </div>
-      <div class="axis"><span>0</span><span>100</span><span>200</span><span>300</span><span>400 tok/s</span></div>
-      <p>A small drafter guesses several tokens and the full model checks them in one pass. In this single run the two dense models gained more (3.0×, 1.8×) than the two MoEs (1.4×, 1.3×), with different methods per model.</p>
-    </article>
-    <article class="card">
-      <h3>One serving flag: 7.3× faster</h3>
-      <div class="hbars">
-        <div class="hrow"><b>Eager</b><div class="pair"><div class="hb s1" data-tip="Qwen standard, eager mode: 8.5 tok/s"><i style="width:8.9%"></i>8.5 tok/s</div></div></div>
-        <div class="hrow"><b>Graphs</b><div class="pair"><div class="hb s1" data-tip="Qwen standard, CUDA graphs: 61.9 tok/s"><i style="width:65%"></i>61.9 tok/s</div></div></div>
-      </div>
-      <p>The original setup ran vLLM with <code>--enforce-eager</code> for memory safety. Qwen crawled at 8.5 tok/s while the GPU sat about 17% busy, waiting on kernel launches. vLLM's default CUDA-graph mode: 61.9 tok/s on the same model.</p>
-    </article>
-  </div>
-</section>
-
-<section id="qwen" class="wrap" aria-labelledby="qwen-h">
-  <span class="eyebrow">Why Qwen failed</span>
-  <h2 id="qwen-h">It never stopped planning</h2>
-  <p class="sub">Qwen clearly knew how: its reasoning contains about 67 canvas drawing snippets. It just never moved on to the answer. A follow-up run with Qwen's own recommended sampling (<code>top_k 20</code>, temperature 1.0) fixed the looping, but not the length.</p>
-  <div class="budget">
+<section id="qwen" class="wrap beat" aria-labelledby="qwen-h">
+  <h2 id="qwen-h">Qwen planned for 32,494 tokens and never finished the page</h2>
+  <figure class="budget">
+    <h3 class="fig-t">Every Qwen run filled the 32K context with reasoning</h3>
     <div class="legend"><span style="--c:var(--s1)">Reasoning tokens</span><span style="--c:var(--s2)">Final HTML tokens</span><span style="--c:var(--surface-2)">Unused context</span></div>
     <div class="brow"><div class="who"><b>Uniform sampling · Standard</b><span>temperature 0.6, top_p 0.95</span></div><div class="track" data-tip="32,494 reasoning tokens, 0 code"><i class="r" style="width:99.2%"></i><span class="lab">32,494 reasoning · loop ×9</span></div><div class="out">No code after 525 s</div></div>
     <div class="brow"><div class="who"><b>Uniform sampling · MTP</b><span>same settings, speculative</span></div><div class="track" data-tip="32,494 reasoning tokens, 0 code"><i class="r" style="width:99.2%"></i><span class="lab">32,494 reasoning · same loop</span></div><div class="out">No code after 286 s</div></div>
     <div class="brow"><div class="who"><b>Publisher sampling · Standard</b><span>temperature 1.0, top_k 20</span></div><div class="track" data-tip="32,494 reasoning tokens, no repetition, 0 code"><i class="r" style="width:99.2%"></i><span class="lab">32,494 reasoning · no loop</span></div><div class="out">Still checking coordinates at 550 s</div></div>
-    <div class="brow"><div class="who"><b>Publisher sampling · MTP</b><span>temperature 1.0, top_k 20</span></div><div class="track" data-tip="32,050 reasoning tokens, then 444 tokens of HTML before the context ran out"><i class="r" style="width:97.8%"></i><i class="c" style="width:1.4%"></i><span class="lab">32,050 reasoning</span></div><div class="out">Wrote “Let's final.” at 294.8 s, started the page, cut off after 1,036 characters</div></div>
-    <div class="quote">
-      <span><b>×9</b> “Now, let me think about the eyes more, since they're the focal point.”</span>
-      <span><b>×9</b> “Eye design (for each eye, let me define a function drawEye(cx, cy, r))”</span>
-      <span class="small">Uniform-sampling run: only 282 of 682 long reasoning lines are distinct. With top_k 20: 632 of 638.</span>
-    </div>
-  </div>
-  <p class="small muted">Possible contributors, untested with one sample each: sampling settings (fixed by top_k), aggressive 4-bit weight-and-activation quantization of a dense model, and an open-ended creative prompt. A 64K context is not possible for Qwen MTP on one 32 GB card; turning thinking off is the next experiment.</p>
+    <div class="brow"><div class="who"><b>Publisher sampling · MTP</b><span>temperature 1.0, top_k 20</span></div><div class="track" data-tip="32,050 reasoning tokens, then 444 tokens of HTML before the context ran out"><i class="r" style="width:97.8%"></i><i class="c" style="width:1.4%"></i><span class="lab">32,050 reasoning</span></div><div class="out">Started the page at 294.8 s, cut off after 1,036 characters</div></div>
+  </figure>
+  <p class="why-t">Under shared sampling it repeated the same design thoughts up to 9 times. Its publisher's <code>top_k 20</code> stopped the loop, not the length. <b>The limit was the 32K context.</b> Turning thinking off is the next test.</p>
 </section>
 
-<section id="setup" class="wrap" aria-labelledby="setup-h">
-  <span class="eyebrow">Setup</span>
-  <h2 id="setup-h">How it was run</h2>
-  <p class="sub">Single-request serving on one consumer GPU with a pinned nightly vLLM build, the same rules for every model.</p>
-  <div class="specs">
+<section id="speed" class="wrap beat" aria-labelledby="speed-h">
+  <h2 id="speed-h">Speculative decoding sped up all four models, 1.3× to 3.0×</h2>
+  <figure class="panel-card">
+    <h3 class="fig-t">The two dense models gained most: Muse 3.0×, Qwen 1.8×</h3>
+    <p class="fig-s">Decode tok/s for one request, standard vs speculative.</p>
+    <div class="legend"><span style="--c:var(--s1)">Standard</span><span style="--c:var(--s2)">Speculative</span></div>
+    <div class="hbars" id="specbars">
+      <div class="hrow"><b>Muse</b><div class="pair"><div class="hb s1" data-tip="Muse, standard: 66.4 tok/s"><i style="width:16.6%"></i>66</div><div class="hb s2" data-tip="Muse, DFlash: 197.3 tok/s"><i style="width:49.3%"></i>197 <em>3.0×</em></div></div></div>
+      <div class="hrow"><b>Qwen</b><div class="pair"><div class="hb s1" data-tip="Qwen, standard: 61.9 tok/s"><i style="width:15.5%"></i>62</div><div class="hb s2" data-tip="Qwen, MTP: 113.7 tok/s"><i style="width:28.4%"></i>114 <em>1.8×</em></div></div></div>
+      <div class="hrow"><b>Ornith</b><div class="pair"><div class="hb s1" data-tip="Ornith, standard: 257.4 tok/s"><i style="width:64.4%"></i>257</div><div class="hb s2" data-tip="Ornith, DFlash: 356.8 tok/s"><i style="width:89.2%"></i>357 <em>1.4×</em></div></div></div>
+      <div class="hrow"><b>Flint</b><div class="pair"><div class="hb s1" data-tip="Flint, standard: 278.9 tok/s"><i style="width:69.7%"></i>279</div><div class="hb s2" data-tip="Flint, n-gram: 363.4 tok/s"><i style="width:90.9%"></i>363 <em>1.3×</em></div></div></div>
+    </div>
+    <div class="axis"><span>0</span><span>100</span><span>200</span><span>300</span><span>400 tok/s</span></div>
+  </figure>
+  <p class="why-t">A small drafter guesses several tokens; the full model checks them in one pass. Each model used a different method (DFlash, MTP or n-gram), with 21–66% of drafts accepted. <b>Why the dense models gained more was not measured.</b></p>
+</section>
+
+<section id="flag" class="wrap beat" aria-labelledby="flag-h">
+  <h2 id="flag-h">One serving flag made Qwen 7.3× faster</h2>
+  <figure class="panel-card">
+    <h3 class="fig-t">Eager mode: 8.5 tok/s. CUDA graphs: 61.9 tok/s.</h3>
+    <p class="fig-s">Qwen 3.8 27B, standard decoding, one request.</p>
+    <div class="hbars">
+      <div class="hrow"><b>Eager</b><div class="pair"><div class="hb s1" data-tip="Qwen standard, eager mode: 8.5 tok/s"><i style="width:8.9%"></i>8.5 tok/s</div></div></div>
+      <div class="hrow"><b>Graphs</b><div class="pair"><div class="hb s1" data-tip="Qwen standard, CUDA graphs: 61.9 tok/s"><i style="width:65%"></i>61.9 tok/s</div></div></div>
+    </div>
+  </figure>
+  <p class="why-t">My first setup used <code>--enforce-eager</code> for memory safety. The GPU sat about 17% busy, waiting on per-layer kernel launches. <b>Overhead, not compute or memory, was the limit.</b> vLLM's default compiled + CUDA-graph mode removed it.</p>
+</section>
+
+<section id="so-what" class="wrap" aria-labelledby="so-h">
+  <h2 id="so-h">For one user on a 32 GB GPU, I'd turn on both speedups and cap thinking</h2>
+  <div class="so"><p>Speculative decoding and CUDA graphs were free speed here. Before giving a reasoning model an open-ended task, I'd cap or disable thinking: Qwen spent its whole budget planning. Picking the best artist needs more than one try per run.</p></div>
+</section>
+
+<section id="limits" class="wrap" aria-labelledby="limits-h">
+  <h2 id="limits-h">Three caveats could change this result</h2>
+  <ul class="caveats">
+    <li><b>One try per run.</b> Another seed could draw a different cat, as the two Flint runs show.</li>
+    <li><b>Quality is my read.</b> Pictures were judged by eye, after blind galleries were revealed.</li>
+    <li><b>Shared sampling for every model,</b> not each publisher's settings. It made Qwen loop.</li>
+  </ul>
+  <p class="small muted">The full caveat list is under <a href="#caveats">Details</a>.</p>
+</section>
+
+<section id="details" class="wrap appendix" aria-labelledby="details-h">
+  <h2 id="details-h">Full setup, every measurement, everything that broke</h2>
+<details class="more" id="setup">
+    <summary>Full setup <span>models, hardware, serving, request rules</span></summary>
+    <div class="more-body">
+<p class="small muted">Single-request serving on one consumer GPU with a pinned nightly vLLM build, the same rules for every model.</p>
+<div class="strip" role="region" aria-label="Model and run specification" tabindex="0">
+    <table>
+      <thead><tr><th>Model</th><th>Checkpoint @ revision</th><th>Params (total / active)</th><th>Quantization</th><th>Speculation (k)</th><th>KV cache</th><th>Compile · attention</th></tr></thead>
+      <tbody>
+        <tr><td><b>Qwen 3.8 27B</b></td><td><a href="https://huggingface.co/Inferact/Qwen3.8-27B-NVFP4/tree/6128240ebaf4eaa7bad2b3d1c72c37d677c5f462"><code>Inferact/Qwen3.8-27B-NVFP4</code></a> @ 6128240e</td><td>~27B dense</td><td>ModelOpt NVFP4, W4A4; some modules kept higher precision</td><td>MTP, k = 3</td><td>FP8</td><td>torch.compile + CUDA graphs · not logged</td></tr>
+        <tr><td><b>Flint</b></td><td><a href="https://huggingface.co/RecursiveSI/flint-nvfp4-gguf/tree/6ec43e19b565fc8d560e2d04985d7724f20673bf"><code>RecursiveSI/flint-nvfp4-gguf</code></a> @ 6ec43e19</td><td>39.8B / ~2.5B MoE</td><td>NVFP4 GGUF, W4A16; BF16 output head</td><td>n-gram, k = 3</td><td><b>BF16</b></td><td>requested*; CUDA graphs · not logged</td></tr>
+        <tr><td><b>Muse Glimmer 30B</b></td><td><a href="https://huggingface.co/Inferact/Muse-Glimmer-30B-NVFP4-W4A4/tree/d35cb79050f419c457611b1cee5c5d15b176f285"><code>Inferact/Muse-Glimmer-30B-NVFP4-W4A4</code></a> @ d35cb790</td><td>~30B dense</td><td>ModelOpt NVFP4, W4A4; selected modules unquantized</td><td>DFlash, k = 15</td><td>FP8</td><td>torch.compile + CUDA graphs · not logged</td></tr>
+        <tr><td><b>Ornith 1.5</b></td><td><a href="https://huggingface.co/ornith-ai/Ornith-1.5-35B-A3B-NVFP4/tree/94e431d9cc47fa1986a7a1a4e9a80f7f118b03aa"><code>ornith-ai/Ornith-1.5-35B-A3B-NVFP4</code></a> @ 94e431d9</td><td>~35B / ~3B MoE</td><td>ModelOpt NVFP4, mixed precision</td><td>DFlash, k = 8</td><td>FP8</td><td>torch.compile + CUDA graphs · not logged</td></tr>
+      </tbody>
+    </table>
+    <p class="strip-run">1× RTX 5090, 32,607 MiB · vLLM 0.32.1rc1.dev602+g5d35ce393 nightly (commit <code>5d35ce39</code>) · 32K context · concurrency 1 · input 210–274 tokens (one prompt) · output uncapped, 4,007–32,494 tokens · n = 1 per configuration, 8 runs. * The same build logged torch.compile as unsupported for Flint in a later run; this run's logs were not kept.</p>
+  </div>
+<div class="specs">
     <div class="spec"><h3>Hardware</h3><dl><dt>GPU</dt><dd>1× RTX 5090, 32 GB</dd><dt>Cloud</dt><dd>Runpod Secure · $1.19/h</dd><dt>Host</dt><dd>16 vCPU · 62 GB RAM</dd></dl></div>
     <div class="spec"><h3>Serving</h3><dl><dt>Engine</dt><dd>vLLM 0.32.1rc1.dev602 nightly · CUDA graphs</dd><dt>Context</dt><dd>32,768 tokens · FP8 KV (Flint BF16)</dd><dt>Load</dt><dd>One request at a time</dd></dl></div>
     <div class="spec"><h3>Request</h3><dl><dt>Sampling</dt><dd>temp 0.6 · top_p 0.95 · seed 42</dd><dt>Limits</dt><dd>No token cap · no time limit</dd><dt>Thinking</dt><dd>Each model's default</dd></dl></div>
     <div class="spec"><h3>Rules</h3><dl><dt>Attempts</dt><dd>One per configuration</dd><dt>Rendering</dt><dd>Sandboxed browser, no network</dd><dt>Repairs</dt><dd>None, not even a fence</dd></dl></div>
   </div>
-
+    </div>
+  </details>
   <details class="more">
     <summary>The exact prompt <span>sent verbatim to every model</span></summary>
     <div class="more-body"><p class="prompt">Create a charming, polished illustration of a tuxedo kitten using only procedural JavaScript drawing on an HTML Canvas.
@@ -496,7 +548,6 @@ Return exactly one complete standalone HTML document, with no Markdown fences or
 
 The illustration must be a static finished image when the page loads. Do not use images, external assets, external fonts, libraries, network requests, embedded image data, SVG, animation, user interaction, or random numbers. Keep all code inside the HTML document. Do not create any other files.</p></div>
   </details>
-
   <details class="more">
     <summary>Models and checkpoints <span>pinned revisions, sizes, speculative method</span></summary>
     <div class="more-body"><table>
@@ -508,7 +559,6 @@ The illustration must be a static finished image when the page loads. Do not use
         <tr><td>Ornith 1.5 35B-A3B</td><td>MoE, ~3B active</td><td><code>ornith-ai/Ornith-1.5-35B-A3B-NVFP4</code> @ 94e431d9</td><td>NVFP4</td><td class="num">23.42 GB</td><td>DFlash, 8 tokens · 0.77 GB BF16 drafter</td></tr>
       </tbody></table></div>
   </details>
-
   <details class="more">
     <summary>Every serving setting and why <span>vLLM flags</span></summary>
     <div class="more-body"><table>
@@ -525,7 +575,28 @@ The illustration must be a static finished image when the page loads. Do not use
         <tr><td>Image</td><td><code>vllm/vllm-openai@sha256:deb9ad8c…</code></td><td>Pinned by digest; PyTorch 2.14 + CUDA 13.0</td></tr>
       </tbody></table></div>
   </details>
-
+  <details class="more" id="scoreboard">
+    <summary>Scoreboard <span>verdict, time, tokens and speed per run</span></summary>
+    <div class="more-body">
+<p class="small muted">Quality is my own read of the five valid pictures. Time is how long the one request took, start to finish. Speed is generation throughput while streaming.</p>
+<div class="board">
+    <table>
+      <thead><tr><th>#</th><th></th><th>Configuration</th><th>Verdict</th><th>Time to finished cat</th><th>Tokens used (of 32K)</th><th class="num">Speed</th></tr></thead>
+      <tbody>
+        <tr><td class="rank">1</td><td class="thumb"><img src="assets/ornith-dflash.png" alt="" width="52" height="52" loading="lazy"></td><td class="cfg"><b>Ornith 1.5</b><span>DFlash · 8 drafts</span></td><td><span class="chip good">✓ Best picture</span><div class="why">Shaded, detailed, unmistakably a tuxedo kitten.</div></td><td><div class="bar" data-tip="69.9 s from request to finished HTML"><i style="width:87%"></i><span>69.9 s</span></div></td><td><div class="bar"><i style="width:76%"></i><span>24,876</span></div></td><td class="num">357 tok/s</td></tr>
+        <tr><td class="rank">2</td><td class="thumb"><img src="assets/flint-baseline.png" alt="" width="52" height="52" loading="lazy"></td><td class="cfg"><b>Flint</b><span>Standard</span></td><td><span class="chip good">✓ Valid</span><div class="why">Clean flat cat, blue eyes, wrapped tail.</div></td><td><div class="bar"><i style="width:51%"></i><span>40.7 s</span></div></td><td><div class="bar"><i style="width:35%"></i><span>11,309</span></div></td><td class="num">279 tok/s</td></tr>
+        <tr><td class="rank">3</td><td class="thumb"><img src="assets/flint-ngram.png" alt="" width="52" height="52" loading="lazy"></td><td class="cfg"><b>Flint</b><span>n-gram · 3 drafts</span></td><td><span class="chip good">✓ Valid</span><div class="why">Rosy cheeks, white-tipped tail; small gaps by the paws.</div></td><td><div class="bar"><i style="width:33%"></i><span>26.0 s</span></div></td><td><div class="bar"><i style="width:29%"></i><span>9,411</span></div></td><td class="num">363 tok/s</td></tr>
+        <tr><td class="rank">4</td><td class="thumb"><img src="assets/muse-dflash.png" alt="" width="52" height="52" loading="lazy"></td><td class="cfg"><b>Muse Glimmer</b><span>DFlash · 15 drafts</span></td><td><span class="chip good">✓ Valid</span><div class="why">Tidy, but more penguin than kitten.</div></td><td><div class="bar"><i style="width:28%"></i><span>22.6 s</span></div></td><td><div class="bar"><i style="width:14%"></i><span>4,430</span></div></td><td class="num">197 tok/s</td></tr>
+        <tr><td class="rank">5</td><td class="thumb"><img src="assets/muse-baseline.png" alt="" width="52" height="52" loading="lazy"></td><td class="cfg"><b>Muse Glimmer</b><span>Standard</span></td><td><span class="chip good">✓ Valid</span><div class="why">Penguin-like; one paw drawn black on black.</div></td><td><div class="bar"><i style="width:76%"></i><span>60.5 s</span></div></td><td><div class="bar"><i style="width:12%"></i><span>4,007</span></div></td><td class="num">66 tok/s</td></tr>
+        <tr><td class="rank">–</td><td class="thumb"><span class="none">!</span></td><td class="cfg"><b>Ornith 1.5</b><span>Standard</span></td><td><span class="chip warn">⚠ Rejected</span><div class="why">Complete page, but inside a forbidden Markdown fence.</div></td><td><div class="bar na"><i style="width:95%"></i><span>75.9 s</span></div></td><td><div class="bar"><i style="width:59%"></i><span>19,478</span></div></td><td class="num">257 tok/s</td></tr>
+        <tr><td class="rank">–</td><td class="thumb"><span class="none">✕</span></td><td class="cfg"><b>Qwen 3.8</b><span>MTP · 3 drafts</span></td><td><span class="chip bad">✕ No code</span><div class="why">Reasoned until the context was full.</div></td><td><div class="bar na"><span>no cat · stopped at 286 s</span></div></td><td><div class="bar"><i style="width:99%"></i><span>32,494</span></div></td><td class="num">114 tok/s</td></tr>
+        <tr><td class="rank">–</td><td class="thumb"><span class="none">✕</span></td><td class="cfg"><b>Qwen 3.8</b><span>Standard</span></td><td><span class="chip bad">✕ No code</span><div class="why">Same loop, slower.</div></td><td><div class="bar na"><span>no cat · stopped at 525 s</span></div></td><td><div class="bar"><i style="width:99%"></i><span>32,494</span></div></td><td class="num">62 tok/s</td></tr>
+      </tbody>
+    </table>
+  </div>
+<p class="small muted">Time bars share one scale from 0 to 80 s; token bars show the share of the 32,768-token context. Full per-request metrics are in the next section.</p>
+    </div>
+  </details>
   <details class="more" id="all-metrics">
     <summary>All measurements <span>per request</span></summary>
     <div class="more-body"><table>
@@ -542,7 +613,34 @@ The illustration must be a static finished image when the page loads. Do not use
       </tbody></table>
       <p class="small muted">* Muse's server reported 0 reasoning tokens while streaming visible reasoning, so the split is marked unknown. <em>stop</em> = the model ended on its own; <em>length</em> = the context ran out. Draft acceptance = accepted ÷ proposed draft tokens.</p></div>
   </details>
-
+  <details class="more" id="qwen-more">
+    <summary>Why Qwen failed, in full <span>the loop, the follow-up run, possible causes</span></summary>
+    <div class="more-body">
+<p class="sub">Qwen clearly knew how: its reasoning contains about 67 canvas drawing snippets. It just never moved on to the answer. A follow-up run with Qwen's own recommended sampling (<code>top_k 20</code>, temperature 1.0) fixed the looping, but not the length.</p>
+<div class="quote">
+      <span><b>×9</b> “Now, let me think about the eyes more, since they're the focal point.”</span>
+      <span><b>×9</b> “Eye design (for each eye, let me define a function drawEye(cx, cy, r))”</span>
+      <span class="small">Uniform-sampling run: only 282 of 682 long reasoning lines are distinct. With top_k 20: 632 of 638.</span>
+    </div>
+<p class="small muted">Possible contributors, untested with one sample each: sampling settings (fixed by top_k), aggressive 4-bit weight-and-activation quantization of a dense model, and an open-ended creative prompt. A 64K context is not possible for Qwen MTP on one 32 GB card; turning thinking off is the next experiment.</p>
+    </div>
+  </details>
+  <details class="more" id="log">
+    <summary>What broke, and how it got fixed <span>8 problems on the way to a fair run</span></summary>
+    <div class="more-body">
+<p class="sub">Getting eight cold-started 30B models to run on one consumer GPU took more debugging than the benchmark itself.</p>
+<div class="log">
+    <article><span class="n">01 · MEMORY</span><h3>Muse DFlash ran out of memory while loading</h3><p>Summing the checkpoint's tensor headers showed 28.4 GiB of weights on a 31.4 GiB card, including a 3.58 GiB vision encoder the text prompt never uses.</p><p class="fix"><b>Fix:</b> <code>--language-model-only</code>. It loaded and ran 3× faster than standard.</p></article>
+    <article><span class="n">02 · SPEED</span><h3>Eager mode was the bottleneck</h3><p>Qwen decoded at 8.5 tok/s with the GPU about 17% busy, stalled on per-layer kernel launches.</p><p class="fix"><b>Fix:</b> vLLM's default compiled + CUDA-graph mode: 61.9 tok/s, 7.3×.</p></article>
+    <article><span class="n">03 · HARDWARE</span><h3>Two cloud hosts were broken</h3><p>One returned <code>CUDA unknown error</code> for any GPU work while <code>nvidia-smi</code> looked fine; another couldn't start GPU containers at all.</p><p class="fix"><b>Fix:</b> a CUDA tensor check before downloading anything, and a driver that stops instead of burning a slot on a host fault.</p></article>
+    <article><span class="n">04 · METHOD</span><h3>A 300-second limit measured the wrong thing</h3><p>The original design capped requests at 300 s and 6,144 tokens; Qwen spent all of it planning.</p><p class="fix"><b>Fix:</b> no time or token cap; measure the time instead.</p></article>
+    <article><span class="n">05 · CONTEXT</span><h3>8K context was too small</h3><p>With a BF16 KV cache, Qwen MTP had room for only 18,521 tokens.</p><p class="fix"><b>Fix:</b> an FP8 KV cache, so 32K fits everywhere (Flint stayed BF16, see 07).</p></article>
+    <article><span class="n">06 · MEMORY</span><h3>Compiled warmup ran out of memory</h3><p>With 32K FP8 KV reserved, warmup at an 8,192-token batch needed 544 MiB with 364 MiB free.</p><p class="fix"><b>Fix:</b> <code>max_num_batched_tokens</code> 2,048; prompts are far shorter.</p></article>
+    <article><span class="n">07 · ENGINE</span><h3>Flint rejected the FP8 KV cache</h3><p>Its vLLM attention code hard-asserts BF16.</p><p class="fix"><b>Fix:</b> a recorded per-model BF16 exception; it still fits 32K.</p></article>
+    <article><span class="n">08 · SAMPLING</span><h3>Qwen looped</h3><p>Under shared sampling it repeated the same design thoughts up to 9 times.</p><p class="fix"><b>Fix:</b> its publisher's <code>top_k 20</code> removed the loop, and showed it simply needs more than 32K tokens here.</p></article>
+  </div>
+    </div>
+  </details>
   <details class="more">
     <summary>Method and rules <span>how fairness and honesty were enforced</span></summary>
     <div class="more-body"><table><tbody>
@@ -554,24 +652,7 @@ The illustration must be a static finished image when the page loads. Do not use
       <tr><th>Judging</th><td>Pictures were shuffled into blind galleries; the quality ranking here is my read after revealing them.</td></tr>
     </tbody></table></div>
   </details>
-</section>
-
-<section id="log" class="wrap" aria-labelledby="log-h">
-  <span class="eyebrow">Engineering log</span>
-  <h2 id="log-h">What broke, and how it got fixed</h2>
-  <p class="sub">Getting eight cold-started 30B models to run on one consumer GPU took more debugging than the benchmark itself.</p>
-  <div class="log">
-    <article><span class="n">01 · MEMORY</span><h3>Muse DFlash ran out of memory while loading</h3><p>Summing the checkpoint's tensor headers showed 28.4 GiB of weights on a 31.4 GiB card, including a 3.58 GiB vision encoder the text prompt never uses.</p><p class="fix"><b>Fix:</b> <code>--language-model-only</code>. It loaded and ran 3× faster than standard.</p></article>
-    <article><span class="n">02 · SPEED</span><h3>Eager mode was the bottleneck</h3><p>Qwen decoded at 8.5 tok/s with the GPU about 17% busy, stalled on per-layer kernel launches.</p><p class="fix"><b>Fix:</b> vLLM's default compiled + CUDA-graph mode: 61.9 tok/s, 7.3×.</p></article>
-    <article><span class="n">03 · HARDWARE</span><h3>Two cloud hosts were broken</h3><p>One returned <code>CUDA unknown error</code> for any GPU work while <code>nvidia-smi</code> looked fine; another couldn't start GPU containers at all.</p><p class="fix"><b>Fix:</b> a CUDA tensor check before downloading anything, and a driver that stops instead of burning a slot on a host fault.</p></article>
-    <article><span class="n">04 · METHOD</span><h3>A 300-second limit measured the wrong thing</h3><p>The original design capped requests at 300 s and 6,144 tokens; Qwen spent all of it planning.</p><p class="fix"><b>Fix:</b> no time or token cap; measure the time instead.</p></article>
-    <article><span class="n">05 · CONTEXT</span><h3>8K context was too small</h3><p>With a BF16 KV cache, Qwen MTP had room for only 18,521 tokens.</p><p class="fix"><b>Fix:</b> an FP8 KV cache, so 32K fits everywhere (Flint stayed BF16, see 07).</p></article>
-    <article><span class="n">06 · MEMORY</span><h3>Compiled warmup ran out of memory</h3><p>With 32K FP8 KV reserved, warmup at an 8,192-token batch needed 544 MiB with 364 MiB free.</p><p class="fix"><b>Fix:</b> <code>max_num_batched_tokens</code> 2,048; prompts are far shorter.</p></article>
-    <article><span class="n">07 · ENGINE</span><h3>Flint rejected the FP8 KV cache</h3><p>Its vLLM attention code hard-asserts BF16.</p><p class="fix"><b>Fix:</b> a recorded per-model BF16 exception; it still fits 32K.</p></article>
-    <article><span class="n">08 · SAMPLING</span><h3>Qwen looped</h3><p>Under shared sampling it repeated the same design thoughts up to 9 times.</p><p class="fix"><b>Fix:</b> its publisher's <code>top_k 20</code> removed the loop, and showed it simply needs more than 32K tokens here.</p></article>
-  </div>
-
-  <details class="more">
+  <details class="more" id="caveats">
     <summary>Limitations <span>read before quoting these numbers</span></summary>
     <div class="more-body"><ul>
       <li>One sample per configuration. Another seed could draw a noticeably different cat, as the two Flint runs show.</li>
@@ -580,6 +661,9 @@ The illustration must be a static finished image when the page loads. Do not use
       <li>Flint uses a BF16 KV cache while the others use FP8, because of an engine limitation.</li>
       <li>Picture quality is judged by eye. Drawing-replay timing is normalized and is not inference speed.</li>
       <li>Server startup (loading, compiling, graph capture: 1.5–4 minutes per model) is excluded from request timings.</li>
+    
+      <li>In this run, a small-active MoE (Ornith 1.5, about 3B of 35B parameters per token) drew the best cat. One sample per configuration cannot say whether the architecture caused that.</li>
+      <li>Speculative methods differ per model (DFlash, MTP, n-gram), so the speedups are not a like-for-like method comparison.</li>
     </ul></div>
   </details>
   <details class="more">
@@ -596,10 +680,11 @@ The illustration must be a static finished image when the page loads. Do not use
 </section>
 </main>
 
-<footer class="wrap">Can a 30B open model draw a cat? · Levi Le · <a href="/playground/">More experiments in the Playground</a> · <a href="/">Résumé</a></footer>
+<footer class="wrap">5 of 8 runs drew a cat · Levi Le · <a href="/playground/">More experiments in the Playground</a> · <a href="/">Résumé</a></footer>
 <div id="tip" role="tooltip"></div>
 
 <script>
+
 /* Real per-request timelines: [seconds since request, approx tokens so far], from saved SSE streams. */
 const RACE = {"qwen-baseline":{"total_s":525.1,"first_token_s":0.19,"first_code_s":null,"tokens":32494,"curve":[[0.19,0],[6.65,518],[13.11,992],[19.58,1443],[26.05,1867],[32.52,2252],[39.0,2714],[45.47,3160],[51.95,3619],[58.49,4006],[65.01,4404],[71.49,4715],[77.96,5129],[84.45,5490],[90.93,5846],[97.41,6080],[103.89,6552],[110.38,6966],[116.87,7265],[123.36,7588],[129.86,7968],[136.35,8345],[142.85,8839],[149.36,9329],[155.87,9805],[162.38,10224],[168.9,10646],[175.44,11101],[181.98,11574],[188.51,11992],[195.05,12395],[201.6,12735],[208.14,13109],[214.68,13507],[221.22,13946],[227.77,14415],[234.31,14829],[240.86,15181],[247.41,15526],[253.96,15913],[260.51,16318],[267.06,16790],[273.62,17233],[280.18,17646],[286.74,17995],[293.3,18331],[299.87,18750],[306.44,19183],[313.01,19630],[319.58,20049],[326.16,20480],[332.74,20830],[339.33,21176],[345.92,21595],[352.53,21993],[359.13,22468],[365.74,22883],[372.35,23289],[378.96,23633],[385.57,24009],[392.18,24406],[398.79,24836],[405.41,25306],[412.03,25721],[418.65,26080],[425.27,26425],[431.9,26810],[438.53,27205],[445.16,27681],[451.8,28131],[458.44,28546],[465.07,28889],[471.71,29218],[478.36,29641],[485.0,30073],[491.65,30522],[498.31,30942],[504.96,31372],[511.62,31724],[518.28,32069],[524.96,32487],[525.06,32494]]},"qwen-speculative":{"total_s":286.0,"first_token_s":0.16,"first_code_s":null,"tokens":32494,"curve":[[0.16,0],[3.56,629],[7.0,1093],[10.43,1570],[13.87,1975],[17.3,2391],[20.74,2791],[24.18,3124],[27.61,3624],[31.05,4020],[34.49,4472],[37.93,4893],[41.37,5301],[44.81,5686],[48.25,6168],[51.69,6589],[55.13,7006],[58.57,7381],[62.02,7784],[65.46,8182],[68.91,8572],[72.36,8983],[75.82,9405],[79.27,9747],[82.72,10083],[86.18,10567],[89.65,10912],[93.11,11273],[96.58,11677],[100.06,12053],[103.54,12449],[107.01,12854],[110.49,13299],[113.97,13659],[117.45,14013],[120.93,14496],[124.41,14855],[127.89,15258],[131.37,15708],[134.85,16122],[138.33,16573],[141.8,17082],[145.27,17560],[148.74,17930],[152.22,18273],[155.69,18747],[159.16,19171],[162.64,19667],[166.11,20017],[169.59,20433],[173.06,20745],[176.54,21090],[180.02,21530],[183.5,21811],[186.98,22153],[190.47,22615],[193.96,22969],[197.46,23276],[200.95,23598],[204.45,23920],[207.94,24244],[211.44,24611],[214.93,24974],[218.43,25371],[221.93,25756],[225.42,26132],[228.92,26585],[232.42,26948],[235.92,27250],[239.42,27712],[242.92,28104],[246.42,28607],[249.92,29051],[253.43,29514],[256.93,29983],[260.44,30357],[263.95,30702],[267.46,31077],[270.96,31573],[274.48,32093],[285.96,32494]]},"flint-baseline":{"total_s":40.7,"first_token_s":0.13,"first_code_s":36.2,"tokens":11309,"curve":[[0.13,0],[0.6,207],[1.09,397],[1.56,579],[2.06,728],[2.52,891],[2.99,1060],[3.46,1225],[3.95,1390],[4.43,1525],[4.93,1677],[5.4,1857],[5.88,2020],[6.37,2177],[6.88,2317],[7.37,2469],[7.84,2640],[8.31,2771],[8.79,2942],[9.27,3101],[9.77,3254],[10.32,3383],[10.88,3525],[11.4,3683],[11.88,3850],[12.37,4009],[12.87,4156],[13.39,4291],[13.9,4439],[14.43,4580],[14.95,4722],[15.48,4845],[15.96,5001],[16.48,5131],[16.99,5251],[17.48,5400],[18.04,5510],[18.57,5642],[19.09,5781],[19.61,5897],[20.14,6016],[20.67,6138],[21.21,6260],[21.74,6381],[22.23,6533],[22.75,6663],[23.26,6806],[23.78,6949],[24.31,7068],[24.79,7238],[25.28,7371],[25.78,7505],[26.26,7672],[26.75,7839],[27.23,8014],[27.78,8158],[28.32,8284],[28.9,8397],[29.46,8514],[30.0,8630],[30.53,8747],[31.08,8867],[31.63,8987],[32.16,9115],[32.65,9263],[33.16,9385],[33.65,9543],[34.14,9711],[34.63,9867],[35.13,10018],[35.62,10169],[36.11,10335],[36.62,10477],[37.11,10570],[37.6,10667],[38.09,10760],[38.58,10865],[39.07,10973],[39.56,11074],[40.05,11179],[40.54,11281],[40.68,11309]]},"flint-speculative":{"total_s":26.0,"first_token_s":0.12,"first_code_s":24.2,"tokens":9411,"curve":[[0.12,0],[0.44,143],[0.75,248],[1.05,369],[1.37,476],[1.67,568],[1.98,657],[2.28,763],[2.59,864],[2.92,945],[3.25,1024],[3.55,1095],[3.85,1188],[4.16,1265],[4.47,1350],[4.78,1443],[5.12,1524],[5.43,1606],[5.74,1702],[6.06,1788],[6.37,1880],[6.68,1970],[6.99,2035],[7.33,2111],[7.67,2223],[8.0,2341],[8.31,2424],[8.65,2532],[8.97,2643],[9.31,2757],[9.63,2849],[9.95,2956],[10.27,3049],[10.61,3204],[10.93,3381],[11.25,3557],[11.55,3648],[11.87,3760],[12.18,3860],[12.49,3959],[12.8,4045],[13.11,4152],[13.44,4276],[13.78,4411],[14.1,4504],[14.41,4608],[14.76,4705],[15.07,4792],[15.41,4897],[15.73,4989],[16.05,5084],[16.37,5189],[16.68,5301],[17.0,5417],[17.31,5569],[17.64,5698],[17.98,5850],[18.31,5984],[18.64,6104],[19.0,6244],[19.33,6398],[19.66,6522],[19.99,6635],[20.31,6739],[20.63,6855],[20.94,6981],[21.27,7074],[21.59,7184],[21.92,7326],[22.24,7475],[22.56,7646],[22.89,7814],[23.2,7950],[23.52,8086],[23.84,8208],[24.17,8329],[24.5,8537],[24.82,8725],[25.14,8917],[25.47,9110],[25.8,9301],[26.02,9411]]},"muse-baseline":{"total_s":60.5,"first_token_s":0.16,"first_code_s":42.5,"tokens":4007,"curve":[[0.11,0],[0.89,76],[1.63,136],[2.38,199],[3.12,274],[3.86,336],[4.6,402],[5.35,467],[6.1,524],[6.84,578],[7.6,651],[8.33,699],[9.09,767],[9.84,824],[10.58,901],[11.32,968],[12.05,1025],[12.79,1094],[13.53,1154],[14.28,1205],[15.02,1262],[15.76,1323],[16.5,1385],[17.24,1438],[17.99,1503],[18.76,1556],[19.5,1615],[20.25,1678],[20.99,1726],[21.73,1757],[22.47,1799],[23.21,1839],[23.95,1869],[24.69,1904],[25.43,1948],[26.17,1990],[26.91,2032],[27.64,2073],[28.38,2119],[29.12,2152],[29.86,2187],[30.6,2218],[31.34,2250],[32.08,2286],[32.82,2325],[33.56,2369],[34.3,2429],[35.06,2474],[35.79,2520],[36.53,2549],[37.29,2599],[38.03,2644],[38.77,2711],[39.51,2765],[40.26,2834],[41.0,2906],[41.74,2974],[42.58,3036],[43.32,3085],[44.08,3135],[44.82,3168],[45.56,3210],[46.3,3247],[47.03,3288],[47.77,3324],[48.51,3368],[49.25,3411],[49.99,3454],[50.73,3494],[51.47,3530],[52.21,3566],[52.95,3601],[53.69,3642],[54.43,3681],[55.17,3721],[55.91,3757],[56.65,3795],[57.39,3828],[58.13,3880],[58.87,3919],[59.61,3957],[60.35,3999],[60.53,4007]]},"muse-speculative":{"total_s":22.6,"first_token_s":0.15,"first_code_s":18.9,"tokens":4430,"curve":[[0.13,0],[0.39,229],[0.66,338],[0.94,399],[1.21,493],[1.47,534],[1.76,596],[2.02,646],[2.29,679],[2.55,713],[2.81,752],[3.08,778],[3.34,821],[3.61,851],[3.87,886],[4.14,925],[4.4,954],[4.67,989],[4.93,1017],[5.19,1041],[5.46,1070],[5.72,1106],[5.99,1132],[6.25,1165],[6.52,1214],[6.78,1276],[7.05,1318],[7.32,1349],[7.58,1410],[7.84,1444],[8.11,1472],[8.4,1520],[8.66,1558],[8.93,1586],[9.19,1628],[9.46,1665],[9.73,1697],[9.99,1731],[10.26,1766],[10.52,1799],[10.79,1837],[11.05,1875],[11.32,1919],[11.58,1987],[11.85,2041],[12.12,2076],[12.4,2108],[12.69,2140],[12.96,2178],[13.22,2247],[13.49,2280],[13.76,2333],[14.02,2391],[14.29,2448],[14.55,2523],[14.82,2594],[15.09,2656],[15.35,2689],[15.62,2728],[15.89,2761],[16.15,2787],[16.42,2825],[16.68,2862],[16.95,2925],[17.22,2959],[17.49,2995],[17.75,3058],[18.02,3098],[18.29,3143],[18.55,3176],[18.82,3219],[19.08,3315],[19.35,3397],[19.61,3476],[19.88,3502],[20.15,3581],[20.41,3687],[20.68,3812],[20.95,3928],[21.21,4054],[21.48,4127],[21.75,4198],[22.01,4282],[22.28,4342],[22.55,4415],[22.61,4430]]},"ornith-baseline":{"total_s":75.9,"first_token_s":0.19,"first_code_s":55.1,"tokens":19478,"curve":[[0.19,0],[1.12,373],[2.06,689],[3.02,1002],[3.95,1310],[4.89,1606],[5.83,1873],[6.77,2131],[7.71,2369],[8.65,2738],[9.58,3012],[10.52,3223],[11.46,3515],[12.4,3765],[13.34,4108],[14.28,4306],[15.22,4520],[16.16,4721],[17.1,4970],[18.03,5183],[18.97,5400],[19.91,5652],[20.85,5835],[21.79,6059],[22.73,6288],[23.67,6543],[24.61,6751],[25.56,7051],[26.5,7345],[27.44,7708],[28.38,8019],[29.32,8284],[30.27,8612],[31.21,8794],[32.15,8999],[33.1,9302],[34.04,9594],[34.98,9900],[35.93,10131],[36.87,10380],[37.81,10608],[38.76,10824],[39.7,11074],[40.65,11410],[41.59,11766],[42.54,12109],[43.48,12409],[44.42,12561],[45.37,12718],[46.31,12891],[47.26,13122],[48.2,13307],[49.15,13514],[50.1,13775],[51.04,14025],[51.99,14265],[52.94,14466],[53.89,14689],[54.83,14956],[55.78,15225],[56.73,15492],[57.68,15702],[58.63,15899],[59.57,16077],[60.52,16254],[61.47,16436],[62.42,16610],[63.37,16828],[64.32,17020],[65.27,17228],[66.22,17420],[67.18,17618],[68.13,17803],[69.08,18017],[70.03,18217],[70.98,18435],[71.94,18617],[72.89,18810],[73.84,19038],[74.8,19238],[75.75,19450],[75.87,19478]]},"ornith-speculative":{"total_s":69.9,"first_token_s":0.22,"first_code_s":64.2,"tokens":24876,"curve":[[0.22,0],[1.06,429],[1.9,702],[2.75,1023],[3.6,1354],[4.44,1641],[5.28,1925],[6.13,2212],[6.98,2486],[7.82,2770],[8.68,3189],[9.52,3508],[10.37,3836],[11.22,4150],[12.07,4487],[12.92,4775],[13.78,5032],[14.63,5320],[15.48,5560],[16.33,5828],[17.19,6182],[18.04,6530],[18.9,6844],[19.76,7131],[20.62,7550],[21.48,7875],[22.35,8235],[23.2,8590],[24.07,8944],[24.94,9349],[25.8,9637],[26.68,9889],[27.55,10154],[28.42,10406],[29.28,10681],[30.14,10933],[31.02,11188],[31.88,11456],[32.75,11703],[33.61,12015],[34.47,12269],[35.34,12523],[36.2,12783],[37.07,13079],[37.93,13364],[38.8,13650],[39.66,13952],[40.53,14204],[41.4,14507],[42.27,14791],[43.14,15058],[44.02,15308],[44.9,15565],[45.77,15830],[46.65,16222],[47.52,16526],[48.4,16751],[49.27,16997],[50.15,17229],[51.02,17530],[51.89,17814],[52.77,18103],[53.64,18357],[54.51,18647],[55.38,18878],[56.25,19155],[57.12,19463],[58.01,19870],[58.89,20222],[59.77,20488],[60.66,20739],[61.53,21003],[62.41,21290],[63.29,21585],[64.17,21901],[65.07,22389],[65.95,22804],[66.85,23305],[67.75,23752],[68.64,24209],[69.54,24671],[69.93,24876]]}};
 (() => {
@@ -740,6 +825,7 @@ const RACE = {"qwen-baseline":{"total_s":525.1,"first_token_s":0.19,"first_code_
     el.addEventListener('pointerleave', () => { tip.style.opacity = 0; });
   });
 })();
+
 </script>
 </body>
 </html>
