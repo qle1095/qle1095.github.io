@@ -1,5 +1,7 @@
-import { ArrowDown, FileDown, Mail } from 'lucide-react';
+import { Fragment } from 'react';
+import { ArrowDown, ArrowRight, FileDown, FlaskConical, Mail } from 'lucide-react';
 import { profile } from '../data/journey';
+import { formatExperimentDate, playground } from '../data/playground';
 import { smoothScrollTo } from '../lib/scroll';
 import { iconSize } from '../lib/uiScale';
 import Rich from './Rich';
@@ -12,6 +14,41 @@ function startJourney() {
   const anchor = target.parentElement?.classList.contains('pin-spacer') ? target.parentElement : target;
   const top = anchor.getBoundingClientRect().top + window.scrollY;
   smoothScrollTo(top);
+}
+
+/**
+ * What he works on today, on the first screen: the inference platform and the
+ * two newest Playground benchmarks (data/playground.ts, newest first). On
+ * desktop it sits in the sky above the character; on phones, under the CTAs.
+ */
+function NowCard() {
+  return (
+    <aside className="hero-now" aria-labelledby="hero-now-title">
+      <p className="hero-now-kicker">
+        <span className="hero-now-dot" aria-hidden="true" />
+        Now
+      </p>
+      <h2 className="hero-now-title" id="hero-now-title">
+        Leading self-hosted LLM inference on Kubernetes
+      </h2>
+      <p className="hero-now-stack">EKS GPU nodes · Flint 40B MoE · LiteLLM · Open WebUI · vLLM next</p>
+      <p className="hero-now-label">Latest benchmarks from my AI Inference Playground</p>
+      <ul className="hero-now-list">
+        {playground.slice(0, 2).map((x) => (
+          <li key={x.id}>
+            <a href={x.href}>
+              <span className="hero-now-item-title">{x.title}</span>
+              <time dateTime={x.date}>{formatExperimentDate(x.date)}</time>
+            </a>
+          </li>
+        ))}
+      </ul>
+      <a className="hero-now-cta" href="/playground/">
+        All benchmarks
+        <ArrowRight {...iconSize(16)} strokeWidth={2.2} aria-hidden="true" />
+      </a>
+    </aside>
+  );
 }
 
 /**
@@ -29,7 +66,17 @@ export default function Hero({ staticMode = false }: { staticMode?: boolean }) {
           <span className="hero-name-dot" aria-hidden="true">.</span>
         </h1>
         <p className="hero-tagline">
-          <strong>{profile.tagline}</strong>{' '}
+          <strong>
+            {profile.tagline.split(' · ').map((part, i, all) =>
+              i < all.length - 1 ? (
+                <Fragment key={part}>
+                  <span className="hero-tagline-part">{part} ·</span>{' '}
+                </Fragment>
+              ) : (
+                <span key={part} className="hero-tagline-part">{part}</span>
+              ),
+            )}
+          </strong>{' '}
           <span>
             {profile.location} · {profile.clearance}
           </span>
@@ -54,6 +101,10 @@ export default function Hero({ staticMode = false }: { staticMode?: boolean }) {
             <FileDown {...iconSize(18)} strokeWidth={2} aria-hidden="true" />
             Resume (PDF)
           </a>
+          <a className="btn btn-secondary" href="/playground/">
+            <FlaskConical {...iconSize(18)} strokeWidth={2} aria-hidden="true" />
+            AI Inference Playground
+          </a>
           <a
             className="btn btn-icon"
             href={`mailto:${profile.email}`}
@@ -75,14 +126,17 @@ export default function Hero({ staticMode = false }: { staticMode?: boolean }) {
         </div>
       </div>
 
-      {/* The character stands here (positioned by JourneyStage). The platform
-          is the first strip of the sunrise world he is about to walk into. */}
-      {!staticMode && (
-        <div className="hero-stage" aria-hidden="true">
-          <div className="hero-character-slot" data-character-slot aria-hidden="true" />
-          <div className="hero-platform" />
-        </div>
-      )}
+      <div className="hero-side">
+        <NowCard />
+        {/* The character stands here (positioned by JourneyStage). The platform
+            is the first strip of the sunrise world he is about to walk into. */}
+        {!staticMode && (
+          <div className="hero-stage" aria-hidden="true">
+            <div className="hero-character-slot" data-character-slot aria-hidden="true" />
+            <div className="hero-platform" />
+          </div>
+        )}
+      </div>
 
       <p className="hero-scroll-hint">
         {staticMode ? 'Scroll to read the journey' : 'Scroll to walk the journey'}

@@ -210,9 +210,9 @@ export default function Outro({ staticMode = false }: { staticMode?: boolean }) 
             …and the journey continues.
           </h2>
           <p className="outro-text">
-            Today I lead our self-hosted AI inference platform and the
-            organization’s AI use cases, and own the vulnerability-assessment
-            platform security analysts use to review every release.
+            Today I lead our self-hosted LLM inference platform on Kubernetes
+            and the organization’s AI initiative, and rehearse what comes next,
+            vLLM in production, in my homelab and the Playground below.
           </p>
           <p className="outro-ask">Want the one-page resume, or to talk?</p>
           <div className="outro-actions">

@@ -8,7 +8,6 @@ const TECH_ICON: Record<string, string> = {
   'Active TS/SCI clearance': 'clearance',
   'CKAD (2025)': 'kubernetes',
   'CompTIA Security+ (SY0-701)': 'cert',
-  'CompTIA SecurityX (in progress)': 'cert',
   Go: 'go',
   Java: 'java',
   Python: 'python',

@@ -61,6 +61,11 @@ export default function StaticTimeline() {
                 <p>
                   <Rich text={q.story} />
                 </p>
+                {q.link && (
+                  <a className="side-quest-link" href={q.link.href}>
+                    {q.link.label}
+                  </a>
+                )}
               </article>
             </li>
           ))}

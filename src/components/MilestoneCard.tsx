@@ -43,6 +43,25 @@ function CardContent({ milestone }: { milestone: Milestone }) {
         <p className="milestone-story">
           <Rich text={milestone.story} />
         </p>
+        {milestone.details && (
+          // Its own toggle: keep clicks and keys from also toggling the card.
+          <details
+            className="milestone-details"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <summary>
+              {milestone.details.length} more highlight{milestone.details.length === 1 ? '' : 's'}
+            </summary>
+            <ul>
+              {milestone.details.map((d) => (
+                <li key={d}>
+                  <Rich text={d} />
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
       </div>
     </>
   );

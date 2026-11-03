@@ -324,11 +324,14 @@ button { font-family: inherit; }
   color: var(--ink-900);
 }
 
-.hero-tagline span {
+.hero-tagline > span {
   display: block;
   margin-top: 2px;
   font-size: var(--fs-base);
 }
+
+/* Role and focus wrap as whole phrases, never mid-phrase or before the dot. */
+.hero-tagline-part { white-space: nowrap; }
 
 .hero-intro {
   max-width: 34rem;
@@ -379,6 +382,112 @@ button { font-family: inherit; }
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-3);
+}
+
+.hero-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  min-width: 0;
+}
+
+/* "Now": current work and the newest benchmarks, on the first screen. */
+.hero-now {
+  width: 100%;
+  max-width: 26rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-5);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: inset 0 0.1875rem 0 var(--launch), var(--shadow-1);
+  opacity: 0;
+  animation: hero-rise 0.9s var(--ease-out) 0.7s forwards;
+}
+
+.hero-now-kicker {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--launch-text);
+}
+
+.hero-now-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--launch);
+  box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--launch) 22%, transparent);
+}
+
+.hero-now-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--ink-900);
+  text-wrap: balance;
+}
+
+.hero-now-stack {
+  font-size: var(--fs-sm);
+  color: var(--ink-500);
+}
+
+.hero-now-label {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-500);
+}
+
+.hero-now-list {
+  list-style: none;
+  display: grid;
+  gap: var(--sp-1);
+}
+
+.hero-now-list a {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-900);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.hero-now-list a:hover .hero-now-item-title { color: var(--accent-700); }
+
+.hero-now-list time {
+  flex: none;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--ink-500);
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-now-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2rem;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--accent-700);
+  text-decoration: none;
 }
 
 /* The character's spot. The slot is measured by JourneyStage; its bottom edge
@@ -471,7 +580,9 @@ button { font-family: inherit; }
     align-content: stretch;
   }
   .hero-copy { align-self: center; padding: var(--sp-5) 0 var(--sp-7); }
-  .hero-stage { align-self: end; }
+  /* The "Now" card floats in the sky; the character's stage stays at the bottom. */
+  .hero-side { align-self: stretch; justify-content: space-between; }
+  .hero-now { align-self: center; margin-top: var(--sp-5); }
 }
 
 /* Effective height = innerHeight / S (see html). On a scaled window
@@ -493,7 +604,7 @@ button { font-family: inherit; }
   .hero-stats li { max-width: none; }
   .hero-stats strong { font-size: 1.5rem; }
   .hero-actions .btn-primary { flex: 1 1 100%; }
-  .hero-actions .btn-secondary { flex: 1 1 auto; }
+  .hero-actions .btn-secondary { flex: 1 1 100%; }
   .hero-character-slot { height: 13.75rem; }
 }
 
@@ -885,6 +996,31 @@ button { font-family: inherit; }
   text-wrap: pretty;
 }
 
+/* Flagship cards: extra highlights behind a native toggle. Open, the body
+   may grow past its usual cap. */
+.milestone-body:has(.milestone-details[open]) { max-height: 40rem; }
+/* Widen rather than grow: a tall card would rise off the top of the stage. */
+.milestone:has(.milestone-details[open]) { width: 34rem; z-index: 5; }
+
+.milestone-details { margin-top: var(--sp-2); }
+
+.milestone-details summary {
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--kind-text);
+}
+
+.milestone-details ul {
+  margin: var(--sp-2) 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-body);
+  color: var(--ink-700);
+}
+
 /* The one keyword highlight per story: a soft band in the kind colour. */
 .hl {
   font-weight: 600;
@@ -1077,6 +1213,15 @@ button { font-family: inherit; }
 .side-quest-card .milestone-metric { margin: var(--sp-1) 0 var(--sp-2); }
 .side-quest-card .milestone-metric strong { font-size: 1.375rem; color: var(--ink-900); }
 .side-quest-card .milestone-metric span { font-size: var(--fs-xs); color: var(--ink-500); }
+
+.side-quest-link {
+  display: inline-block;
+  margin-top: var(--sp-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--accent-700);
+  pointer-events: auto;
+}
 
 /* Logo tile used by the HUD, pickups and popover; tinted with the brand colour. */
 .skill-tile {
@@ -2379,6 +2524,10 @@ svg.pg-thumb { background: #272834; }
     right: 1rem;
     z-index: 9;
   }
+  /* No room to grow above the character: open highlights take the story's place. */
+  .reading-panel .milestone-body:has(.milestone-details[open]) .milestone-story,
+  .reading-panel .milestone-card:has(.milestone-details[open]) .milestone-metric { display: none; }
+  .reading-panel .milestone-details ul { gap: var(--sp-1); line-height: 1.45; }
   .reading-panel-item { animation: panel-in 0.45s var(--ease-out, ease) both; }
   .reading-panel-item.is-leaving {
     position: absolute;
