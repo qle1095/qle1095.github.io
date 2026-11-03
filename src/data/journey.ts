@@ -343,7 +343,7 @@ export const chapters: Chapter[] = [
         ],
         kind: 'launch',
         skills: [
-          { id: 'agents', label: 'Multi-Agent AI', icon: 'agents' },
+          { id: 'agents', label: 'Multi-agent workflows', icon: 'agents' },
         ],
       },
       {
@@ -378,7 +378,7 @@ export const chapters: Chapter[] = [
           { id: 'ollama', label: 'Ollama', icon: 'ollama' },
           { id: 'litellm', label: 'LiteLLM', icon: 'litellm' },
           { id: 'openwebui', label: 'Open WebUI', icon: 'openwebui' },
-          { id: 'gpu', label: 'GPU inference', icon: 'gpu' },
+          { id: 'gpu', label: 'NVIDIA GPUs', icon: 'gpu' },
         ],
       },
     ],
@@ -424,51 +424,47 @@ export const techStack: TechGroup[] = [
   },
   {
     label: 'Languages',
-    items: ['Go', 'Java', 'Python', 'Scala', 'TypeScript', 'JavaScript', 'SQL', 'Bash'],
+    items: ['Go', 'Java', 'Python', 'Scala', 'TypeScript / JavaScript', 'SQL', 'Bash'],
   },
   {
     label: 'AI',
+    // Serving stack, then the optimizations actually run, then the layer users
+    // touch. Tools and techniques only: no model names or vendor APIs.
     items: [
       'LLM inference on Kubernetes',
-      'EKS GPU nodes (NVIDIA L4)',
       'Ollama',
-      'vLLM, KServe, llm-d (homelab)',
-      'MoE vs dense model selection',
-      'LiteLLM',
+      'vLLM · KServe · llm-d (homelab)',
+      'Speculative decoding',
+      'KV cache quantization',
+      'LiteLLM gateway',
       'Open WebUI',
       'OpenCode',
-      '4-bit quantization',
-      'FP8 KV cache',
-      'Speculative decoding',
-      'LLM integration & tool calling',
+      'Tool calling',
       'Multi-agent workflows',
-      'Gemma',
-      'OpenAI API',
     ],
   },
+  // Each group lists tools and techniques he used, once, in the group where a
+  // hiring manager would look. No buzzword groups, sub-libraries or basics
+  // (Git, matcher libs, component kits); the journey cards carry the context.
   {
     label: 'Platform & Cloud',
-    items: ['Kubernetes', 'Operators / CRDs', 'Kubebuilder', 'Docker', 'Helm', 'Istio', 'AWS (EKS, S3)', 'Azure (AKS)', 'MinIO', 'Linux'],
+    items: ['Kubernetes', 'Operators / CRDs (Kubebuilder)', 'Helm', 'Istio', 'Docker', 'AWS (EKS, S3)', 'Azure (AKS)', 'Backstage', 'Linux'],
   },
   {
     label: 'Data & Streaming',
-    items: ['Kafka', 'Kafka Streams', 'IBM MQ', 'Kafka Connect', 'Strimzi', 'Avro', 'Trino', 'Delta Lake', 'Superset', 'PostgreSQL', 'MongoDB'],
-  },
-  {
-    label: 'Architecture',
-    items: ['Distributed systems', 'Microservices', 'Event-driven streaming', 'ETL'],
+    items: ['Kafka', 'Kafka Streams', 'Kafka Connect', 'Strimzi', 'IBM MQ', 'Avro', 'Trino', 'Delta Lake', 'MinIO', 'Superset', 'PostgreSQL', 'MongoDB'],
   },
   {
     label: 'Backend & Frontend',
-    items: ['Spring Boot', 'Quarkus', 'REST APIs', 'WebSockets', 'React', 'Next.js', 'Material UI'],
+    items: ['Spring Boot', 'Quarkus', 'REST APIs', 'WebSockets', 'React', 'Next.js'],
   },
   {
     label: 'Security & Identity',
-    items: ['Keycloak', 'OPA / Rego', 'OAuth', 'SSO', 'ABAC', 'DevSecOps'],
+    items: ['Keycloak', 'OPA / Rego', 'OAuth / SSO', 'RBAC & ABAC', 'DevSecOps'],
   },
   {
     label: 'Testing & CI/CD',
-    items: ['JUnit', 'Mockito', 'Hamcrest', 'Cypress', 'JMeter', 'GitLab CI/CD', 'Backstage', 'Git'],
+    items: ['GitLab CI/CD', 'JUnit / Mockito', 'Cypress', 'JMeter'],
   },
 ];
 

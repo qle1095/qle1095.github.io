@@ -25,7 +25,9 @@ function startJourney() {
  * on desktop, and above the CTAs on phones, where anything between the CTAs
  * and the character is in the path of his leap down to the road.
  */
-const WORK_STACK = ['EKS', 'NVIDIA L4', 'Flint 40B MoE', 'LiteLLM', 'Open WebUI', 'OpenCode', 'vLLM next'];
+// The platform's own layers (infra → engine → gateway → apps); the model
+// served is a detail of the inference card, not a skill.
+const WORK_STACK = ['EKS', 'NVIDIA L4', 'Ollama', 'LiteLLM', 'Open WebUI', 'OpenCode', 'vLLM next'];
 
 function NowCard({ placement }: { placement: 'side' | 'inline' }) {
   const titleId = `hero-now-title-${placement}`;
