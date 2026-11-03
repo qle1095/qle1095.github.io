@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
-import { ArrowDown, ArrowRight, FileDown, FlaskConical, Mail } from 'lucide-react';
+import { ArrowDown, ArrowRight, FileDown, Mail } from 'lucide-react';
+import { COURSE } from '../data/course';
 import { profile } from '../data/journey';
 import { formatExperimentDate, playground } from '../data/playground';
 import { smoothScrollTo } from '../lib/scroll';
@@ -17,36 +18,74 @@ function startJourney() {
 }
 
 /**
- * What he works on today, on the first screen: the inference platform and the
- * two newest Playground benchmarks (data/playground.ts, newest first). On
- * desktop it sits in the sky above the character; on phones, under the CTAs.
+ * The first-screen panel, in priority order: what he does at work now, the
+ * home lab where he rehearses it (with the two newest Playground benchmarks,
+ * data/playground.ts, newest first), and the course he learned it through.
+ * Rendered twice, one shown per layout (CSS): in the sky above the character
+ * on desktop, and above the CTAs on phones, where anything between the CTAs
+ * and the character is in the path of his leap down to the road.
  */
-function NowCard() {
+const WORK_STACK = ['EKS', 'NVIDIA L4', 'Flint 40B MoE', 'LiteLLM', 'Open WebUI', 'OpenCode', 'vLLM next'];
+
+function NowCard({ placement }: { placement: 'side' | 'inline' }) {
+  const titleId = `hero-now-title-${placement}`;
   return (
-    <aside className="hero-now" aria-labelledby="hero-now-title">
-      <p className="hero-now-kicker">
-        <span className="hero-now-dot" aria-hidden="true" />
-        Now
-      </p>
-      <h2 className="hero-now-title" id="hero-now-title">
-        Leading self-hosted LLM inference on Kubernetes
-      </h2>
-      <p className="hero-now-stack">EKS GPU nodes · Flint 40B MoE · LiteLLM · Open WebUI · vLLM next</p>
-      <p className="hero-now-label">Latest benchmarks from my AI Inference Playground</p>
-      <ul className="hero-now-list">
-        {playground.slice(0, 2).map((x) => (
-          <li key={x.id}>
-            <a href={x.href}>
-              <span className="hero-now-item-title">{x.title}</span>
-              <time dateTime={x.date}>{formatExperimentDate(x.date)}</time>
-            </a>
-          </li>
-        ))}
-      </ul>
-      <a className="hero-now-cta" href="/playground/">
-        All benchmarks
-        <ArrowRight {...iconSize(16)} strokeWidth={2.2} aria-hidden="true" />
-      </a>
+    <aside className={`hero-now hero-now-${placement}`} aria-labelledby={titleId}>
+      <section className="hero-now-work">
+        <p className="hero-now-kicker">
+          <span className="hero-now-dot" aria-hidden="true" />
+          Now, at work
+        </p>
+        <h2 className="hero-now-title" id={titleId}>
+          Leading the <span className="hl">self-hosted LLM inference platform</span>
+        </h2>
+        <p className="hero-now-text">
+          GPU serving for IL4 developers: gateway, chat, coding assistants. Ollama today, vLLM next.
+        </p>
+        <ul className="hero-now-stack" aria-label="Work stack">
+          {WORK_STACK.map((s) => (
+            <li key={s}>{s}</li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="hero-now-lab">
+        <div className="hero-now-head">
+          <p className="hero-now-label">Home lab: vLLM on Kubernetes</p>
+          <a className="hero-now-cta" href="/playground/">
+            All benchmarks
+            <ArrowRight {...iconSize(14)} strokeWidth={2.2} aria-hidden="true" />
+          </a>
+        </div>
+        <p className="hero-now-text">
+          <strong className="kw">vLLM</strong> behind <strong className="kw">KServe, llm-d</strong> and an{' '}
+          <strong className="kw">Envoy AI Gateway</strong> on Kubernetes, plus benchmarks on rented GPUs:
+        </p>
+        <ul className="hero-now-list">
+          {playground.slice(0, 2).map((x) => (
+            <li key={x.id}>
+              <a href={x.href}>
+                <span className="hero-now-item-title">{x.title}</span>
+                <time dateTime={x.date}>{formatExperimentDate(x.date)}</time>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="hero-now-learn">
+        <p className="hero-now-label">How I learned it: a free course I wrote</p>
+        <ul className="hero-now-course">
+          {COURSE.map((c) => (
+            <li key={c.level}>
+              <a href={c.href} title={c.title}>
+                <span className="hero-now-level">{c.level}</span>
+                {c.short}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
     </aside>
   );
 }
@@ -92,6 +131,7 @@ export default function Hero({ staticMode = false }: { staticMode?: boolean }) {
             </li>
           ))}
         </ul>
+        <NowCard placement="inline" />
         <div className="hero-actions">
           <button type="button" className="btn btn-primary" onClick={startJourney}>
             {staticMode ? 'Read the journey' : 'Start the journey'}
@@ -100,10 +140,6 @@ export default function Hero({ staticMode = false }: { staticMode?: boolean }) {
           <a className="btn btn-secondary" href={profile.resumePdf} download>
             <FileDown {...iconSize(18)} strokeWidth={2} aria-hidden="true" />
             Resume (PDF)
-          </a>
-          <a className="btn btn-secondary" href="/playground/">
-            <FlaskConical {...iconSize(18)} strokeWidth={2} aria-hidden="true" />
-            AI Inference Playground
           </a>
           <a
             className="btn btn-icon"
@@ -127,7 +163,7 @@ export default function Hero({ staticMode = false }: { staticMode?: boolean }) {
       </div>
 
       <div className="hero-side">
-        <NowCard />
+        <NowCard placement="side" />
         {/* The character stands here (positioned by JourneyStage). The platform
             is the first strip of the sunrise world he is about to walk into. */}
         {!staticMode && (

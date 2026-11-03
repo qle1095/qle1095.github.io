@@ -1,16 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowRight, Check, ChevronLeft, ChevronRight, Copy, FileDown, Mail } from 'lucide-react';
+import { COURSE } from '../data/course';
 import { profile } from '../data/journey';
 import { formatExperimentDate, playground, type PlaygroundThumb } from '../data/playground';
 import { iconSize } from '../lib/uiScale';
 import Rich from './Rich';
 
-/** The three interactive decks, published from the ai-inference-101 repo into public/inference/. */
-const COURSE = [
-  { level: '101', title: 'From weights to pods', href: '/inference/' },
-  { level: '201', title: 'Making it fast', href: '/inference/optimization.html' },
-  { level: '301', title: '25 production scenarios', href: '/inference/advanced.html' },
-];
 
 function CopyEmail() {
   const [copied, setCopied] = useState(false);

@@ -1,18 +1,29 @@
-// Renders story strings from journey.ts, where **text** marks a keyword
-// highlight for skimmability.
+// Renders story strings from journey.ts and playground.ts. Two levels of
+// emphasis for skimmability:
+//   **text**  the headline outcome: bold on a soft band (one per story)
+//   [[text]]  a keyword a recruiter scans for (tech, numbers, scope): bold only
+const TOKEN = /(\*\*.+?\*\*|\[\[.+?\]\])/g;
+
 export default function Rich({ text }: { text: string }) {
-  const parts = text.split('**');
   return (
     <>
-      {parts.map((part, i) =>
-        i % 2 === 1 ? (
-          <strong key={i} className="hl">
-            {part}
-          </strong>
-        ) : (
-          part
-        ),
-      )}
+      {text.split(TOKEN).map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <strong key={i} className="hl">
+              {part.slice(2, -2)}
+            </strong>
+          );
+        }
+        if (part.startsWith('[[') && part.endsWith(']]')) {
+          return (
+            <strong key={i} className="kw">
+              {part.slice(2, -2)}
+            </strong>
+          );
+        }
+        return part;
+      })}
     </>
   );
 }

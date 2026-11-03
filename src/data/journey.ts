@@ -4,8 +4,9 @@
 // nothing here is hand-placed.
 //
 // Copy conventions: title = the role or the thing built; subtitle =
-// "Company · context"; stories ≤ 35 words in resume voice with ONE **bold**
-// highlight; numbers a recruiter should skim go in `metric`.
+// "Company · context"; stories in resume voice with ONE **outcome** highlight
+// and [[keywords]] (tech, numbers, scope) a recruiter scans for; the headline
+// number goes in `metric`. Extra highlights for big cards go in `details`.
 // ---------------------------------------------------------------------------
 
 export type Skill = {
@@ -65,7 +66,7 @@ export const profile = {
   linkedin: 'https://linkedin.com/in/levi-q-le',
   resumePdf: '/resume.pdf',
   intro:
-    'A generalist trusted to drop into whatever matters most: data platforms, air-gapped delivery, and now **self-hosted LLM inference on Kubernetes**. I led Data Fabric, the data platform central to Raft’s $450M acquisition by Leonardo DRS.',
+    'A generalist trusted to drop into whatever matters most: [[data platforms]], [[air-gapped delivery]], and now **self-hosted LLM inference on Kubernetes**. I led [[Data Fabric]], the data platform central to Raft’s [[$450M acquisition]] by Leonardo DRS.',
   /** The hero proof strip: four facts a recruiter should leave with. */
   stats: [
     { value: '$450M', label: 'acquisition, Data Fabric at its center' },
@@ -89,7 +90,7 @@ export const chapters: Chapter[] = [
         title: 'Software Engineering Intern, Twice',
         subtitle: 'JPMorgan Chase · Tampa, FL',
         story:
-          'Built a React + Spring Boot labeling app that produced **human-labeled training data for an OCR model**, then was invited back to ship an Integrated Receivables client-onboarding app that version-tracks every configuration file.',
+          'Built a [[React + Spring Boot]] labeling app that produced **human-labeled training data for an OCR model**, then was invited back to ship an [[Integrated Receivables]] client-onboarding app that [[version-tracks every configuration file]].',
         kind: 'job',
         skills: [
           { id: 'javascript', label: 'JavaScript', icon: 'javascript' },
@@ -105,7 +106,7 @@ export const chapters: Chapter[] = [
         title: 'B.S., IT Software Development',
         subtitle: 'Florida International University · Miami, FL',
         story:
-          'Graduated **magna cum laude** with a second focus in cybersecurity and two JPMorgan Chase internships already done.',
+          'Graduated **magna cum laude** with a second focus in [[cybersecurity]] and [[two JPMorgan Chase internships]] already done.',
         kind: 'education',
         celebrate: true,
         skills: [{ id: 'sql', label: 'SQL', icon: 'sql' }],
@@ -125,7 +126,7 @@ export const chapters: Chapter[] = [
         title: 'Software Engineer',
         subtitle: 'JPMorgan Chase · Billing & Pricing platform',
         story:
-          'Went full-time building **Java/Spring Boot REST services** for client charge processing, load-tested with JMeter and BlazeMeter. Single-handedly built two messaging utilities, for **Kafka and IBM MQ**, to read and publish messages.',
+          'Went full-time building **Java/Spring Boot REST services** for [[client charge processing]], load-tested with [[JMeter and BlazeMeter]]. [[Single-handedly]] built two messaging utilities, for [[Kafka and IBM MQ]], to read and publish messages.',
         kind: 'job',
         skills: [
           { id: 'spring', label: 'Spring Boot', icon: 'springboot' },
@@ -141,7 +142,7 @@ export const chapters: Chapter[] = [
         title: 'Service Container Platform',
         subtitle: 'JPMorgan Chase · Payments infrastructure',
         story:
-          'Built four utilities for a shared payments library **adopted by ~30 teams org-wide**: messaging toolkit, failure handler, retry, and validation suite. Also helped containerize ~10 legacy Java apps and move them onto the bank’s internal Kubernetes platform.',
+          'Built four utilities for a shared payments library **adopted by ~30 teams org-wide**: [[messaging toolkit, failure handler, retry, and validation suite]]. Also helped [[containerize ~10 legacy Java apps]] and move them onto the bank’s internal [[Kubernetes]] platform.',
         metric: { value: '~30', label: 'teams adopted the shared library' },
         kind: 'launch',
         skills: [
@@ -156,7 +157,7 @@ export const chapters: Chapter[] = [
         title: 'Fast-Tracked',
         subtitle: 'JPMorgan Chase · Software Engineer Program',
         story:
-          'Graduated the bank’s two-year program in 18 months, **six months early**, while mentoring four junior engineers.',
+          'Graduated the bank’s two-year program in [[18 months]], **six months early**, while [[mentoring four junior engineers]].',
         metric: { value: '18 mo', label: 'to finish a two-year program' },
         kind: 'achievement',
         celebrate: true,
@@ -176,7 +177,7 @@ export const chapters: Chapter[] = [
         title: 'Associate Software Engineer',
         subtitle: 'Raft · Remote · Employee #62',
         story:
-          'Joined as employee #62 (now 350+) and started building **Data Fabric from scratch**: Kubernetes Operators and CRDs (Kubebuilder) for data ingestion, plus a Next.js/TypeScript web app on a Go REST service with Cypress end-to-end tests.',
+          'Joined as [[employee #62]] (now 350+) and started building **Data Fabric from scratch**: [[Kubernetes Operators and CRDs]] (Kubebuilder) for data ingestion, plus a [[Next.js/TypeScript]] web app on a [[Go]] REST service with [[Cypress]] end-to-end tests.',
         metric: { value: '#62', label: 'employee number; Raft is now 350+' },
         kind: 'job',
         skills: [
@@ -191,7 +192,7 @@ export const chapters: Chapter[] = [
         title: 'The Live Demo',
         subtitle: 'Raft · Multi-million-dollar contract win',
         story:
-          'Helped **win a multi-million-dollar contract** by building a customer-requested feature live during the executive demo. Repeatedly picked for the hackathon teams behind Raft’s contract wins, and the customer’s engineering counterpart, turning their requirements into technical designs.',
+          'Helped **win a multi-million-dollar contract** by [[building a customer-requested feature live]] during the executive demo. Repeatedly picked for the [[hackathon teams behind Raft’s contract wins]], and the [[customer’s engineering counterpart]], turning their requirements into technical designs.',
         kind: 'achievement',
         celebrate: true,
         skills: [
@@ -205,7 +206,7 @@ export const chapters: Chapter[] = [
         title: 'Air-Gap Specialist',
         subtitle: 'High-security delivery · Active TS/SCI',
         story:
-          'Go-to engineer for **air-gapped customer networks**: lead deployments, rescuing several ahead of scheduled demos, and debug production on-site in restricted facilities with no internet or standard tooling.',
+          'Go-to engineer for **air-gapped customer networks**: [[lead deployments]], [[rescuing several ahead of scheduled demos]], and [[debug production on-site]] in restricted facilities with no internet or standard tooling.',
         kind: 'achievement',
         skills: [
           { id: 'linux', label: 'Linux', icon: 'linux' },
@@ -220,7 +221,7 @@ export const chapters: Chapter[] = [
         title: 'Associate → Staff → Team Lead',
         subtitle: 'Raft · Skipped Senior · Rebuilt the Data Fabric team',
         story:
-          'Promoted **directly from Associate to Staff in one year**, skipping Senior, with multiple spot bonuses. When a reorg left Data Fabric with ~3 engineers, stepped up as team lead, interviewing and mentoring most of the hires that **rebuilt it to 12**.',
+          'Promoted **directly from Associate to Staff in one year**, skipping Senior, with multiple spot bonuses. When a reorg left Data Fabric with ~3 engineers, [[stepped up as team lead]], interviewing and mentoring most of the hires that [[rebuilt it to 12]].',
         metric: { value: '3 → 12', label: 'engineers: team rebuilt after a reorg' },
         kind: 'achievement',
         celebrate: true,
@@ -240,11 +241,11 @@ export const chapters: Chapter[] = [
         title: 'Data Fabric: “Google over your data”',
         subtitle: 'Raft · Tech lead, 12-engineer cross-functional team',
         story:
-          '**Hundreds of users** search thousands of datasets across 200+ sources, seeing only the rows and columns their access allows. Led it end to end, from data engineering to DevSecOps: onboarded ~10 data vendors and deployed to air-gapped networks.',
+          '**Hundreds of users** search thousands of datasets across [[200+ sources]], seeing only the rows and columns their access allows. [[Led it end to end]], from data engineering to DevSecOps: onboarded [[~10 data vendors]] and deployed to [[air-gapped networks]].',
         details: [
-          'Built **ABAC** row- and column-level access control with custom Trino and Superset plugins and OPA rules.',
-          'Wrote a **dynamic Avro Kafka producer** that infers schemas at consume time, so users run SQL over Kafka with no per-topic setup, plus the internal engineering blog post on it.',
-          'Integrated Strimzi Kafka, Trino, Delta Lake, MinIO, Keycloak, Superset, JupyterHub and cert-manager into **one self-service stack**.',
+          'Built **ABAC** row- and column-level access control with [[custom Trino and Superset plugins]] and [[OPA]] rules.',
+          'Wrote a **dynamic Avro Kafka producer** that infers schemas at consume time, so users [[run SQL over Kafka]] with no per-topic setup, plus the [[internal engineering blog post]] on it.',
+          'Integrated [[Strimzi Kafka, Trino, Delta Lake, MinIO, Keycloak, Superset, JupyterHub and cert-manager]] into **one self-service stack**.',
         ],
         metric: { value: '200+', label: 'data sources, one search' },
         kind: 'launch',
@@ -264,10 +265,10 @@ export const chapters: Chapter[] = [
         title: 'CBC2: Real-Time Data Pipeline',
         subtitle: 'Raft · Government customer · ~6-engineer team',
         story:
-          'Grew out of a hackathon win: a real-time pipeline turning **live field data into objects on an operational map**, streamed to the browser over WebSockets. Designed Raft’s initial architecture at kickoff while still leading Data Fabric.',
+          'Grew out of a [[hackathon win]]: a real-time pipeline turning **live field data into objects on an operational map**, streamed to the browser over [[WebSockets]]. [[Designed Raft’s initial architecture]] at kickoff while still leading Data Fabric.',
         details: [
-          'Built the **ingest, validation and enrichment** stages with Kafka Streams in Scala.',
-          'Met the contract’s **10,000 messages/sec** requirement by optimizing every stage and redesigning the bottleneck components.',
+          'Built the **ingest, validation and enrichment** stages with [[Kafka Streams in Scala]].',
+          'Met the contract’s **10,000 messages/sec** requirement by optimizing every stage and [[redesigning the bottleneck components]].',
         ],
         metric: { value: '10,000', label: 'messages/sec, contract requirement met' },
         kind: 'launch',
@@ -283,9 +284,9 @@ export const chapters: Chapter[] = [
         title: 'Platform Multiplier',
         subtitle: 'Raft · Org-wide CI/CD for 30+ applications',
         story:
-          'Onboarded **~30 teams** to the org-wide CI/CD flow through Backstage, writing custom plugins that pull more platform data into it, so each team gets one view of project status, security posture, and compliance readiness. Also automated previously manual deployment steps.',
+          'Onboarded **~30 teams** to the org-wide CI/CD flow through [[Backstage]], writing [[custom plugins]] that pull more platform data into it, so each team gets [[one view of project status, security posture, and compliance readiness]]. Also [[automated previously manual deployment steps]].',
         details: [
-          'Led **pipeline observability**: integrated GitLab APIs, S3, and Superset to publish metrics on jobs, security, and operations.',
+          'Led **pipeline observability**: integrated [[GitLab APIs, S3, and Superset]] to publish metrics on jobs, security, and operations.',
         ],
         metric: { value: '~30', label: 'teams onboarded to one CI/CD flow' },
         kind: 'launch',
@@ -300,7 +301,7 @@ export const chapters: Chapter[] = [
         title: 'CKAD Certified',
         subtitle: 'Kubernetes · Security+ (SY0-701)',
         story:
-          'Earned the **Certified Kubernetes Application Developer** credential, alongside CompTIA Security+ (SY0-701), backing the platform and security work with certifications.',
+          'Earned the **Certified Kubernetes Application Developer** credential, alongside [[CompTIA Security+ (SY0-701)]], backing the platform and security work with certifications.',
         kind: 'achievement',
         celebrate: true,
       },
@@ -318,10 +319,10 @@ export const chapters: Chapter[] = [
         title: 'Vulnerability Assessment Platform',
         subtitle: 'Raft · New contract · Full-stack',
         story:
-          'Moved to a new contract and jumped into its web app, where security analysts review releases carrying **tens of thousands of CVE findings**, with automated risk scoring and an auditable accept/reject record.',
+          'Moved to a new contract and jumped into its web app, where security analysts review releases carrying **tens of thousands of CVE findings**, with [[automated risk scoring]] and an [[auditable accept/reject record]].',
         details: [
-          'Go/MongoDB backend pulls and aggregates CVE findings for every Docker image in a release, **replacing hand-compiled scanner reports**.',
-          'TypeScript/React frontend: dashboards, drill-down views, and CVE justification workflows.',
+          '[[Go/MongoDB]] backend pulls and aggregates CVE findings for every Docker image in a release, **replacing hand-compiled scanner reports**.',
+          '[[TypeScript/React]] frontend: dashboards, drill-down views, and CVE justification workflows.',
         ],
         metric: { value: '5', label: 'analysts review each release' },
         kind: 'launch',
@@ -335,10 +336,10 @@ export const chapters: Chapter[] = [
         title: 'Took the Lead on AI',
         subtitle: 'Raft · AI initiative lead',
         story:
-          'The org asked teams to bring AI into their apps and workflows, with no playbook. **Took the lead** and built the proofs of concept; the flagship drafts CVE justifications from a knowledge base for human review.',
+          'The org asked teams to bring AI into their apps and workflows, with [[no playbook]]. **Took the lead** and built the proofs of concept; the flagship [[drafts CVE justifications from a knowledge base]] for human review.',
         details: [
-          'Multi-agent workflow on **fully self-hosted models** (Ollama, Gemma): one agent drafts from analyst-approved precedent, another curates the knowledge base.',
-          'Attacks a ~5-minute-per-CVE research burden. **No customer data leaves** the environment, and a human analyst approves every draft.',
+          '[[Multi-agent workflow]] on **fully self-hosted models** ([[Ollama, Gemma]]): one agent drafts from analyst-approved precedent, another curates the knowledge base.',
+          'Attacks a [[~5-minute-per-CVE]] research burden. **No customer data leaves** the environment, and a [[human analyst approves every draft]].',
         ],
         kind: 'launch',
         skills: [
@@ -352,7 +353,7 @@ export const chapters: Chapter[] = [
         title: 'The $450M Acquisition',
         subtitle: 'Leonardo DRS · Announced July 2026',
         story:
-          'The payoff: **Data Fabric** anchors the multi-domain data-fusion capability cited in Leonardo DRS’s $450M acquisition of Raft.',
+          'The payoff: **Data Fabric** anchors the multi-domain data-fusion capability cited in Leonardo DRS’s [[$450M acquisition]] of Raft.',
         metric: { value: '$450M', label: 'acquisition of Raft' },
         kind: 'achievement',
         celebrate: true,
@@ -365,12 +366,12 @@ export const chapters: Chapter[] = [
         title: 'AI Inference Platform Lead',
         subtitle: 'Raft · Self-hosted LLMs on EKS GPUs',
         story:
-          'With no inference expertise on the team, **switched in to lead and build the self-hosted LLM platform** end to end: GPU model serving on EKS, an OpenAI-compatible gateway, chat, and coding assistants for IL4 developers.',
+          'With [[no inference expertise on the team]], **switched in to lead and build the self-hosted LLM platform** end to end: [[GPU model serving on EKS]], an [[OpenAI-compatible gateway]], chat, and [[coding assistants for IL4 developers]].',
         details: [
-          'Serves models on on-demand **NVIDIA L4** EKS nodes within GPU-allocation and budget limits.',
-          'Moved from Muse Glimmer (30B dense, with speculative decoding) to **Flint (40B MoE, 4-bit)** for faster decoding, with an FP8 KV cache to fit L4 memory.',
-          'Rolled out **Open WebUI, LiteLLM, and OpenCode**, with RBAC and SSO for every new AI tool.',
-          'Serving on Ollama under environment constraints, with a **vLLM migration** ahead, rehearsed in a homelab vLLM-on-Kubernetes stack and published GPU benchmarks.',
+          'Serves models on on-demand **NVIDIA L4** EKS nodes within [[GPU-allocation and budget limits]].',
+          'Moved from [[Muse Glimmer (30B dense, with speculative decoding)]] to **Flint (40B MoE, 4-bit)** for [[faster decoding]], with an [[FP8 KV cache]] to fit L4 memory.',
+          'Rolled out **Open WebUI, LiteLLM, and OpenCode**, with [[RBAC and SSO]] for every new AI tool.',
+          'Serving on [[Ollama]] under environment constraints, with a **vLLM migration** ahead, rehearsed in a [[homelab vLLM-on-Kubernetes stack]] and [[published GPU benchmarks]].',
         ],
         kind: 'launch',
         skills: [
@@ -390,7 +391,7 @@ export const sideQuests: SideQuest[] = [
     date: '2024-06',
     title: 'Side Quest: Tea Shop Automation',
     story:
-      'Full-stack ops platform for a local tea shop, in production at up to 100 orders/day: Square POS linked to standardized recipes, a self-service kiosk, and a live prep queue. **New-hire ramp-up: a month → a few days.**',
+      'Full-stack ops platform for a local tea shop, in production at [[up to 100 orders/day]]: [[Square POS]] linked to standardized recipes, a [[self-service kiosk]], and a [[live prep queue]]. **New-hire ramp-up: a month → a few days.**',
     metric: { value: '100/day', label: 'orders in production' },
   },
   {
@@ -398,15 +399,14 @@ export const sideQuests: SideQuest[] = [
     date: '2025-11',
     title: 'Side Quest: AI Health Coach',
     story:
-      'Multi-agent Fitbit assistant on the Google Agent Development Kit and OpenAI API: **nutrition, exercise, and sleep agents** collaborate on Fitbit data, and users chat with each to log meals and workouts.',
+      '[[Multi-agent]] Fitbit assistant on the [[Google Agent Development Kit]] and [[OpenAI API]]: **nutrition, exercise, and sleep agents** collaborate on Fitbit data, and users chat with each to log meals and workouts.',
   },
   {
     id: 'inference-lab',
     date: '2026-08',
     title: 'Side Quest: AI Inference Lab',
     story:
-      'A homelab rehearsing production LLM serving: **vLLM behind KServe, llm-d, and an Envoy AI Gateway** on Kubernetes, plus real-GPU benchmarks on rented cards, written up in the Playground.',
-    metric: { value: '64 vs 16', label: 'requests within SLO: MoE vs dense, one GPU' },
+      'A homelab rehearsing production LLM serving: **vLLM behind KServe, llm-d, and an Envoy AI Gateway** on Kubernetes, plus [[real-GPU benchmarks]] on rented cards, written up in the [[Playground]].',
     link: { href: '/playground/', label: 'Open the Playground →' },
   },
 ];

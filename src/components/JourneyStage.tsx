@@ -42,10 +42,11 @@ const CHAR_W = 210;
 const CHAR_HEAD = 27;
 const CHAR_FEET = 213;
 
-// Cards are signposts read AHEAD of him, never through him. A card is active
-// only while its left edge is at least CHAR_CLEAR right of his centre (his
-// visible half-width plus air), and it is in its ideal reading spot when it
-// sits CARD_LEAD ahead. The stage stops once the last card reaches that spot.
+// Cards are signposts. A card opens as he approaches and stays open while he
+// walks under it, closing only once its right edge is CHAR_CLEAR behind his
+// centre (his visible half-width plus air), i.e. he has walked past it. It is
+// in its ideal reading spot when it sits CARD_LEAD ahead. The stage stops once
+// the last card reaches that spot.
 const CHAR_CLEAR = 64;
 const CARD_LEAD = 300;
 const FINALE_LEAD_MOBILE = 30;
@@ -237,7 +238,7 @@ export default function JourneyStage({
       };
       measureCards();
 
-      // Desktop: the first card whose left edge is still clear ahead of him.
+      // Desktop: the first card he has not yet walked past.
       // Mobile: the post he is standing at (the card itself is in the panel).
       const activeAt = (cx: number) => {
         const ms = layout.milestones;
@@ -254,7 +255,7 @@ export default function JourneyStage({
           return bestD < 420 * S ? best : -1;
         }
         for (let i = 0; i < ms.length; i++) {
-          if (ms[i].x - (halfW[i] ?? 168 * S) >= cx + charClear) {
+          if (ms[i].x + (halfW[i] ?? 168 * S) >= cx - charClear) {
             return ms[i].x - cx < window.innerWidth ? i : -1;
           }
         }
