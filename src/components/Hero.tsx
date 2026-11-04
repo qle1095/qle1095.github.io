@@ -34,10 +34,7 @@ function NowCard({ placement }: { placement: 'side' | 'inline' }) {
   return (
     <aside className={`hero-now hero-now-${placement}`} aria-labelledby={titleId}>
       <section className="hero-now-work">
-        <p className="hero-now-kicker">
-          <span className="hero-now-dot" aria-hidden="true" />
-          Now, at work
-        </p>
+        <p className="hero-now-label">now: at work</p>
         <h2 className="hero-now-title" id={titleId}>
           Leading the <span className="hl">self-hosted LLM inference platform</span>
         </h2>
@@ -53,7 +50,7 @@ function NowCard({ placement }: { placement: 'side' | 'inline' }) {
 
       <section className="hero-now-lab">
         <div className="hero-now-head">
-          <p className="hero-now-label">Home lab: vLLM on Kubernetes</p>
+          <p className="hero-now-label">home lab: vLLM on Kubernetes</p>
           <a className="hero-now-cta" href="/playground/">
             All benchmarks
             <ArrowRight {...iconSize(14)} strokeWidth={2.2} aria-hidden="true" />
@@ -67,7 +64,7 @@ function NowCard({ placement }: { placement: 'side' | 'inline' }) {
           {playground.slice(0, 2).map((x) => (
             <li key={x.id}>
               <a href={x.href}>
-                <span className="hero-now-item-title">{x.title}</span>
+                <span className="hero-now-item-title">{x.name}</span>
                 <time dateTime={x.date}>{formatExperimentDate(x.date)}</time>
               </a>
             </li>
@@ -76,7 +73,7 @@ function NowCard({ placement }: { placement: 'side' | 'inline' }) {
       </section>
 
       <section className="hero-now-learn">
-        <p className="hero-now-label">How I learned it: a free course I wrote</p>
+        <p className="hero-now-label">how I learned it: a free course I wrote</p>
         <ul className="hero-now-course">
           {COURSE.map((c) => (
             <li key={c.level}>
